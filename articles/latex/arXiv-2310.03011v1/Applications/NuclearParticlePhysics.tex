@@ -1,0 +1,216 @@
+%!TEX root = ../main.tex
+
+
+\section{Nuclear and particle physics  }\label{appl:NuclearParticle}
+
+\begin{refsection}
+    
+Simulating nuclear and particle physics appears an inherently quantum problem. There have been proposals to use quantum computers to accelerate simulations of quantum field theories, nuclear structure, neutrino physics, and quantum gravity~\cite{davoudi2022quantumHEP}. In this section, we will focus on the simulation of quantum field theories and nuclear structure, as these have received the most attention in the literature to date and are the closest to having end-to-end fault-tolerant resource estimates available. The building blocks of quantum algorithms for data analysis in high energy physics~\cite{delgado2022HEPdataanalysis} can be found in the sections on \hyperref[prim:VQA]{variational quantum algorithms} and \hyperref[appl:ClassicalML]{machine learning}. For existing reviews of quantum computing for nuclear and particle physics, we direct the reader to~\cite{preskill2018SimQFT,Banuls2020SimulatingLatticeGaugeTheoryReviewEurophys,davoudi2022quantumHEP,funcke2023LatticeReview}.
+
+
+
+
+
+\localtableofcontents
+
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+
+\end{refsection}
+
+
+\newpage
+
+
+\begin{refsection}
+
+\subsection{Quantum field theories}\label{appl:QuantumFieldTheories}
+
+\subsubsection*{Overview}
+We seek the static and dynamic properties of quantum field theories, specifically gauge field theories and scalar field theories. Gauge field theories describe the interactions between matter and/or gauge degrees of freedom, and can be classified by their symmetry groups, such as U$(1)$ (describing quantum electrodynamics), SU$(2)$ (the weak interaction), and SU$(3)$ (quantum chromodynamics). Scalar field theories describe interactions between scalar fields, such as the Higgs field or $\phi^4$ theory. 
+
+Interacting quantum field theories are typically not analytically solvable, and techniques such as perturbation theory are only accurate in some parameter regimes. For example, low energies of quantum chromodynamics (QCD), which is the regime of quark confinement and hadron formation, cannot be treated perturbatively. As such, complex scattering processes at particle accelerators are currently treated with a combination of first-principles calculations and approximate phenomenological methods.
+
+To tackle quantum field theories numerically from first principles, lattice field theory is employed. However, lattice field theory is computationally expensive on classical devices (either due to the size of the Hilbert space in Hamiltonian formulations, or due to the sign-problem present in Lagrangian formulations tackled via Monte Carlo methods). As such, there have been a number of proposals to use quantum computers for calculating the static and dynamic properties of lattice field theories. For further background see~\cite{preskill2018SimQFT, davoudi2022quantumHEP, meurice2022TensorLatticeFieldTheory} and references therein. 
+
+
+
+
+\subsubsection*{Actual end-to-end problem(s) solved}
+We focus on the case of lattice gauge field theories in the Hamiltonian formulation, which explicitly separates temporal and spatial degrees of freedom~\cite{kogut1979LatticeGaugeTheory}. We discretize $d$-dimensional space using an $L^d$ lattice (noncubic lattices can also be used). Matter degrees of freedom (e.g.~fermions, quarks) are placed on the vertices of the lattice. Gauge degrees of freedom (e.g.~the value of the electromagnetic field) are placed on the links between lattice sites. Dynamical simulations proceed by initializing the system in a desired state~\cite{bagherimehrab2022InitialStatePrepQFT}, performing time evolution under the Hamiltonian, and measuring relevant observables. Static simulations aim to prepare a state of interest, such as the ground state of a collection of quarks representing a composite hadron, the binding energy of which can then be measured.
+
+The measured observable values may be incorporated as part of a larger computation; for example, accurate scattering matrix elements may be used in a phenomenological model of complex scattering processes studied at particle accelerators~\cite{gehrmann2022QCDatLHCapprox}.
+
+
+
+\subsubsection*{Dominant resource cost/complexity}
+We will focus predominantly on the simulation of dynamics, as the majority of studies to date have considered this application. We have $N=L^d$ lattice sites. In the standard formulation, we allocate one qubit per fermion (or antifermion) type per lattice site. Each gauge degree of freedom (one in U$(1)$, three in SU$(2)$, eight in SU$(3)$) requires its own register associated with each edge between lattice sites. The values of the gauge degrees of freedom are encoded in binary, up to a maximum cutoff value $\Lambda$, so the corresponding register requires $\log(\Lambda)$ qubits. It was shown in~\cite{tong2021ProvablyAccurateGaugeTheoryBosonicSystems} that for time evolution performed with fixed lattice spacing, the cutoff can be set as $\Lambda = \Lambda_0 + \bigOt{T \mathrm{polylog}(N/\epsilon)}$, where $\Lambda_0$ is the maximum initial value of the gauge fields, $T$ is the time evolution duration, and $\epsilon$ is the resulting error in the final state. Hence, the overall number of qubits required to store the state of the system scales as
+\begin{equation}
+    \bigO{L^d \log\left( \Lambda_0 + T \mathrm{polylog}\left(\frac{L^d}{\epsilon} \right) \right)}.
+\end{equation}
+
+Algorithms for implementing time evolution under lattice gauge field theory Hamiltonians are presented in~\cite{tong2021ProvablyAccurateGaugeTheoryBosonicSystems,shaw2020QuantumAlgorithmsSchwinger,kan2021lattice,Rajput2022HybridizedMF}. It is necessary to maintain gauge-invariance during the simulation, which can be achieved either by the choice of formulation, or by actively protecting symmetries. As an example of the former option, one can calculate the desired Hamiltonian matrix elements on the fly using Clebsch--Gordon coefficients~\cite{byrnes2006LatticeGaugeTheory}, but this is expensive in terms of elementary quantum operations~\cite{kan2021lattice}. The algorithm of ~\cite{kan2021lattice} yielded an asymptotic complexity of approximately 
+\begin{equation}\label{Eq:LGTscaling}
+    \bigOt{\frac{(T L^3)^{3/2} \Lambda}{\epsilon^{1/2}}}
+\end{equation}
+for performing time evolution for time $T$ to accuracy $\epsilon$.
+
+
+
+\subsubsection*{Existing error corrected resource estimates}
+The number of T gates required to simulate instances of the lattice Schwinger model (U$(1)$ lattice gauge field theory in $d=1$ with both matter and gauge degrees of freedom) was studied in~\cite{shaw2020QuantumAlgorithmsSchwinger}. That work considered the resources required to perform \hyperref[prim:HamiltonianSimulation]{Trotterized time evolution} and estimate the electron-positron pair density. The most complex simulations analyzed (64 lattice sites, cutoff of $\Lambda=8$) required $5 \times 10^{13}$ $T$ gates per shot, and $333$ logical qubits. Such a circuit would need to be repeated $\bigO{1/\epsilon^2}$ times to estimate the pair density to accuracy $\epsilon$. Note that a simulation of the 64-site lattice Schwinger model with $\Lambda=8$ is well within the range of classical simulations~\cite{felser2020TensorNetworkLGT2D,magnifico2021TensorNetworkLGT3D}.
+
+Ref.~\cite{kan2021lattice} performed similar resource estimates for the simulation of dynamical quantities in U$(1)$, SU$(2)$, and SU$(3)$ lattice gauge field theory for $d=3$. We present a selection of the resource estimates in Table~\ref{tab:QFTestimates}. There are large logarithmic and constant factors hidden by the big-$\bigO{\cdot}$ scaling in Eq.~(\ref{Eq:LGTscaling}); for simulating heavy ion collisions, the asymptotic expression yields estimates of $10^{15.5}$ gates, considerably smaller than the SU$(3)$ estimate in Table~\ref{tab:QFTestimates}. The large constant factors present in these resource estimates stem from the use of quantum arithmetic (for example, constituting 99.998\% of the gate count in the hadronic tensor calculation~\cite{kan2021lattice}), which is particularly prevalent in the SU$(2)$ and SU$(3)$ simulations. Nevertheless, any implementation scaling as $\Omega(TL^3 \Lambda)$ already pays a factor of $10^{10}$ for $T=L=\Lambda=100$, highlighting the potentially large resource counts of simulating quantum field theories. In addition, these resource estimates only consider the cost of time evolution, not the additional overheads of initial state preparation and observable estimation. 
+
+
+\begin{table}[!h]
+    \centering
+    \begin{adjustbox}{max width=\textwidth}
+    \begin{tabular}{c|c|c|c|c}
+        
+        \textbf{Simulation} & \textbf{Parameters} & \textbf{QFT} & \textbf{\# Logical qubits} & \textbf{\# $T$ gates} \\ \hline \hline
+        Computing transport coefficients & $L=10, T=1$ & U$(1)$ & $10^4$ & $10^{17}$  \\ 
+        (relevant to the study of quark-gluon plasmas) & $\Lambda=10, \epsilon=10^{-8}$ & SU$(3)$ & $10^5$ &  $10^{49}$ \\ \hline
+        Simulation of & $L=100, T=10$ & U$(1)$ & $10^7$ & $10^{23}$  \\ 
+        heavy ion collisions & $\Lambda=10, \epsilon=10^{-8}$ & SU$(3)$ & $10^8$ &  $10^{55}$ \\ \hline
+        Computing hadronic tensor of the proton & \makecell{$L=20, T=8000$ \\ $\Lambda=10, \epsilon=10^{-8}$} & SU$(3)$ & $10^6$ & $10^{56}$  \\ 
+    \end{tabular}
+    \end{adjustbox}
+    \caption{Resource estimates from~\cite{kan2021lattice} for simulation of a range of problems. The estimates consider time evolution for time $T$ of an $L \times L \times L$ lattice, using a cutoff of $\Lambda$ for the gauge fields. The precision in the evolution is bounded by $\epsilon$. }
+    \label{tab:QFTestimates}
+\end{table}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Caveats}
+Discretization of the continuous field theory to the lattice setting introduces a number of nuances that are also present in classical approaches, but must be considered afresh in quantum calculations. As discussed in~\cite{mathis2020SimulationLatticeGauge}, discretization of the fermion field breaks the Lorentz invariance of the fermion kinetic term, which introduces unphysical additional flavors of fermions (known as the fermion doubling problem). This issue can be mitigated in several established ways, each with their own merits and drawbacks for quantum simulation. It is also necessary to carefully track other errors resulting from discretization and ensure that these vanish when scaling and extrapolating to the continuum limit~\cite{jordan2012QuantumFieldTheory}.
+
+As noted in~\cite[Sec. 6b]{davoudi2022quantumHEP}  and~\cite{ciavarella2021TrailheadLatticeGaugeTheory}, there are a number of possible bases that can be used for the gauge degrees of freedom, and it is currently unclear which choice is optimal for quantum simulation.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Comparable classical complexity and challenging instance sizes}
+The end-to-end scattering processes typically considered at particle accelerators are too complex to be solved from first principles and are tackled using a range of approximate techniques~\cite{gehrmann2022QCDatLHCapprox}. These calculations often include parameters obtained from first-principles lattice gauge theory calculations on simpler systems, and they typically proceed through a Lagrangian formulation, rather than a Hamiltonian formulation. This leads to Monte Carlo sampling of a path integral in Euclidean spacetime, the application of which to dynamical problems or static problems with high fermion density is limited by the fermionic sign problem. For example, it is challenging to compute parton distribution functions with classical methods~\cite{davoudi2022quantumHEP}. Nevertheless, classical approaches have been very effective for static problems with lower fermion density; for a review of current state-of-the-art calculations and limitations see~\cite{joo2019LatticeQCDReview} and its companion whitepapers referenced therein.
+
+Recent work has investigated the Hamiltonian formulation of lattice gauge theories (LGTs) using tensor network methods; see, for example,~\cite{felser2020TensorNetworkLGT2D} ($d=2, L=16$, U$(1)$ LGT with gauge field cutoff $\Lambda=1$) and~\cite{magnifico2021TensorNetworkLGT3D} ($d=3, L=8$, U$(1)$ LGT with gauge field cutoff $\Lambda=1$). Like quantum simulations, tensor network approaches are sign-problem free and so may be of interest in regimes out of reach of conventional Monte Carlo--based approaches.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Speedup}
+For simulations with a sign problem, classical Monte Carlo methods are exponentially costly in system size. In addition, it was observed that the bond dimensions required for tensor network approaches increase rapidly with system size~\cite{magnifico2021TensorNetworkLGT3D}, suggesting the potential for exponential quantum speedups for dynamical problems. This suggestion is reinforced by the BQP-completeness of the simulation of certain field theoretic processes~\cite{jordan2018bqpcompletenessofQFT}. Nevertheless, the constant factors for quantum simulations of LGTs are currently high, and we require the ability to efficiently prepare initial states of interest. 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\subsubsection*{NISQ implementation}
+There has been significant research on implementing simplified models of LGTs using analog quantum simulators such as cold atoms or trapped ions; see for example~\cite{georgescu2014qSim, davoudi2022quantumHEP} and references therein. There have also been works applying \hyperref[prim:VQA]{variational algorithms} to LGTs, such as~\cite{kokail2019VariationalLatticeSchwinger,atas2021VariationalSU2,liu2022VariationalFieldTheorySim}.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\subsubsection*{Outlook}
+Investigations into how quantum computers can be used to complement classical methods for simulating lattice field theories are still in their initial stages. While quantum computers can, in principle, efficiently simulate the complex scattering experiments performed in particle accelerators, the resources required to do so would be astronomical using currently known techniques. Future work must determine the best targets for quantum simulations, and work to reduce asymptotic scaling factors and constant prefactors. In particular, the qubit encoding (currently scaling as $\bigO{L^d}$ qubits for a lattice in $d$ spatial dimensions with each dimension having $L$ sites) means that a large number of logical qubits will likely be required for calculations of interest where, as illustrated by examples above, we may consider $L = 10$--$100$ to challenge classical approaches.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+
+\end{refsection}
+
+
+
+
+
+
+
+
+
+
+\newpage
+
+
+\begin{refsection}
+
+\subsection{Nuclear structure problem}\label{appl:NuclearStructure}
+
+
+\subsubsection*{Overview}
+The structure of nuclei can be approximately described using the shell model (see~\cite{dean2007BeyondNuclearShell} for an overview), a phenomenological model with parameters fitted to experimental observations. However, high accuracy descriptions of nuclear structure, exotic nuclei, accurate scattering cross sections, or non-equilibrium phenomena require a first-principles treatment. Describing the properties of nuclei from first principles (e.g.,~lattice quantum chromodynamics simulations) is beyond the reach of analytic and current computational capabilities for all but the simplest nuclei~\cite{davoudi2022quantumHEP}. Nevertheless, we can integrate out the short-range physics to obtain effective field theories (EFTs) that describe the interactions of nucleons. The prototypical example is chiral effective field theory, which describes the interactions of nucleons and virtual pions. The parameters of the EFT can be inferred from experiments (in the future it may also be possible to determine the parameters directly from lattice QCD calculations), resulting in a many-body Hamiltonian that describes the formation and potential decay of nuclei.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Actual end-to-end problem(s) solved}
+The EFT provides a many-body Hamiltonian describing how nucleons interact. Classical techniques to find the eigenstates and eigenenergies of this Hamiltonian include coordinate-space methods (e.g.,~quantum Monte Carlo methods) as well as projecting onto a basis set and using techniques such as perturbation theory or coupled cluster~\cite{hergert2020AbInitioNuclear}. In this sense, the problem is similar to the \hyperref[appl:ElectronicStructure]{electronic structure problem} in quantum chemistry. A common problem is to prepare the ground state of a collection of nucleons, in order to compute nuclear binding energies and determine if a given nucleus is stable (for example, determining the long lifetime of $^{14}$C~\cite{maris2011Carbon14Lifetime, hagen2014CoupledClusterNuclear}). Simulations can also be used to calculate scattering cross sections, which are used to analyze experiments on nucleus-neutrino scattering~\cite{roggero2020NeutrinoNucleus}, beta decay, and nuclear reactions. Reactions such as nuclear fission and nuclear fusion can also be studied using explicitly time-dependent approaches~\cite{bender2020NuclearFission}, although these have higher computational costs than static calculations. Simulating both fusion and fission reactions has a number of use cases, such as an improved understanding of nuclear astrophysics, where reactions commonly occur at energies too high or too low to be replicated in experiments~\cite{navratil2022NuclearReaction}. 
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Dominant resource cost/complexity}
+The quantum computing approaches to date have ported much of the machinery from quantum algorithms for the \hyperref[appl:ElectronicStructure]{electronic structure problem}~\cite{stevenson2023QuantumComputingNuclear}. The nuclear structure problem can be tackled by projecting the Hamiltonian onto a single-particle basis (often harmonic oscillator eigenstates)~\cite{hergert2020AbInitioNuclear}. In second quantization, a qubit is required for each single-particle basis function included. The EFT can be expanded to higher orders in the coupling parameter; it is typical to retain at least 3-nucleon couplings caused by the pion, and higher-order terms could also be included. Including the 3-nucleon coupling results in a Hamiltonian with $\bigO{N^6}$ terms, which can be contrasted with the $\bigO{N^4}$ scaling of the electronic structure Hamiltonian. As such, algorithms that scale with the number of terms (e.g.,~\hyperref[prim:ProductFormulae]{product formulae}) may have a higher cost for nuclear structure calculations than electronic structure problems of a similar size. Nevertheless, an exact comparison depends on a number of other factors (dependent upon the algorithm used), such as the commutativity of the Hamiltonian terms, structure of the coefficients, and the energy scales in the problem.
+
+Quantum algorithms that prepare energy eigenstates scale either as $1/\gamma$ (where $\gamma$ is the overlap of the initial state with the desired eigenstate)~\cite{lin2020NearOptimalGroundState}, or with the minimum gap size along an adiabatic path (see \hyperref[prim:QuantumAdiabaticAlgorithm]{adiabatic state preparation})~\cite{wan2020FastDigitalMethodsForAdiabatic}. If we are only interested in measuring the energy of the state, this can be obtained using the \hyperref[prim:QPE]{quantum phase estimation} algorithm, which also projects the system into the corresponding energy eigenstate. The cost of this approach scales as $\bigO{1/\gamma^2}$. Once the desired state has been prepared, observables can be measured to precision $\epsilon$ with complexity $\bigO{1/\epsilon^2}$ (direct sampling) or $\bigO{1/\epsilon}$ (\hyperref[prim:AmpEst]{amplitude estimation}).
+
+
+The above algorithms for preparing states (and related algorithms for performing \hyperref[prim:HamiltonianSimulation]{time evolution} in dynamics simulations) require access to the Hamiltonian, which introduces a dependence on the norm of the Hamiltonian or the number of terms (or both). These costs have not yet been elucidated for nuclear structure calculations.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Existing error corrected resource estimates}
+We are not aware of any error corrected resource estimates for problems in nuclear physics. For an initial investigation into the cost of nucleus-neutrino scattering, see~\cite{roggero2020NeutrinoNucleus}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Caveats}
+For quantum algorithms to be efficient, we must be able to prepare an initial state that has only polynomially vanishing overlap with the desired state. This is the same problem that afflicts quantum algorithms for the \hyperref[appl:ElectronicStructure]{electronic structure problem}. For simulations of nuclear dynamics, it may be necessary to work with a basis set that is sufficiently flexible to account for the varying positions of the nuclei.
+
+The parameter values of the EFT are obtained from fits to experimental data, and so may introduce systematic inaccuracies into the nuclear structure calculation.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Comparable classical complexity and challenging instance sizes}
+Classical approaches use similar techniques to those developed for the \hyperref[appl:ElectronicStructure]{electronic structure problem}, such as perturbation theory, Monte Carlo methods, or coupled cluster. Refs.~\cite{hagen2014CoupledClusterNuclear, hergert2020AbInitioNuclear} provide an excellent overview of state-of-the-art approaches. Classical methods can provide excellent agreement with experiments for the binding energies of small nuclei with 20-50 nucleons~\cite{hergert2020AbInitioNuclear}. As a further example, recent high-accuracy simulations of the $^{100}$Sn nucleus have enabled improved agreement between theory and experiment for observed $\beta$-decay rates~\cite{Gysbers2019BetaDecayFirstPrinciples}. Time-dependent simulations of dynamics or non-equilibrium phenomena are more challenging and are an active area of research~\cite{bender2020NuclearFission,navratil2022NuclearReaction}. 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Speedup}
+The majority of classical approaches for the nuclear structure problem scale polynomially with system size, but introduce controllable errors due to the use of approximations (e.g., truncating the expansion in coupled cluster methods)~\cite{hergert2020AbInitioNuclear}. For quantum computers to achieve exponential speedups, we require the identification of systems where (1) Classical methods must exponentially increase their resources to obtain accurate results and (2) It is efficient to prepare an initial state for the quantum calculation that only has polynomially decaying overlap with the desired state. There have recently been initial investigations into whether these requirements coexist in chemical systems~\cite{lee2022isThereEvidenceChemistry}. We are not aware of similar work in nuclear physics.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{NISQ implementation}
+Almost all of the work to date on applying quantum computing to the nuclear structure problem has focused on \hyperref[prim:VQA]{variational algorithms}, such as~\cite{dumitrescu2018CloudNucleus,lu2019NuclearQuantumFrequency,stetcu2022NuclearVariational}. There is currently no evidence that near-term quantum devices will be able to implement sufficiently deep circuits to achieve advantage over their classical counterparts with these methods.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\subsubsection*{Outlook}
+Further research is required to determine the fault-tolerant resources for solving nuclear structure problems on quantum computers. While the problem is inherently similar to the electronic structure problem in quantum chemistry, it is necessary to adapt known algorithms to the nuclear setting, and to understand and optimize their scaling for classically challenging problems. The simulation of nuclear reaction dynamics appears a particularly interesting target, which has not yet received a thorough reformulation suitable for quantum simulation.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+
+\end{refsection}
+
+

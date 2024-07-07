@@ -1,0 +1,114 @@
+\documentclass[aps,floatfix,prx,superscriptaddress,reprint,showpacs,10pt,preprintnumbers,longbibliography]{revtex4-2}
+
+\usepackage[utf8]{inputenc}
+\usepackage[pdftex]{graphicx}
+\usepackage{float}
+\usepackage{amssymb}
+\usepackage{amsmath}  
+\usepackage{amsfonts}
+\usepackage{amsthm}
+\usepackage{dsfont}
+\usepackage{array}
+\usepackage{bm}
+\usepackage{mathrsfs}
+\usepackage{pifont}
+\usepackage{multirow}
+\usepackage{upgreek}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[pdftex,
+            pdftitle={Materials Science Working Group - White Paper},
+            pdfauthor={Authors},
+            bookmarks,
+            colorlinks,
+            linkcolor=black,
+            citecolor=mymagenta,
+            menucolor=black,
+            urlcolor=myblue,
+            plainpages=false,
+            pdfpagelabels,
+            hypertexnames=false]{hyperref}
+\usepackage{verbatim}
+\usepackage{slashed}
+\usepackage{bm}
+\usepackage{braket}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{physics}
+\usepackage{bm}
+\usepackage{bbm}
+\usepackage{tabularx}
+\usepackage{makecell}
+\usepackage{longtable}
+\usepackage{textcomp}
+\newcommand{\ce}[1]{$\mathrm{#1}$}
+\usepackage[acronym,symbols,nogroupskip,nomain,nonumberlist,nopostdot,toc]{glossaries}
+\definecolor{mymagenta}{RGB}{200, 0, 100}
+\definecolor{myblue}{RGB}{45, 48, 146}
+
+
+
+\graphicspath{{figures/}}
+
+
+\input{Glossary}
+\makeglossaries
+
+
+\newcommand{\oper}[1]{\hat{#1}} 
+\newcommand{\N}{{\mathbb{N}}}
+\newcommand{\Z}{{\mathbb{Z}}}
+\newcommand{\R}{{\mathbb{R}}}
+\newcommand{\C}{{\mathbb{C}}}
+\newcommand{\CP}{{\mathbb{C}P}}
+\newcommand{\1}{1\!\!1}
+\newcommand{\0}{0\hspace{-1.65mm}0}
+\newcommand{\p}{\partial}
+\newcommand{\ontopof}[2]{\genfrac{}{}{0pt}{}{#1}{#2}}
+
+
+\begin{document}
+
+
+\newpage
+
+\title{Quantum-centric Supercomputing for Materials Science:\\ \vspace{0.2cm}
+A Perspective on Challenges and Future Directions \vspace{1.2cm}}
+
+\include{authors}
+
+\date{\today}
+
+\begin{abstract}
+Computational models are an essential tool for the design, characterization, and discovery of novel materials. Hard computational tasks in materials science stretch the limits of existing high-performance supercomputing centers, consuming much of their simulation, analysis, and data resources. Quantum computing, on the other hand, is an emerging technology with the potential to accelerate many of the computational tasks needed for materials science. In order to do that, the quantum technology must interact with conventional high-performance computing in several ways: approximate results validation, identification of hard problems, and synergies in quantum-centric supercomputing. 
+In this paper, we provide a perspective on how quantum-centric supercomputing can help address critical computational problems in materials science, the challenges to face in order to solve representative use cases, and new suggested directions.
+ 
+\end{abstract}
+
+
+\maketitle
+
+\input{Introduction}
+
+\input{groups/1._Classical_information_processing_in_quantum-classical_workflows/index}
+
+\input{groups/4._Queueing/index}
+
+\input{groups/3._Classical_simulation_of_quantum_systems/index}
+
+\input{groups/2._Use_case_discovery/index}
+
+
+
+
+\input{Outlook_fixes}
+
+\input{acknowledgements}
+
+\setglossarystyle{list}
+\printglossary[type=\acronymtype]
+
+
+
+\bibliography{bibliography}
+
+\end{document}

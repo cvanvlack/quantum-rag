@@ -1,0 +1,444 @@
+%!TEX root = ../main.tex
+
+
+
+\begin{refsection}
+\section{Hamiltonian simulation}\label{prim:HamiltonianSimulation}
+
+The task of Hamiltonian simulation is to approximately compile the evolution under a Hamiltonian $H(t)$, for time $t$, into a sequence of quantum gates. For a time-independent Hamiltonian, solving the Schr\"{o}dinger equation yields a time evolution operator $U(t)=e^{-iHt}$. In this section we will discuss the equivalent operator $U(t) = e^{iHt}$, which is the more common definition in an algorithmic setting. 
+The Hamiltonian of interest can arise from physical systems (e.g., \hyperref[appl:QuantumChemistry]{quantum chemistry}, \hyperref[appl:CondensedMatter]{condensed matter systems}, or \hyperref[appl:QuantumFieldTheories]{quantum field theories}) but may also be constructed for other applications, such as \hyperref[appl:DiffEq]{differential equation simulation}. Quantum simulation does not give full access to the amplitudes of the wavefunction during the simulation, unlike classical approaches based on exact diagonalization (or similar methods). Instead, we are only able to measure observables with respect to the time-evolved state, or use the state as an input to other quantum subroutines. Nevertheless, there are no known efficient classical methods that achieve this for general local or sparse Hamiltonians, suggesting an exponential quantum speedup. In fact, as a quantum computation can be expressed as a time evolution under a sequence of local (time-dependent) Hamiltonians, quantum simulation (i.e. time evolution and measurement of a given observable) is a BQP-complete problem. 
+
+Hamiltonian simulation algorithms require access to the Hamiltonian. There are three commonly used input models. The Pauli input model assumes that the Hamiltonian is given classically as a sum of products of Pauli operators, e.g.~$H = \sum_l h_l H_l$, where $h_l$ are coefficients and $H_l$ are multiqubit Pauli products. The $d$-sparse access model assumes that the Hamiltonian is a sparse matrix with at most $d$ nonzero elements per row or column. We require that the locations of the nonzero elements and their values are efficient to compute classically. The density matrix access model assumes that the Hamiltonian corresponds to a density matrix, which we are either provided access to copies of~\cite{lloyd2013QPrincipalCompAnal} or given a unitary that prepares a purification of the density matrix~\cite{low2016HamSimQubitization}. All of these input models can be used to prepare \hyperref[prim:BlockEncodings]{block-encodings} of the Hamiltonian, which provides a standard form access model favored by some algorithms for Hamiltonian simulation (e.g.~\hyperref[prim:QSPqubitization]{qubitization with quantum signal processing})~\cite{low2016HamSimQubitization}.
+
+Hamiltonian simulation can be used as a subroutine in a range of algorithms including: \hyperref[prim:QPE]{quantum phase estimation}, \hyperref[prim:QuantumLinearSystemSolvers]{quantum linear system solvers}, \hyperref[prim:GibbsSampling]{Gibbs state preparation}, and the \hyperref[prim:QuantumAdiabaticAlgorithm]{quantum adiabatic algorithm}. We remark that some of these algorithms are implicitly using Hamiltonian simulation to provide coherent, unitary access to the Hamiltonian. This can be particularly useful if few ancilla qubits are available, which may inhibit the use of some approaches to coherently access the Hamiltonian (e.g. \hyperref[prim:LCU]{block-encodings based on linear-combinations of unitaries}) but does not prevent the use of Hamiltonian simulation based on \hyperref[prim:ProductFormulae]{product formulae}.
+
+\etocsettocstyle{\subsection*{In this section, we consider four commonly studied algorithms for Hamiltonian simulation:}}{\noindent} 
+\localtableofcontents
+\etocsettocstyle{\subsection*{This primitive area contains:}}{\noindent}
+
+Each algorithm has its own advantages and disadvantages, as described at a high level in Table~\ref{tab:HamiltonianSimulation}. Specific optimizations of each algorithm may be available for a given Hamiltonian. One can also consider hybridized methods combining two or more of the algorithms~\cite{low2018HamiltonianInteractionPicture, low2019Multiproduct, Ouyang2020compilation, hagan2022CompositeSimulation, Rajput2022HybridizedMF,watkins2022TimeDependentClockSimulation}. There are also other methods for Hamiltonian simulation, such as quantum walks~\cite{childs2008OnRelContDiscQuantWalk,berry2012BlackHamSimUnitImp,berry2015HamSimNearlyOpt} or density matrix--based Hamiltonian simulation~\cite{lloyd2013QPrincipalCompAnal,kimmel2016hamiltonian}, which we do not discuss, due to their less widespread use as algorithmic primitives for the applications discussed elsewhere in this document.
+
+
+
+\begin{table}[!h]
+    \centering
+    \begin{adjustbox}{max width=\textwidth}
+    \begin{tabular}{c||c|c|c|c}
+        & \makecell{\textbf{Product formulae (order $k$)}} & \textbf{qDRIFT} & \textbf{Taylor and Dyson series} & \textbf{QSP/QSVT} \\ \hline
+       \hline
+       %
+       \textbf{\# Qubits}  & $\bigO{n}$ & $\bigO{n}$ & $\bigO{n + \log(\nrm{H}_1 t\epsilon^{-1})\log(L)}$ & $\bigO{n + \log(L)}$ \\ \hline
+       \textbf{\makecell{Access \\ model}} & \makecell{Pauli \\ Sparse} & \makecell{Pauli} & \makecell{Pauli \\ Sparse} & \makecell{Pauli \\ Sparse \\ Purified density matrix} \\ \hline
+       %
+       \textbf{Scaling} &  $\bigO{5^{2k}nL \nrm{H}_1 t \left(\nrm{H}_1 t \epsilon^{-1} \right)^{\frac{1}{2k}}}$\tablefootnote{The factor of $n$ can be reduced to $w$ when each Pauli term $P_j$ acts nontrivially on at most $w$ sites. The factor $\nrm{H}_1^{1+1/2k}$ can be reduced by exploiting commutativity of the various $P_j$. } & $ \bigO{ n\nrm{H}_1^2 t^2\epsilon^{-1} }$ & $\bigOt{ \nrm{H}_1 t n L \log(\epsilon^{-1}) }$ & \makecell{ $\bigO{nL(\nrm{H}_1 t + \log(\epsilon^{-1})) }$\tablefootnote{The factor $nL$ derives from an upper bound on the gate complexity of block-encoding, and it can often be significantly improved by exploiting structure in $h_j$ and $H_j$.} } \\ \hline
+       %
+       \textbf{Pros} &  \makecell{Commutator scaling. \\ Simple implementation. \\ Empirical performance. \\ Minimal ancilla qubits.} &  \makecell{$L$-independent scaling. \\ No ancilla qubits. } &  \makecell{$\log(1/\epsilon)$ scaling. \\ Time-dependent simulations.} &  \makecell{Optimal scaling with $t, \epsilon$ \\ Few ancilla qubits for algorithm.} \\ \hline
+       %
+       \textbf{Cons} &  \makecell{Scaling with $t, \epsilon$ at low orders. \\ Exponential prefactor (in order $k$).} &  Scaling with $t, \epsilon$. &  Many ancilla qubits. &   \makecell{Time-dependent simulation. \\ Ancilla/gate cost of block-encoding.}
+    \end{tabular}
+    \end{adjustbox}
+    \caption{High-level comparison of Hamiltonian simulation techniques. For the stated complexity, we consider evolution $U(t)=e^{iHt}$ for time $t$ under a time-independent Hamiltonian $H$ on $n$ qubits, given as a sum of $L$ Pauli products $H = \sum_{j=1}^L h_j P_j$. The evolution is approximate to error $\epsilon$ in the spectral norm (diamond norm for qDRIFT). We define $\smash{\nrm{H}_1 = \sum_{j=1}^L |h_j|}$.
+    In specific applications it may be possible to reduce the number of qubits and/or gate complexity further by exploiting knowledge of the system, such as symmetries, commutation structure, or energy scales. For example, the factor of $n$ present in the above complexities may be reduced by exploiting locality in the Pauli product terms of the Hamiltonian.
+    }
+    \label{tab:HamiltonianSimulation}
+\end{table}
+
+
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+\end{refsection}
+\newpage
+
+\begin{refsection}
+
+\subsection{Product formulae}\label{prim:ProductFormulae}
+
+
+\subsubsection*{Rough overview (in words)}
+Product formulae (or Trotter--Suzuki formulae/Trotterization)~\cite{lloyd1996UnivQSim}, are the most commonly used approach for Hamiltonian simulation and are applicable to Hamiltonians in the Pauli and sparse access models (see below for definitions of these models). Product formulae divide the evolution into a repeating sequence of short unitary evolutions under subterms of the Hamiltonian. These subterm evolutions have a known decomposition into elementary quantum gates. The error in product formulae depends on the commutators between different terms in the decomposition; if all of the terms in the Hamiltonian commute, product formulae are exact.
+
+Product formula approaches have also been extended to treat time-dependent Hamiltonians~\cite{huyghebaert1990TimeDependent,wiebe2010TimeDepTrotter,wecker2015StronglyCorrelated,An2021TimeDependent, poulin2011TimeDepTrotterRandomized}. In the following discussion, we will restrict our focus to the time-independent case, noting that the time-dependent approaches are executed in the same way, but have a slightly more complex error analysis. 
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Rough overview (in math)}
+Given a Hamiltonian $H$, desired evolution time $t$, and error $\epsilon$, return a circuit $U(t)$ made of elementary gates such that
+\begin{align}
+    \nrm{ U(t) - \mathrm{e}^{\mathrm{i} H t} } \le \epsilon\,,
+\end{align}
+In the above, we use the operator norm $\nrm{\cdot}$ (the maximal singular value) to quantify the quality of approximation, which controls the error for arbitrary input states (in trace distance) and for observables. This worst-case metric is mathematically convenient, but, as discussed below, tighter bounds may be obtained by using error metrics more closely aligned with the specification of the problem.
+
+A product formula generates $U(t)$ through a product of easy-to-implement evolutions under terms in the Hamiltonian. For a Hamiltonian decomposition $H = \sum_{j=1}^L H_j$ with $L$ terms, the first-order product formula with $r$ steps is
+\begin{equation}
+    S_1(t) = \left( \prod\nolimits_{j=1}^L e^{iH_jt/r } \right)^r.
+\end{equation}
+The error in the first-order product formula is upper bounded as~\cite{childs2021TheoryTrotter}
+\begin{equation}
+    \nrm{S_1(t) - e^{iHt} } \leq \frac{t^2}{2r} \sum_i^L \left\lVert \sum_{j>i}^L [H_i, H_j] \right\rVert \leq \frac{\nrm{H}_1^2 t^2}{2r}
+\end{equation}
+where $\nrm{H}_1 := \sum_{j=1}^L \nrm{H_j}$. Higher-order formulae can be defined recursively and are referred to as $(2k)$th-order product formulae. The error in a recursively defined $(2k)$th-order product formula is bounded by~\cite{childs2021TheoryTrotter}
+\begin{equation}
+    \nrm{S_{2k}(t) - e^{iHt} } = \bigO{\frac{\nrm{H}_1^{2k+1} t^{2k+1}}{r^{2k}} }.
+\end{equation}
+
+
+Product formulae can be applied to $d$-sparse Hamiltonians (at most $d$ nonzero elements per row/column) with efficiently row-computable nonzero elements~\cite{aharononv2007AdiabaticQStateGeneration}. Access to the nonzero elements of the Hamiltonian is provided via oracles $O_f$ and $O_H$. The oracle $O_f$ returns the column index ($j$) of the $k \in \{1,...,d\}$th nonzero element in row $i$. The oracle $O_H$ returns the value of the matrix element $H_{ij}$.
+\begin{align}
+    O_f &: O_f \ket{k} \ket{i} \ket{0} = \ket{k} \ket{i} \ket{j} \\
+    O_H &: O_H \ket{i}\ket{j}\ket{0} = \ket{i}\ket{j}\ket{H_{ij}} 
+\end{align}
+Using graph-coloring algorithms, a $d$-sparse Hamiltonian $H$ can be efficiently decomposed into a sum of efficiently simulable Hamiltonians~\cite{berry2005EffQAlgSimmSparseHam, childs2010StarHamiltonianSimulation}. 
+
+As a special case of the $d$-sparse access model, one can consider Hamiltonians given as a linear combination of $L$ Pauli terms $H = \sum_{j=1}^L H_j = \sum_{j=1}^L \alpha_j P_j$, as each Pauli tensor product is already a $1$-sparse matrix (so in this case, $d\leq L$). Time evolution under each Pauli term (or in some cases, groups of Pauli terms) can be simulated efficiently, thus simplifying the $d$-sparse construction by removing the need for oracles $O_f$ and $O_H$.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Dominant resource cost (gates/qubits)}
+For an $n$-qubit Hamiltonian, product formulae act on $n$ qubits. In the Pauli access model, no additional ancilla qubits are required. In the sparse access model, ancilla qubits may be required to implement the oracles $O_f$ and $O_H$ and to implement time evolution under $1$-sparse Hamiltonians $H_j$.
+
+The gate complexity is obtained by choosing the number of Trotter steps $r$ sufficiently large to obtain an error $\epsilon$ and multiplying by the complexity of implementing each step of the product formula. It is necessary to balance the improved asymptotic scaling with $t$ (approaches linear dependence) and $\epsilon$ of higher-order Trotter formulae against the exponentially growing prefactor of the higher-order formulae. In practical simulations of \hyperref[appl:QuantumChemistry]{chemistry}, \hyperref[appl:CondensedMatter]{condensed matter systems}, or \hyperref[appl:QuantumFieldTheories]{quantum field theories}, a low-order formula (2nd--6th) typically minimizes the gate count.  
+
+A recursively defined $(2k)$th-order product formula (the first-order formula is given by $k=1/2$, and is the base case) for simulating a $d$-sparse Hamiltonian for time $t$ to accuracy $\epsilon$ requires~\cite{childs2010StarHamiltonianSimulation}
+\begin{equation}
+    \bigO{ 5^{2k} d^2 (d + \log^*n) \nrm{H}t \left(\frac{d \nrm{H} t}{\epsilon} \right)^{1/2k} }
+\end{equation}
+calls to the oracles $O_f$ and $O_H$, where $\log^*$ is the iterated logarithm.\footnote{For practical purposes, the iterated logarithm is essentially constant, since $\log^*(n) \leq 5$ for all $n \leq 2^{65536}$.}
+
+A recursively defined $(2k)$th-order product formula for simulating an $L$-term Hamiltonian in the Pauli access model for time $t$ to accuracy $\epsilon$ requires~\cite{childs2021TheoryTrotter}
+\begin{equation}
+    \bigO{ 5^{2k} nLt\left(\frac{t \alpha_{\mathrm{comm},k}}{\epsilon} \right)^{1/2k} }
+\end{equation}
+elementary single and two-qubit gates, where $\alpha_{\mathrm{comm},k} := \sum_{i_1, i_2,\ldots, i_{2k+1}} \nrm{[H_{i_{2k+1}},\ldots [H_{i_2}, H_{i_1}]]}$. The dependence on $\alpha_{\mathrm{comm},k}$ can be tightened and calculated for lower-order formulae (see \cite{childs2021TheoryTrotter} for full calculations). The dependence on $n$ can be reduced to $w$ for local Hamiltonians with Pauli terms that each act on at most $w$ qubits.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Caveats}
+The error bounds of product formulae in the Pauli access model have been the object of significant investigation. Evaluating the tightest spectral norm bounds requires computing a large number of commutators between the terms in the Hamiltonian, which can be computationally intensive. Numerical simulations have shown that the commutator bounds can be loose by several orders of magnitude for chemical~\cite{babbush2015ChemicalBasisTrotter, poulin2014TrotterStepSize} or spin~\cite{childs2018towardsFirstQSimSpeedup} systems.
+
+The spectral norm is the worst-case metric; it is an active area of research to find error metrics better suited to the problem at hand. For example, one may consider the \textit{average}-case error over random input states~\cite{chen2021conTrotter,Zhao2021HamiltonianSW} by the normalized Frobenius norm $\nrm{U(t) - \mathrm{e}^{\mathrm{i} H t}}_{F}/\sqrt{2^n}$. Recently, in \cite{chen2021conTrotter} it was shown that the average-case error can be much smaller than the worst-case error for systems with large connectivity. More directly, one can also compute the Trotter error associated with input states from the low-energy~\cite{Sahinoglu2021Hamiltonian} or low-particle-number subspace~\cite{tong2021ProvablyAccurateGaugeTheoryBosonicSystems, su2021NearlyTightTrottInerElect}.
+
+The gate counts of product formulae approaches can also be reduced by grouping together mutually commuting terms such that they can be implemented using fewer gates than would be required to implement all the terms individually~\cite{vandenBerg2020circuitoptimization, Kivlichan2020ImprovedFaultTolerantSimulationCondensedMatter, CampbellHubbard22}. One can also reduce the number of Trotter steps required by randomizing the ordering of the terms~\cite{Childs2019RandomizedTrotter, cho2022doublingproductformularandom,poulin2011TimeDepTrotterRandomized} (although this must be balanced against any compilation benefits that may be obtained from a fixed ordering). 
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Example use cases}
+\begin{itemize}
+\item Physical systems simulation: \hyperref[appl:QuantumChemistry]{quantum chemistry}, \hyperref[appl:CondensedMatter]{condensed matter systems}, \hyperref[appl:QuantumFieldTheories]{quantum field theories}. 
+\item Algorithms: \hyperref[prim:QPE]{quantum phase estimation}, \hyperref[prim:QuantumLinearSystemSolvers]{quantum linear system solvers}, \hyperref[prim:GibbsSampling]{Gibbs state preparation}, \hyperref[prim:QuantumAdiabaticAlgorithm]{quantum adiabatic algorithm}.
+\end{itemize}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Further reading}
+
+\begin{itemize}
+    \item A rigorous derivation of the error in product formulae~\cite{childs2021TheoryTrotter}.
+    \item A comparison of product formula methods with other approaches to Hamiltonian simulation for a concrete problem of interest~\cite{childs2018towardsFirstQSimSpeedup}.
+    \item Video lectures on \href{https://youtu.be/tJUi4g_-AIk}{Product formulae for Hamiltonians in the Pauli access model} and \href{https://youtu.be/tllz6y7WUUs}{Product formulae for $d$-sparse Hamiltonians}.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+\end{refsection}
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{refsection}
+
+
+\subsection{qDRIFT}\label{prim:qDrift}
+
+\subsubsection*{Rough overview (in words)}
+qDRIFT (the quantum stochastic drift protocol)~\cite{campbell2019randomCompiler} assumes a Pauli access model and approximates the Hamiltonian simulation channel (as opposed to the unitary) by randomly sampling a term from the Hamiltonian (according to the coefficient magnitudes) and then evolving under the chosen term. This process is repeated for a number of steps. Because it approximates the channel, rather than the unitary, it can be more difficult to use qDRIFT as a coherent subroutine in other algorithms (see caveats below).
+
+The error in qDRIFT depends on the 1-norm of Hamiltonian coefficients. Its main advantage is that it does not explicitly depend on the number of terms in the Hamiltonian and has small constant overheads. This may make it well suited to systems with rapidly decaying interaction strengths, dominated by a few large terms. However, its time and error dependence is asymptotically worse than other methods. This seems to originate from its randomized nature~\cite{chen2021conRandomProduct}. qDRIFT can also be extended to time-dependent Hamiltonian simulation, where it has the benefit of scaling as $\int_0^t \nrm{H(t')} dt'$, rather than as $t \max_{t'} \nrm{H(t')}$ common to some other Hamiltonian simulation algorithms~\cite{berry2019TimeDependentHamSimL1}. We will restrict our discussion below to the time-independent case.
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Rough overview (in math)}
+
+Given a Hamiltonian in the Pauli decomposition $H = \sum_i h_i H_i$ (with $\nrm{H_i}=1$), qDRIFT provides a stochastic channel $\mathcal{N}$ which when applied for $N$ steps, approximates the Hamiltonian simulation channel
+\begin{equation}
+    \nrm{\mathcal{N}^N - e^{iHt} (\cdot)e^{-iHt}}_{\diamond} \le \epsilon
+\end{equation}
+to within diamond-norm error $\epsilon$. 
+
+qDRIFT proceeds by randomly sampling a term according to its importance
+\begin{align}
+    X_k \stackrel{i.i.d.}{\sim} \quad \frac{\mathrm{sign}(h_i) H_i}{p_i} \quad \text{where} \quad p_i = \frac{|h_i|}{\nrm{H}_1}
+\end{align}
+and $\nrm{H}_1: = \sum_i |h_i|$ is the sum of the strengths. Each step of qDRIFT then evolves the randomly sampled term $X_k$ for a short period of time $t/N$, where $N$ is a free parameter determining the number of qDRIFT steps, which controls the error in the simulation. This implements the following quantum channel
+\begin{align}
+    \mathcal{N}[\rho]: = \mathbb{E}[e^{i(t/N)X_k}\rho e^{-i(t/N)X_k}].
+\end{align}
+As discussed above, this channel is repeated for $N$ steps, in order to approximate the Hamiltonian simulation channel.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Dominant resource cost (gates/qubits)}
+For an $n$-qubit Hamiltonian, qDRIFT acts on $n$ register qubits, and no additional ancilla qubits are required.
+
+In order to simulate the Hamiltonian evolution channel to within diamond-norm error $\epsilon$, we require 
+\begin{align}
+        N = \bigO{ \frac{\nrm{H}_1^2 t^2}{\epsilon} }
+\end{align} 
+steps of qDRIFT~\cite{campbell2019randomCompiler,chen2021conRandomProduct}. While the diamond-norm is a different error metric to the spectral norm used in other articles in this section, both provide upper bounds on the error in an observable measured with respect to the time-evolved state~\cite{campbell2019randomCompiler}. For unitary channels, the diamond norm is effectively equal to the spectral norm (see, e.g., discussion in \cite{haah2023QueryOptimalChannels}, up to constant factors).
+
+The gate complexity is the number of steps multiplied by the individual costs of the elementary evolution $e^{i(t/N)X_k}$, which scales linearly with the locality of the Pauli operator $X_k$. When using qDRIFT to time evolve a state (e.g., for the purpose of measuring an observable), it is important to average the results over a sufficient number of independently sampled qDRIFT circuits~\cite{campbell2019randomCompiler}.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Caveats}
+
+The qDRIFT algorithm has a quadratic dependence on time and linear dependence on the error $\epsilon$, while other Hamiltonian simulation methods can achieve linear time dependence and logarithmic error dependence. A higher-order variant of qDRIFT was recently developed which improves the error dependence~\cite{nakaji2023qswift}. It is currently unclear how to design higher-order variants of qDRIFT that improve the time dependence, which appears to result from the randomized nature of the algorithm~\cite{chen2021conRandomProduct}. 
+
+As discussed above, qDRIFT approximates the time evolution channel, rather than the unitary $e^{iHt}$. As a result, it can be difficult to incorporate as a subroutine in algorithms that seek to manipulate the unitary directly---for example, measuring $\mathrm{Tr}\left(U(t) \rho \right)$. Tasks of this form feature in some approaches for \hyperref[prim:QPE]{phase estimation}~\cite{lin2022HeisenbergLimited}, motivating alternate, qDRIFT-inspired approaches, in order to exploit qDRIFT-like benefits~\cite{wan2021RandPhaseEst}.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Example use cases}
+
+\begin{itemize}
+\item Physical systems simulation: \hyperref[appl:QuantumChemistry]{quantum chemistry}, \hyperref[appl:CondensedMatter]{condensed matter systems}, \hyperref[appl:QuantumFieldTheories]{quantum field theories}. 
+\item Algorithms: \hyperref[prim:QPE]{quantum phase estimation}, \hyperref[prim:QuantumLinearSystemSolvers]{quantum linear system solvers}, \hyperref[prim:GibbsSampling]{Gibbs state preparation}, \hyperref[prim:QuantumAdiabaticAlgorithm]{quantum adiabatic algorithm}.
+\item Hybridization with other quantum simulation methods~\cite{Ouyang2020compilation,Rajput2022HybridizedMF, hagan2022CompositeSimulation}. 
+\item Using importance sampling to incorporate variable gate costs for simulating different terms $X_k$~\cite{kiss2022ImportanceQdrift}.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+\end{refsection}
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{refsection}
+
+
+
+
+\subsection{Taylor and Dyson series (linear combination of unitaries)}
+\label{prim:TaylorDyson}
+\subsubsection*{Rough overview (in words)}
+Taylor and Dyson series approaches for Hamiltonian simulation expand the time evolution operator as a Taylor series (time independent)~\cite{berry2014HamSimTaylor} or Dyson series (time dependent)~\cite{kieferova2019DysonSeriesSimulation,berry2019TimeDependentHamSimL1} and use the \hyperref[prim:LCU]{ linear combination of unitaries} (LCU) primitive to apply the terms in the expansion, followed by (robust, oblivious) \hyperref[prim:AA]{amplitude amplification} to boost the success probability close to unity. These methods are close to being asymptotically optimal, achieving linear scaling in time and logarithmic dependence on the error. However, they use a large number of ancilla qubits, compared to other Hamiltonian simulation algorithms. 
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Rough overview (in math)}
+
+We focus on the time-independent case and follow the presentation in \cite{berry2014HamSimTaylor}. Given a Hamiltonian $H$, desired evolution time $t$, and error $\epsilon$, return a circuit $U(t)$ made of elementary gates such that
+\begin{align}
+    \nrm{ U(t) - \mathrm{e}^{\mathrm{i} H t} } \le \epsilon.
+\end{align}
+In the above, we use the operator norm (the maximal singular value) to quantify the worst-case error in the simulation.
+
+The total evolution time $t$ is divided into $r$ segments. In each segment we evolve under an approximation of $e^{iHt/r}$. The Hamiltonian is decomposed into a linear combination of unitary operations $H = \sum_{l=1}^L \alpha_l H_l$, where we choose $\alpha_l$ real and positive by shifting phases into $H_l$, and $\nrm{H_l}=1$. This decomposition appears naturally when the Hamiltonian is given as a linear combination of Pauli products. We approximate $e^{iHt/r}$ using a Taylor expansion truncated to degree $K$
+\begin{align}
+e^{iHt/r} \approx U(t/r) &:= \sum_{k=0}^K \frac{1}{k!} (iHt/r)^k \\ \nonumber
+&=\sum_{k=0}^K \sum_{l_1, ... l_k=1}^L \frac{(it/r)^k}{k!} \alpha_{l_1} ... \alpha_{l_k} H_{l_1} ... H_{l_k}.
+\end{align}
+Each segment $U(t/r)$ is implemented using \hyperref[prim:AA]{robust oblivious amplitude amplification}. Amplitude amplification is necessary because truncating the Taylor series at degree $K$ makes $U(t/r)$ non-unitary. However, textbook amplitude amplification necessitates reflecting around the initial state, (as well as the ``good'' state), which would be problematic since Hamiltonian simulation requires synthesizing a unitary that works simultaneously for all input states. This can be circumvented using oblivious amplitude amplification: we are given a unitary $V$ such that for any state $\ket{\psi}$, we have $V \ket{\bar{0}_m} \ket{\psi} = a \ket{\bar{0}_m} U \ket{\psi} + b \ket{(\bar{0}_m \psi)^\perp}$, for a unitary operator $U$, and the goal is to amplify the state $\ket{\bar{0}_m} U \ket{\psi}$ to be obtained with probability 1 (we can recognize $V$ as an $(a, m, 0)$ \hyperref[prim:BlockEncodings]{unitary block-encoding} of $U$). A further problem is that the above operator $U(t/r)$ is non-unitary, and so deviates from the formulation of oblivious amplitude amplification~\cite{berry2013ExpPrecHamSimSTOC}. The proven ``robustness'' property of oblivious amplitude amplification~\cite{berry2014HamSimTaylor} ensures that the error induced by treating $U(t/r)$ as a probabilistically implemented unitary does not accumulate.
+
+The value of $K$ controls the error in the simulation and can be chosen as 
+\begin{equation}
+    K=\bigO{ \frac{\log(\nrm{H}_1 t /\epsilon)}{ \log\log(\nrm{H}_1 t / \epsilon )}}\,,
+\end{equation}
+where we define 
+$\nrm{H}_1: = \sum_{l=1}^L \alpha_l$. The total time evolution is divided into $r = \nrm{H}_1 t / \ln(2)$ segments, each of duration $\ln(2) / \nrm{H}_1 $. This ensures that a single application of robust oblivious amplitude amplification boosts the success probability of the segment to unity. 
+
+Within each segment we apply $U(t/r)$ using the \hyperref[prim:LCU]{LCU primitive}. This technique can be applied to Hamiltonians given in both the Pauli and $d$-sparse access models. For the Pauli access model, the Hamiltonian is already in the form of a linear combination of unitary operators. For the $d$-sparse case, we can use graph coloring algorithms~\cite{berry2005EffQAlgSimmSparseHam,childs2010StarHamiltonianSimulation} to decompose the $d$-sparse Hamiltonian into a linear combination of unitaries, where each unitary is $1$-sparse and self-inverse.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Dominant resource cost (gates/qubits)}
+
+In addition to the $n$-qubit data register, the Taylor series approach requires a number of ancilla registers to implement the LCU technique. A register with $K$ qubits is used to control the degree of the Taylor expansion, storing the value as $\ket{k} = \ket{1^{\otimes k} 0^{\otimes (K-k) }}$. An additional $K$ registers, each containing $\lceil \log_2(L) \rceil$ qubits, are used to index the possible values of each of the possible $H_{l_k}$. Hence, the overall space complexity is $\bigO{n + K\log(L)} = \bigO{n + \log(\nrm{H}_1 t/\epsilon)\log(L)}$.
+
+Additional ancilla qubits may be required to implement the LCU gadget (i.e.~in the sparse access model) or for the reflections used in robust oblivious amplitude amplification. 
+
+
+As discussed above, implementing each segment requires one use of robust oblivious amplitude amplification, which makes 2 calls to the LCU circuit and 1 call to its inverse. The method incurs approximation errors from truncating the Taylor series at degree $K$ and from the use of robust oblivious amplitude amplification. The resulting error per segment is bounded by $\left(e \ln{2}/(K+1) \right)^{K+1}$.
+
+The cost of the LCU circuit depends on the Hamiltonian access model. For the case of the Pauli access model the \hyperref[prim:LCU]{LCU circuit} requires two calls to a PREPARE operation that prepares the ancilla registers with the correct coefficients. This requires $\bigO{LK}$ gates. The LCU circuit also requires one call to a SELECT oracle, which can be implemented using $K$ controlled-select$(H)$ operations that act as $\ket{b}\ket{l}\ket{\psi} \rightarrow \ket{b}\ket{l} (iH_l)^b \ket{\psi}$ (where $b \in \{0,1\}$), and each act on a different one of the $K$ different $\log(L)$-qubit registers. These can each be implemented using $\bigO{L(n + \log(L)}$ elementary gates~\cite{berry2014HamSimTaylor}. The overall gate complexity in the Pauli access model is thus
+\begin{align}
+ \bigO{ \frac{\nrm{H}_1 t L(n + \log(L))\log(\nrm{H}_1 t / \epsilon) }{\log\log(\nrm{H}_1 t / \epsilon)}  } =   \bigOt{ \nrm{H}_1 t Ln \log\left( \frac{1}{\epsilon} \right)  }
+\end{align}
+
+Using the LCU approach applied to a 1-sparse decomposition of a $d$-sparse Hamiltonian, the overall complexity is~\cite{berry2014HamSimTaylor}
+\begin{align}
+ \bigO{ \frac{d^2 \nrm{H}_{\mathrm{max}} t n \log^2(d^2 |H|_{\mathrm{max}} t / \epsilon) }{\log\log(d^2 \nrm{H}_{\mathrm{max}} t / \epsilon)}  } = 
+ \bigOt{ d^2 \nrm{H}_{\mathrm{max}} t n \log^2\left( \frac{1}{\epsilon} \right) } 
+\end{align}
+where $\nrm{H}_{\mathrm{max}} = \mathrm{max}_{i,j} \lvert \bra{i}H\ket{j} \rvert$. 
+
+The extension to time-dependent Hamiltonians, through the use of a Dyson series, requires an additional ``clock'' register to store the time value and introduces a logarithmic dependence on the time derivative of the Hamiltonian~\cite{kieferova2019DysonSeriesSimulation,berry2019TimeDependentHamSimL1}.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Caveats}
+Concrete resource estimates for physical systems of interest have observed that the Taylor series approach may require more ancilla qubits and gates than \hyperref[prim:ProductFormulae]{product formulae} or \hyperref[prim:QSPqubitization]{quantum signal processing} approaches for Hamiltonian simulation~\cite{childs2018towardsFirstQSimSpeedup}. The gate complexity of the algorithm can be reduced by exploiting anticommutativity in the Hamiltonian~\cite{Zhao2021ExploitingAnticommutationTaylorSeries}, adding a corrective operation~\cite{novo2016improved}, or pruning terms with small magnitudes from the expansion~\cite{Meister2022tailoringterm}. 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Example use cases}
+
+\begin{itemize}
+\item Physical systems simulation: \hyperref[appl:QuantumChemistry]{quantum chemistry} (see \cite{babbush2016ExponentiallySecondQuant,babbush2017ExponentiallyConfigInt,su2021FaultTolerantChemistryFirstQuantized,low2018HamiltonianInteractionPicture}), \hyperref[appl:CondensedMatter]{condensed matter systems}, \hyperref[appl:QuantumFieldTheories]{quantum field theories}. 
+\item Algorithms: \hyperref[prim:QPE]{quantum phase estimation}, \hyperref[prim:QuantumLinearSystemSolvers]{quantum linear system solvers}, \hyperref[prim:GibbsSampling]{Gibbs state preparation}, \hyperref[prim:QuantumAdiabaticAlgorithm]{quantum adiabatic algorithm}.
+\item Hamiltonian simulation in the interaction picture~\cite{low2018HamiltonianInteractionPicture}.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Further reading}
+
+\begin{itemize}
+    \item A comparison of several Hamiltonian simulation algorithms, including Taylor series~\cite{childs2018towardsFirstQSimSpeedup}.
+    \item Video lectures on \href{https://www.youtube.com/watch?v=IPl9eNro6M4}{Hamiltonian simulation with Taylor series}.    
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+\end{refsection}
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{refsection}
+
+
+
+\subsection{Quantum signal processing / quantum singular value transformation}\label{prim:QSPqubitization}
+\extramarks{}{QSP / QSVT}
+
+\subsubsection*{Rough overview (in words)}
+
+\hyperref[prim:QSP]{Quantum signal processing (QSP)} and \hyperref[prim:QSVT]{quantum singular value transformation} (QSVT) are techniques for applying polynomial transformations to \hyperref[prim:BlockEncodings]{block-encoded} operators. These techniques can be used to implement Hamiltonian simulation, given a block-encoding of the Hamiltonian. Both approaches have optimal scaling with $t$ and $\epsilon$ for time-independent Hamiltonians.
+
+QSP was initially developed for the $d$-sparse access model~\cite{low2016HamSimQSignProc}. Through the introduction of \hyperref[prim:BlockEncodings]{block-encodings} and \hyperref[prim:Qubitization]{qubitization}, it was made applicable in a standard form to Hamiltonians in a Pauli access model, $d$-sparse access model, or given as density matrices (where we are given access to a unitary that prepares a purification of the density matrix)~\cite{low2016HamSimQubitization}. QSVT was later developed as a more general and direct route to the results of QSP~\cite{gilyen2018QSingValTransfArXiv}.  
+
+Hamiltonian simulation via QSP / QSVT is less well suited to time-dependent Hamiltonians, as the need to Trotterize the time-dependent evolution breaks the optimal dependence on the parameters.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\subsubsection*{Rough overview (in math)}
+
+Access to the Hamiltonian $H$ is provided by an $(\alpha, m, 0)$-\hyperref[prim:BlockEncodings]{block-encoding} $U_H$ (the case of approximate block-encodings can be treated using \cite[Lemma 22]{gilyen2018QSingValTransfArXiv}) such that
+\begin{equation}
+    \left(\bra{0}^{\otimes m} \otimes I \right) U_H \left(\ket{0}^{\otimes m} \otimes I \right) = H/\alpha 
+\end{equation}
+The Hamiltonian has a spectral decomposition of $ \sum_\lambda \lambda \ket{\lambda} \bra{\lambda}$. We seek to use $U_H$ to implement an operator $U(t)$ approximating 
+\begin{equation}
+    \nrm{ U(t) - \sum_\lambda e^{i \lambda t} \ket{\lambda} \bra{\lambda}} \leq \epsilon.
+\end{equation}
+
+\hyperref[prim:Qubitization]{Qubitization} converts $U_H$ into a more structured unitary $W$ (which is also a block-encoding of the Hamiltonian). The eigenvalues of $W$ are $e^{\pm i \arccos(\lambda / \alpha)}$, directly related to those of $H$. \hyperref[prim:QSP]{QSP} then enables polynomial transformations to be applied to these eigenvalues, which defines the application of the polynomial to $W$. This concept can be generalized via \hyperref[prim:QSVT]{QSVT}, which effectively unifies the qubitization and QSP step. 
+
+In both cases, our goal is to implement a block-encoding of $U(t) \approx \sum_\lambda e^{i \lambda t} \ket{\lambda} \bra{\lambda}$, which defines Hamiltonian simulation. In QSVT we separately implement polynomials approximating $\cos(\lambda t)$ and $i\sin(\lambda t)$, combine them using a \hyperref[prim:ManipulatingBlockEncodings]{linear combination of block-encodings}, and boost the success probability using 3-step \hyperref[prim:AA]{oblivious amplitude amplification}. Further details can be found in \cite{gilyen2018QSingValTransfArXiv,martyn2021GrandUnificationQAlgs}. Meanwhile, quantum signal processing implements $\exp( i t H)$ directly but requires an additional ancilla qubit and controlled access to a Hermitian block-encoding $U'_H$, which, when implemented via Eq.~\eqref{eq:genQubitiz}, uses both controlled $U_H$ and $U_H^\dagger$ resulting in a factor of $\sim 4$ overhead~\cite{low2016HamSimQubitization}. Altogether these considerations suggest that the QSVT-based approach might have a slightly better complexity, particularly when controlled $U_H$ is significantly more costly to implement than $U_H$. If $U_H$ is already Hermitian then quantum signal processing can have a lower complexity.
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Dominant resource cost (gates/qubits)}
+
+Using either QSP or QSVT, block-encoding a degree-$k$ polynomial $f(H)$ is performed using $\bigO{k}$ calls to the block-encoding $U_H$~\cite{low2016HamSimQubitization,gilyen2018QSingValTransfArXiv}. Hence, the degree of the polynomial approximating the $e^{iHt}$ determines the complexity of Hamiltonian simulation using these techniques.  
+As noted in \cite[Corollary 60]{gilyen2018QSingValTransfArXiv}, we can rigorously bound the resources for Hamiltonian simulation via QSVT for all values of $t$ as using
+\begin{equation}
+\bigO{ \alpha t + \frac{\log(1/\epsilon)}{\log(e+ \log(1/\epsilon)/\alpha t)}  }
+\end{equation}
+calls to the $(\alpha, m, 0)$-block-encoding $U_H$. This query complexity is optimal~\cite{berry2005EffQAlgSimmSparseHam,gilyen2018QSingValTransfArXiv}, although the block-encoding can hide additional complexities, in practice. In some cases, the dependence on norm parameters can be improved by exploiting details of the simulated system, see \cite{low2017HamSimUnifAmp,low2018HamSimNearlyOptSpecNorm}.
+
+
+For a Pauli access model the block-encoding is implemented using the \hyperref[prim:LCU]{linear combination of unitaries primitives} PREPARE and SELECT. For a Hamiltonian with $L$ terms $\alpha = \nrm{H}_1$, $m=\bigO{\log(L)}$, and two additional qubits are required for QSVT. The overall gate complexity depends on the exact implementation of PREPARE and SELECT, which can often be tailored to the Hamiltonian of interest. In the worst case, PREPARE uses $\Theta(L)$ gates, and SELECT uses $\Theta(nL)$ gates (although these can be significantly improved by exploiting structure in the Hamiltonian, see, e.g., \cite{babbush2018EncodingElectronicSpectraLinearT,Wan2021exponentiallyfaster}). This yields an overall worst case gate complexity of
+\begin{equation}
+    \bigO{ nL \left( \nrm{H}_1 t + \frac{\log(1/\epsilon)}{\log(e+ \log(1/\epsilon)/\nrm{H}_1 t)}  \right) }.
+\end{equation}
+
+
+For a $d$-sparse access model, $\alpha= d\nrm{H}_{\max}$ where $\nrm{H}_{\mathrm{max}} = \mathrm{max}_{i,j} \lvert \bra{i}H\ket{j} \rvert$, $m=\bigO{\log(d)}$, and two additional qubits are required for QSVT. The overall gate complexity depends on the cost of sparse access to elements of $H$. Assuming a constant gate complexity circuit for sparse access, the overall gate complexity is
+\begin{equation}
+\bigO{ d\nrm{H}_{\max} t + \frac{\log(1/\epsilon)}{\log(e+ \log(1/\epsilon)/d\nrm{H}_{\max} t)} }.
+\end{equation}
+
+
+The density matrix access model seeks to perform time evolution under $e^{i\rho t}$, given access to either multiple copies of $\rho$ or a unitary $U_\rho$ that prepares a purification of $\rho$. Given $U_\rho$, we can prepare a block-encoding of $\rho$~\cite{low2016HamSimQubitization} (see section on \hyperref[prim:BlockEncodings]{block-encodings} for details) with $\alpha=1$. If the gate complexity of $U_\rho$ is $C(U_\rho)$ then the overall gate complexity is
+\begin{equation}
+\bigO{ C(U_\rho) \left(t + \frac{\log(1/\epsilon)}{\log(e+ \log(1/\epsilon)/ t)}  \right) }.
+\end{equation}
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Caveats}
+The method was found to perform competitively with \hyperref[prim:ProductFormulae]{Trotterization} (and better than \hyperref[prim:TaylorDyson]{Taylor series}) in concrete resource estimates for simulating \hyperref[appl:SpinModels]{spin chain Hamiltonians}~\cite{childs2018towardsFirstQSimSpeedup}. While that work had difficulty calculating the QSP phase factors, this issue has since been addressed with the development of classical algorithms for finding the phase factors~\cite{gilyen2018QSingValTransf, haah2018ProdDecPerFuncQSignPRoc, dong2020efficientPhaseFindingInQSP, chao2020FindingAngleSequences}. Nevertheless, this contributes a classical preprocessing cost to the algorithm.
+
+It is currently unclear how to perform optimal time-dependent Hamiltonian simulation with these methods, without resorting to Trotterization. Some initial investigations have shown promising results using clock Hamiltonian constructions~\cite{watkins2022TimeDependentClockSimulation} or for time-periodic Hamiltonians~\cite{Mizuta2023TimePeriodicSimulation,mizuta2023MultitimePeriodicSimulation}.
+
+
+
+
+\subsubsection*{Example use cases}
+\begin{itemize}
+\item Physical systems simulation: \hyperref[appl:QuantumChemistry]{quantum chemistry}, \hyperref[appl:CondensedMatter]{condensed matter systems} (see  \cite{childs2018towardsFirstQSimSpeedup}), \hyperref[appl:QuantumFieldTheories]{quantum field theories}, \hyperref[appl:DiffEq]{differential equations in plasma physics} (see  \cite{novikau2022PlasmaSimulation}).
+\item Algorithms: \hyperref[prim:QPE]{quantum phase estimation}, \hyperref[prim:QuantumLinearSystemSolvers]{quantum linear system solvers}, \hyperref[prim:GibbsSampling]{Gibbs state preparation}.
+\end{itemize}
+
+
+\subsubsection*{Further reading}
+
+\begin{itemize}
+    \item Pedagogical overviews~\cite{martyn2021GrandUnificationQAlgs,lin2022LectureNotes}.
+    \item Comparison of several Hamiltonian simulation algorithms~\cite{childs2018towardsFirstQSimSpeedup}.
+\end{itemize}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
+
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+\end{refsection}

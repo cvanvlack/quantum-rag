@@ -1,0 +1,132 @@
+\section{Resource Requirements for Quantum Simulation of lattice \gls{qed} \label{appendix_resources}}
+
+In this appendix we assess the resource requirements for the implementation of the quantum link model formulation of $U(1)$ lattice gauge theories with dynamical Wilson fermions in arbitrary dimension $d$. 
+In reference~\cite{Mathis2020}, we assessed the number of qubits required to capture all degrees of freedom. Then we also reported the number of Pauli strings that is required to implement the different terms in the \gls{qed} Hamiltonian and finally, in the same publication we touched upon how this translates into the number of required quantum gates. 
+We express all scalings in terms of a combination of the following model parameters:
+\begin{itemize}
+    \setlength\itemsep{0pt}
+    \item \makebox[1.8cm]{$n_s$\hfill} number of lattice sites.
+    \item \makebox[1.8cm]{$n_e$\hfill} number of lattice edges. Scales linearly with $n_s$ in regular lattices.
+    \item \makebox[1.8cm]{$n_p$\hfill} number of lattice plaquettes. Scales linearly with $n_s$ in regular lattices.
+    \item \makebox[1.8cm]{$n_\text{spinor}$\hfill} number of spinor components.
+    \item \makebox[1.8cm]{$d$\hfill} number of spatial lattice dimensions.
+    \item \makebox[1.8cm]{$d_S$\hfill} dimension of the spin $S$ system in the quantum link model.
+    \item \makebox[1.8cm]{$n_\text{nonzero}(A)$\hfill} number of nonzero elements of the matrix $A$.
+    \item \makebox[1.8cm]{$n_\text{pauli}(\hat{O})$\hfill} total number of Pauli strings in the encoding of the operator $\hat{O}$.
+    \item \makebox[1.8cm]{$n_\text{real}(\hat{O})$\hfill} number of Pauli strings with real coefficients in the encoding of $\hat{O}$.
+    \item \makebox[1.8cm]{$n_\text{imag}(\hat{O})$\hfill} number of Pauli strings with imaginary coefficients in the encoding of $\hat{O}$.
+    \item \makebox[1.8cm]{$n_\text{mix}(\hat{O})$\hfill} number of Pauli strings with neither purely real nor purely imaginary coefficients 
+    in the expansion of $\hat{O}$.
+\end{itemize}
+
+Table~\ref{4:tbl:hamiltonian_scaling} provides a summary
+of this analysis. For the exact formulas for the number of Pauli terms, we refer to the respective sections above. 
+
+\begin{table}[htb]
+\centering
+\begin{tabular}{@{}lccc@{}}\toprule
+Term & \multicolumn{3}{c}{Number of Pauli strings} \\ 
+\cmidrule{2-4} 
+& $\log$. enc. & $\log$. enc. (perfect) & lin. enc. \\
+\midrule
+
+$H_\text{mass}$ & 
+$\order{n_\text{s} n_\text{spinor}}$ & 
+$\order{n_\text{s} n_\text{spinor}}$ & 
+$\order{n_\text{s} n_\text{spinor}}$
+\\
+
+$H_\text{hopp}$ & 
+$\order{n_\text{s} d n_\text{spinor}^2 d_S^2}$ &
+$\order{n_\text{s} d n_\text{spinor}^2 d_S}$ &
+$\order{n_\text{s} d n_\text{spinor}^2 d_S}$\\
+
+$H_\text{wilson}$  & 
+$\order{n_\text{s} d n_\text{spinor}^2 d_S^2}$ &
+$\order{n_\text{s} d n_\text{spinor}^2 d_S}$ &
+$\order{n_\text{s} d n_\text{spinor}^2 d_S}$
+\\
+
+$H_\text{elec}$ & 
+$\order{n_s d d_S} $ &
+$\order{n_s d d_S} $ &
+$\order{n_\text{s} d d_S^2}$
+\\
+
+$H_\text{plaq}$ 
+& $\order{n_s d d_S^8}$ &  $\order{n_s d d_S^4}$
+& $\order{n_s d d_S^4}$
+\\
+
+\bottomrule
+\end{tabular}
+\centering
+\label{4:tbl:hamiltonian_scaling}
+\caption{The scaling relations for the number of Pauli terms for the terms in the lattice \gls{qed} Hamiltonian are shown for different encodings of the truncated gauge operators. These relations do not depend on whether the Jordan-Wigner, Bravyi-Kitaev or Parity mapping is used for the fermions.}
+\end{table}
+
+The analysis shows that the dominant term with respect to the number
+of required Pauli strings is the plaquette term $H_\text{plaq}$, due to its strong scaling of with $d_S$. For this reason, even for small values of $d_S$ the plaquette term contributes by far the highest number of Pauli strings of all the terms in the Hamiltonian. 
+
+The best overall scaling, and thus the lowest number of required Pauli terms, is achieved by using a logarithmic encoding for a quantum link model with a perfectly representable spin $S$ system. The logarithmic encoding is also more favorable in terms of the number of required qubits. The downside of perfectly representable $S$ is that the eigenvalue $S_z = 0$ is not contained in the spectrum as $d_S$ is a power of two, resulting in a degenerate ground state.
+
+\section{Algorithms and Their Limitations\label{app:algos_limits}}
+
+In this section we provide an overview over various classical and quantum algorithms relevant for the field of high-energy physics and highlight their capabilities as well as their limitations.
+
+\subsection{VQE and VQD}
+
+The variational quantum eigensolver is a hybrid quantum-classical approach to obtain an approximation for the ground state of a (quantum) system~\cite{Peruzzo2014}. The algorithm uses the quantum device to prepare an ansatz state in form of a parametric quantum circuit. Based on the measurement outcome of the expectation value of the Hamiltonian, a classical minimization algorithm is used to obtain a new set of parameters. Running the feedback loop between the classical computer and the quantum device until convergence, one obtains an approximation for the ground state and its energy, provided the chosen ansatz is expressive enough and the optimization did not converge to a local minimum. Main limitations of the \acrshort{vqe} are barren plateaus (see Sec.~\ref{subsec:qml_limitations}). 
+
+\gls{vqd} is an extension of the \gls{vqe} allowing for computing low-lying excitations by running a \gls{vqe} looking for a low energy state that is orthogonal to all previous states~\cite{Higgott2019}.  
+\gls{ssvqe} is another approach used to compute excited states. This algorithm searches a low energy
+subspace by supplying orthogonal input states to the variational ansatz~\cite{PhysRevResearch.1.033062}. All the variational algorithms can be applied to Hamiltonians in both theoretical models and experimental analysis.
+
+\subsection{Tensor Networks}
+
+Tensor Networks are a family of entanglement-based ansätze providing an efficient parametrization of the physically relevant moderately entangled states~\cite{Banuls2019SimulatingLG,Banuls2020TNreview}. TN algorithms allow for computing ground states, low-lying excitations, thermal states and to a certain extent real-time dynamics. While TN are extremely successful in situations with moderate entanglement, they cease to work for highly entangled scenarios such as out-of-equilibrium dynamics. Moreover, in higher dimensions the numerical algorithms are computationally challenging but have a polynomial scaling in tensor size, thus allowed for first proof-of-principle demonstrations for \acrshort{lgt}s~\cite{Felser2019,Magnifico2020}.
+
+\subsection{QAOA}
+
+The quantum approximate optimization algorithm is a hybrid quantum-classical approach, originally designed to tackle combinatorial optimization problems~\cite{farhi2014quantum}. The problem is encoded in an Ising type Hamiltonian whose ground state is the optimal solution to the combinatorial optimization problem. \gls{qaoa} can be seen as a special type of \gls{vqe}, where the intial state is given by $\bigotimes \ket{+}$ and the parametric ansatz circuit in its plain vanilla form consists of a series of two alternating types of layers, each one containing a single real parameter. The first one is the exponential of the problem Hamiltonian, $\exp(-i\gamma \mathcal{H})$,  followed by a mixing layer corresponding to $R_X(\beta_i)$ gates applied to each qubit. In the limit of infinitely many layers, \gls{qaoa} can be interpreted as an adiabatic evolution of an eigenstate of the $X$ operator to the one of the problem Hamiltonian. From a theoretical point of view the performance of \gls{qaoa} is not entirely clear, it seems to depend on various factors and does not necessarily outperform classical algorithms~\cite{farhi2016quantum,barak_et_al:LIPIcs.ITCS.2022.14,Akshay2020}. 
+Furthermore, the resulting quantum circuits can be deep making them hard to implement on noisy hardware~\cite{franca2020limitations, Weidenfeller2022scalingofquantum}. However, some of these issues may be alleviated by algorithmic advances such as warm-starts~\cite{Egger2021warmstartingquantum} and counteradiabatic driving~\cite{Wurtz2022counterdiabaticity}. 
+
+
+
+\subsection{QKMEANS}
+
+The classical $k-$means is an efficient algorithm to classify data into $k$ clusters based on an unlabeled set of training vectors. 
+It belongs to the family of unsupervised machine learning algorithms. The number $k$ of clusters must be known \textit{a priori} which somewhat limits the range of its application in HEP. The algorithm is iterative and assigns at each step a training vector to the nearest centroid. The centroid location is then updated according to the average over the cluster of vectors associated at the current step to the centroid. The most time/resources consuming part of the algorithm is the calculation of the distance.
+In the classical version, using Lloyd's version of the algorithm, the time complexity is $\mathcal{O}(NM)$ where $N$ is the number of features and $M$ is the number of training examples~\cite{Lloyd82,Lloyd2013,Kopzyk2018}. The quantum version of the $k-$means algorithm provides an exponential speed-up for very large dimensions of a training vector. This is achieved through the introduction of two quantum subroutines, \textit{SwapTest} and \textit{DistCalc}, for the distance calculation~\cite{Aimeretal2006} and quantum subroutine \textit{GroverOptim} to assign a vector to the closest centroid cluster~\cite{Hoyer-Durr96}.
+
+\subsection{Quantum Kernels}
+
+Quantum kernels are a supervised quantum machine learning algorithm for classification and regression. The inputs can either be quantum (i.e., quantum states with an associated classical label) or fully classical (i.e. input-output data pairs). For the latter, the input classical data is first embedded into quantum states. For a quantum speed-up over classical algorithms, it is important to use an embedding (also called a quantum feature map) that is capable of recognizing classically intractable features~\cite{huang2021power,kubler2021inductive,liu2021rigorous}.
+For a given input pair of inputs one then evaluates a similarity measure between two encoded quantum states on a quantum computer. Formally, this is function corresponds to an inner product of data states, and is known as a quantum kernel~\cite{schuld2021supervised,havlivcek2019supervised, huang2021power}. The fidelity quantum kernel~\cite{schuld2021supervised,havlivcek2019supervised} and projected quantum kernel~\cite{huang2021power} are two common choices in kernels.
+
+\subsection{Quantum Generative Modelling}
+
+Quantum systems, as inherently probabilistic systems, are naturally tailored to generative modelling tasks~\cite{PerdomoOrtiz2017}. The aim of generative modelling is to use training samples from a given target distribution to learn a model distribution which can then be used to generate new samples. As well as providing an efficient means of generating samples, it has been shown that quantum generative models can encode probability distributions that cannot be modelled efficiently classically~\cite{Coyle2019, sweke2020learnability, gao2021enhancing}. A number of different architectures and training strategies are being explored for quantum generative modelling. 
+The Quantum circuit Born machine (QCBM)~\cite{benedetti2019generative} encodes a probability distribution in an $n$-qubit pure state. The Quantum Boltzmann Machine (QBM)~\cite{QBM_amin} is based on the Boltzmann distribution of a quantum Hamiltonian. A Quantum Generative Adversarial Network (QGAN)~\cite{QGAN_Loyd} uses the interplay of a generative quantum neural network and a classical or quantum discriminative model to a target distribution. 
+In all cases the quantum generative model is generally trained by optimizing a cost function which estimates the distance between the model distribution and the training distribution. Commonly used costs include the KL divergence~\cite{kullback1951KLD}, the Jensen-Shannon divergence~\cite{lin1991divergence}, the (quantum) Rényi divergence~\cite{renyi1961measures, kieferova2021quantum} and the Maximum Mean Discrepancy~\cite{Gretton2012mmd}. 
+
+
+\subsection{QRL}	
+
+\gls{rl} is an interactive mode of machine learning well suited for sequential decision and control tasks, and its objective is identifying the optimal policy (specification of what a learner does in a given situation) for a task environment. Current state-of-art methods include policy gradient methods, where the optimal policy is parametrized, and the performance is optimized in the policy space using interactions with the task environment; deep Q-learning methods, where the optimal value functions, which evaluate the ``value'' of a given state-action pair under a given policy, are approximated. Other approaches combine features of policy- and value-function-based methods.
+In \gls{qrl}; i.e., in quantum approaches to \gls{rl}, the policies (in policy gradients), or value functions (in value-function-based methods) are expressed using parametrized quantum circuits, instead of, e.g., neural networks which are conventionally used.
+The first quantum policy methods which achieved successful performances in OpenAI gym benchmarking environments were reported in~\cite{JerbiNEURIPS2021}, and the same paper proved the existence of task environments which can only be learned with quantum learners. In~\cite{SkolikQuantum2022} the quantum approach was extended to value-based approaches (deep Q-learning), and analogous proofs of learning separations were given.
+The work~\cite{JerbiPRXQ2021} studies using quantum methods to speed up neural network-based deep energy models.
+Follow-up works include the analysis of the performance of simple unentangled quantum learners~\cite{hsiao2022unentangled}, learning in partially observable environments~\cite{chen2022quantum}, applications in combinatorial optimization~\cite{skolik2022equivariant} and others. 
+\gls{qrl} is also adopted in~\cite{schenk2022hybrid} where free energy-based reinforcement learning (FERL) is extended to multi-dimensional continuous state-action space environments to open the doors for a broader range of real-world applications.
+An hybrid actor-critic scheme for continuous state-action spaces is developed based on the Deep Deterministic Policy Gradient algorithm combining a classical actor network with a QBM-based critic. The environments used throughout represent existing particle accelerator beam line of the Advanced Plasma Wakefield Experiment (AWAKE) at CERN.
+\gls{qrl} with parameterized circuits suffers from barren plateaus as well (as it contains conventional supervised learning as a special case), although it is not known whether the phenomenon is exacerbated. In a recent work~\cite{skolik2022robustness}, the effect of noise was studied as well, and the results suggest the models could be somewhat resistant to noise, but more studies are required for conclusive findings.
+
+\subsection{Topological Data Analysis}
+\gls{tda} is an increasingly studied technique for extracting robust topological features from complex datasets and has in recent times also been employed in high-energy physics problems~\cite{sale2022probing}. The principal computational task in \gls{tda} is the extraction of so-called (persistent) Betti numbers, which can be used to distinguish the underlying topological spaces of data.  
+ In the work~\cite{LloydNatComms2016}, a quantum algorithm for this problem was proposed, and it was suggested it may offer exponential speed-ups over conventional methods.
+ In~\cite{GyurikQuantum2022, cade2021complexity} it was proven that certain generalizations of the \gls{tda} problem are DQC1-hard (and thus likely offer exponential speed-ups, and~\cite{HayakawaQuantum2022} showcases how persistent features can be extracted as well.
+ The papers~\cite{ubaru2021quantum, berry2022quantifying, mcardle2022streamlined} provide streamlined versions of the original algorithm and achieve up-to-exponential savings in the qubit numbers, and~\cite{berry2022quantifying} has showcased a concrete family of datasets where concrete superpolynomial speed-ups over the best conventional methods are achieved.
+ In~\cite{cade2021complexity, crichigno2022clique}, based on~\cite{WittenJDG1982}, a deep connection between TDA and supersymmetric theories has been established which may lead to new applications of (quantum) \gls{tda} in not only analysing experimental data, but also exploring theoretical spaces beyond the standard model.
+ However it is important to note that it still remains to be determined if quantum \gls{tda} offers guaranteed speed-ups, or if it can be ``de-quantized'' using a new class of classical methods. Further, it is still an open question whether the regimes where quantum dramatic speed-ups kick in (i.e. when the desired homology, or Betti number, is high) have a wide application. 
+

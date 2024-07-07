@@ -1,0 +1,1313 @@
+\begin{thebibliography}{100}
+
+\bibitem{stafford2010science}
+Ned Stafford.
+\newblock Science in the digital age.
+\newblock {\em Nature}, 467(7317):S19--S21, 2010.
+
+\bibitem{boghosian1998simulating}
+Bruce~M Boghosian and Washington Taylor~IV.
+\newblock Simulating quantum mechanics on a quantum computer.
+\newblock {\em Physica D: Nonlinear Phenomena}, 120(1-2):30--42, 1998.
+
+\bibitem{shor1994algorithms}
+Peter~W Shor.
+\newblock Algorithms for quantum computation: discrete logarithms and
+  factoring.
+\newblock In {\em Proceedings 35th annual symposium on foundations of computer
+  science}, pages 124--134. Ieee, 1994.
+
+\bibitem{dimeglio2023quantum}
+Alberto~Di Meglio, Karl Jansen, Ivano Tavernelli, Constantia Alexandrou,
+  Srinivasan Arunachalam, Christian~W. Bauer, Kerstin Borras, Stefano Carrazza,
+  Arianna Crippa, Vincent Croft, Roland de~Putter, Andrea Delgado, Vedran
+  Dunjko, Daniel~J. Egger, Elias Fernandez-Combarro, Elina Fuchs, Lena Funcke,
+  Daniel Gonzalez-Cuadra, Michele Grossi, Jad~C. Halimeh, Zoe Holmes, Stefan
+  Kuhn, Denis Lacroix, Randy Lewis, Donatella Lucchesi, Miriam~Lucio Martinez,
+  Federico Meloni, Antonio Mezzacapo, Simone Montangero, Lento Nagano, Voica
+  Radescu, Enrique~Rico Ortega, Alessandro Roggero, Julian Schuhmacher, Joao
+  Seixas, Pietro Silvi, Panagiotis Spentzouris, Francesco Tacchino, Kristan
+  Temme, Koji Terashi, Jordi Tura, Cenk Tuysuz, Sofia Vallecorsa, Uwe-Jens
+  Wiese, Shinjae Yoo, and Jinglei Zhang.
+\newblock Quantum computing for high-energy physics: State of the art and
+  challenges. summary of the qc4hep working group.
+\newblock 2023.
+
+\bibitem{floether_2023}
+Frederik~F. Fl\"{o}ther.
+\newblock The state of quantum computing applications in health and medicine.
+\newblock {\em Research Directions: Quantum Technologies}, page 1–21, 2023.
+
+\bibitem{cao2018potential}
+Yudong Cao, Jhonathan Romero, and Al{\'a}n Aspuru-Guzik.
+\newblock Potential of quantum computing for drug discovery.
+\newblock {\em IBM Journal of Research and Development}, 62(6):6--1, 2018.
+
+\bibitem{schermelleh2019super}
+Lothar Schermelleh, Alexia Ferrand, Thomas Huser, Christian Eggeling, Markus
+  Sauer, Oliver Biehlmaier, and Gregor~PC Drummen.
+\newblock Super-resolution microscopy demystified.
+\newblock {\em Nature cell biology}, 21(1):72--84, 2019.
+
+\bibitem{clevers2016modeling}
+Hans Clevers.
+\newblock Modeling development and disease with organoids.
+\newblock {\em Cell}, 165(7):1586--1597, 2016.
+
+\bibitem{kuett2022three}
+Laura Kuett, Ra{\'u}l Catena, Alaz {\"O}zcan, Alex Pl{\"u}ss, Peter Schraml,
+  Holger Moch, Natalie de~Souza, and Bernd Bodenmiller.
+\newblock Three-dimensional imaging mass cytometry for highly multiplexed
+  molecular and cellular mapping of tissues and the tumor microenvironment.
+\newblock {\em Nature cancer}, 3(1):122--133, 2022.
+
+\bibitem{rozenblatt2017human}
+Orit Rozenblatt-Rosen, Michael~JT Stubbington, Aviv Regev, and Sarah~A
+  Teichmann.
+\newblock The human cell atlas: from vision to reality.
+\newblock {\em Nature}, 550(7677):451--453, 2017.
+
+\bibitem{patel2014single}
+Anoop~P Patel, Itay Tirosh, John~J Trombetta, Alex~K Shalek, Shawn~M Gillespie,
+  Hiroaki Wakimoto, Daniel~P Cahill, Brian~V Nahed, William~T Curry, Robert~L
+  Martuza, et~al.
+\newblock Single-cell rna-seq highlights intratumoral heterogeneity in primary
+  glioblastoma.
+\newblock {\em Science}, 344(6190):1396--1401, 2014.
+
+\bibitem{wagner2019single}
+Johanna Wagner, Maria~Anna Rapsomaniki, St{\'e}phane Chevrier, Tobias
+  Anzeneder, Claus Langwieder, August Dykgers, Martin Rees, Annette Ramaswamy,
+  Simone Muenst, Savas~Deniz Soysal, et~al.
+\newblock A single-cell atlas of the tumor and immune ecosystem of human breast
+  cancer.
+\newblock {\em Cell}, 177(5):1330--1345, 2019.
+
+\bibitem{tirosh2016dissecting}
+Itay Tirosh, Benjamin Izar, Sanjay~M Prakadan, Marc~H Wadsworth, Daniel Treacy,
+  John~J Trombetta, Asaf Rotem, Christopher Rodman, Christine Lian, George
+  Murphy, et~al.
+\newblock Dissecting the multicellular ecosystem of metastatic melanoma by
+  single-cell rna-seq.
+\newblock {\em Science}, 352(6282):189--196, 2016.
+
+\bibitem{paik2020single}
+David~T Paik, Sangkyun Cho, Lei Tian, Howard~Y Chang, and Joseph~C Wu.
+\newblock Single-cell rna sequencing in cardiovascular development, disease and
+  medicine.
+\newblock {\em Nature Reviews Cardiology}, 17(8):457--473, 2020.
+
+\bibitem{segerstolpe2016single}
+{\AA}sa Segerstolpe, Athanasia Palasantza, Pernilla Eliasson, Eva-Marie
+  Andersson, Anne-Christine Andr{\'e}asson, Xiaoyan Sun, Simone Picelli, Alan
+  Sabirsh, Maryam Clausen, Magnus~K Bjursell, et~al.
+\newblock Single-cell transcriptome profiling of human pancreatic islets in
+  health and type 2 diabetes.
+\newblock {\em Cell metabolism}, 24(4):593--607, 2016.
+
+\bibitem{lim2010designing}
+Wendell~A Lim.
+\newblock Designing customized cell signalling circuits.
+\newblock {\em Nature reviews Molecular cell biology}, 11(6):393--403, 2010.
+
+\bibitem{fischbach2013cell}
+Michael~A Fischbach, Jeffrey~A Bluestone, and Wendell~A Lim.
+\newblock Cell-based therapeutics: the next pillar of medicine.
+\newblock {\em Science translational medicine}, 5(179):179ps7--179ps7, 2013.
+
+\bibitem{WALimScienceReview2022}
+Wendell~A. Lim.
+\newblock The emerging era of cell engineering: Harnessing the modularity of
+  cells to program complex biological function.
+\newblock {\em Science}, 378(6622):848--852, 2022.
+
+\bibitem{june2018chimeric}
+Carl~H June and Michel Sadelain.
+\newblock Chimeric antigen receptor therapy.
+\newblock {\em New England Journal of Medicine}, 379(1):64--73, 2018.
+
+\bibitem{weber2020emerging}
+Evan~W Weber, Marcela~V Maus, and Crystal~L Mackall.
+\newblock The emerging landscape of immune cell therapies.
+\newblock {\em Cell}, 181(1):46--62, 2020.
+
+\bibitem{hong2020engineering}
+Mihe Hong, Justin~D Clubb, and Yvonne~Y Chen.
+\newblock Engineering car-t cells for next-generation cancer therapy.
+\newblock {\em Cancer cell}, 38(4):473--488, 2020.
+
+\bibitem{daniels2022decoding}
+Kyle~G Daniels, Shangying Wang, Milos~S Simic, Hersh~K Bhargava, Sara Capponi,
+  Yurie Tonai, Wei Yu, Simone Bianco, and Wendell~A Lim.
+\newblock Decoding car t cell phenotype using combinatorial signaling motif
+  libraries and machine learning.
+\newblock {\em Science}, 378(6625):1194--1200, 2022.
+
+\bibitem{reinhard2020rna}
+Katharina Reinhard, Benjamin Rengstl, Petra Oehm, Kristina Michel, Arne
+  Billmeier, Nina Hayduk, Oliver Klein, Kathrin Kuna, Yasmina Ouchan, Stefan
+  W{\"o}ll, et~al.
+\newblock An rna vaccine drives expansion and efficacy of claudin-car-t cells
+  against solid tumors.
+\newblock {\em Science}, 367(6476):446--453, 2020.
+
+\bibitem{de2016cancer}
+Jolanda De~Vries and Carl Figdor.
+\newblock Cancer vaccine triggers antiviral-type defences.
+\newblock {\em Nature}, 534(7607):329--331, 2016.
+
+\bibitem{kranz2016systemic}
+Lena~M Kranz, Mustafa Diken, Heinrich Haas, Sebastian Kreiter, Carmen Loquai,
+  Kerstin~C Reuter, Martin Meng, Daniel Fritz, Fulvia Vascotto, Hossam Hefesha,
+  et~al.
+\newblock Systemic rna delivery to dendritic cells exploits antiviral defence
+  for cancer immunotherapy.
+\newblock {\em Nature}, 534(7607):396--401, 2016.
+
+\bibitem{mackensen2022anti}
+Andreas Mackensen, Fabian M{\"u}ller, Dimitrios Mougiakakos, Sebastian
+  B{\"o}ltz, Artur Wilhelm, Michael Aigner, Simon V{\"o}lkl, David Simon, Arnd
+  Kleyer, Luis Munoz, et~al.
+\newblock Anti-cd19 car t cell therapy for refractory systemic lupus
+  erythematosus.
+\newblock {\em Nature medicine}, 28(10):2124--2132, 2022.
+
+\bibitem{rurik2022car}
+Joel~G Rurik, Istv{\'a}n Tomb{\'a}cz, Amir Yadegari, Pedro~O
+  M{\'e}ndez~Fern{\'a}ndez, Swapnil~V Shewale, Li~Li, Toru Kimura,
+  Ousamah~Younoss Soliman, Tyler~E Papp, Ying~K Tam, et~al.
+\newblock Car t cells produced in vivo to treat cardiac injury.
+\newblock {\em Science}, 375(6576):91--96, 2022.
+
+\bibitem{amor2020senolytic}
+Corina Amor, Judith Feucht, Josef Leibold, Yu-Jui Ho, Changyu Zhu, Direna
+  Alonso-Curbelo, Jorge Mansilla-Soto, Jacob~A Boyer, Xiang Li, Theodoros
+  Giavridis, et~al.
+\newblock Senolytic car t cells reverse senescence-associated pathologies.
+\newblock {\em Nature}, 583(7814):127--132, 2020.
+
+\bibitem{raffin2020treg}
+Caroline Raffin, Linda~T Vo, and Jeffrey~A Bluestone.
+\newblock Treg cell-based therapies: challenges and perspectives.
+\newblock {\em Nature Reviews Immunology}, 20(3):158--172, 2020.
+
+\bibitem{pardi2018mrna}
+Norbert Pardi, Michael~J Hogan, Frederick~W Porter, and Drew Weissman.
+\newblock mrna vaccines—a new era in vaccinology.
+\newblock {\em Nature reviews Drug discovery}, 17(4):261--279, 2018.
+
+\bibitem{pardi2020recent}
+Norbert Pardi, Michael~J Hogan, and Drew Weissman.
+\newblock Recent advances in mrna vaccine technology.
+\newblock {\em Current opinion in immunology}, 65:14--20, 2020.
+
+\bibitem{dill2012protein}
+Ken~A Dill and Justin~L MacCallum.
+\newblock The protein-folding problem, 50 years on.
+\newblock {\em Science}, 338(6110):1042--1046, 2012.
+
+\bibitem{jumper2021highly}
+John Jumper, Richard Evans, Alexander Pritzel, Tim Green, Michael Figurnov,
+  Olaf Ronneberger, Kathryn Tunyasuvunakool, Russ Bates, Augustin
+  {\v{Z}}{\'\i}dek, Anna Potapenko, et~al.
+\newblock Highly accurate protein structure prediction with alphafold.
+\newblock {\em Nature}, 596(7873):583--589, 2021.
+
+\bibitem{shin2021protein}
+Jung-Eun Shin, Adam~J Riesselman, Aaron~W Kollasch, Conor McMahon, Elana Simon,
+  Chris Sander, Aashish Manglik, Andrew~C Kruse, and Debora~S Marks.
+\newblock Protein design and variant prediction using autoregressive generative
+  models.
+\newblock {\em Nature communications}, 12(1):2403, 2021.
+
+\bibitem{humphreys2021computed}
+Ian~R Humphreys, Jimin Pei, Minkyung Baek, Aditya Krishnakumar, Ivan
+  Anishchenko, Sergey Ovchinnikov, Jing Zhang, Travis~J Ness, Sudeep Banjade,
+  Saket~R Bagde, et~al.
+\newblock Computed structures of core eukaryotic protein complexes.
+\newblock {\em Science}, 374(6573):eabm4805, 2021.
+
+\bibitem{wicky2022hallucinating}
+BIM Wicky, LF~Milles, A~Courbet, RJ~Ragotte, J~Dauparas, E~Kinfu, S~Tipps,
+  RD~Kibler, M~Baek, F~DiMaio, et~al.
+\newblock Hallucinating symmetric protein assemblies.
+\newblock {\em Science}, 378(6615):56--61, 2022.
+
+\bibitem{bryant2022predicting}
+Patrick Bryant, Gabriele Pozzati, Wensi Zhu, Aditi Shenoy, Petras Kundrotas,
+  and Arne Elofsson.
+\newblock Predicting the structure of large protein complexes using alphafold
+  and monte carlo tree search.
+\newblock {\em Nature Communications}, 13(1):6028, 2022.
+
+\bibitem{anishchenko2021novo}
+Ivan Anishchenko, Samuel~J Pellock, Tamuka~M Chidyausiku, Theresa~A Ramelot,
+  Sergey Ovchinnikov, Jingzhou Hao, Khushboo Bafna, Christoffer Norn, Alex
+  Kang, Asim~K Bera, et~al.
+\newblock De novo protein design by deep network hallucination.
+\newblock {\em Nature}, 600(7889):547--552, 2021.
+
+\bibitem{dauparas2022robust}
+Justas Dauparas, Ivan Anishchenko, Nathaniel Bennett, Hua Bai, Robert~J
+  Ragotte, Lukas~F Milles, Basile~IM Wicky, Alexis Courbet, Rob~J de~Haas,
+  Neville Bethel, et~al.
+\newblock Robust deep learning--based protein sequence design using
+  proteinmpnn.
+\newblock {\em Science}, 378(6615):49--56, 2022.
+
+\bibitem{wang2022scaffolding}
+Jue Wang, Sidney Lisanza, David Juergens, Doug Tischer, Joseph~L Watson,
+  Karla~M Castro, Robert Ragotte, Amijai Saragovi, Lukas~F Milles, Minkyung
+  Baek, et~al.
+\newblock Scaffolding protein functional sites using deep learning.
+\newblock {\em Science}, 377(6604):387--394, 2022.
+
+\bibitem{mazurenko2019machine}
+Stanislav Mazurenko, Zbynek Prokop, and Jiri Damborsky.
+\newblock Machine learning in enzyme engineering.
+\newblock {\em ACS Catalysis}, 10(2):1210--1223, 2019.
+
+\bibitem{yang2019machine}
+Kevin~K Yang, Zachary Wu, and Frances~H Arnold.
+\newblock Machine-learning-guided directed evolution for protein engineering.
+\newblock {\em Nature methods}, 16(8):687--694, 2019.
+
+\bibitem{zhou2015predicting}
+Jian Zhou and Olga~G Troyanskaya.
+\newblock Predicting effects of noncoding variants with deep learning--based
+  sequence model.
+\newblock {\em Nature methods}, 12(10):931--934, 2015.
+
+\bibitem{greenwald2022whole}
+Noah~F Greenwald, Geneva Miller, Erick Moen, Alex Kong, Adam Kagel, Thomas
+  Dougherty, Christine~Camacho Fullaway, Brianna~J McIntosh, Ke~Xuan Leow,
+  Morgan~Sarah Schwartz, et~al.
+\newblock Whole-cell segmentation of tissue images with human-level performance
+  using large-scale data annotation and deep learning.
+\newblock {\em Nature biotechnology}, 40(4):555--565, 2022.
+
+\bibitem{ardila2019end}
+Diego Ardila, Atilla~P Kiraly, Sujeeth Bharadwaj, Bokyung Choi, Joshua~J
+  Reicher, Lily Peng, Daniel Tse, Mozziyar Etemadi, Wenxing Ye, Greg Corrado,
+  et~al.
+\newblock End-to-end lung cancer screening with three-dimensional deep learning
+  on low-dose chest computed tomography.
+\newblock {\em Nature medicine}, 25(6):954--961, 2019.
+
+\bibitem{esteva2017dermatologist}
+Andre Esteva, Brett Kuprel, Roberto~A Novoa, Justin Ko, Susan~M Swetter,
+  Helen~M Blau, and Sebastian Thrun.
+\newblock Dermatologist-level classification of skin cancer with deep neural
+  networks.
+\newblock {\em Nature}, 542(7639):115--118, 2017.
+
+\bibitem{yala2019deep}
+Adam Yala, Constance Lehman, Tal Schuster, Tally Portnoi, and Regina Barzilay.
+\newblock A deep learning mammography-based model for improved breast cancer
+  risk prediction.
+\newblock {\em Radiology}, 292(1):60--66, 2019.
+
+\bibitem{bommasani2021opportunities}
+Rishi Bommasani, Drew~A Hudson, Ehsan Adeli, Russ Altman, Simran Arora, Sydney
+  von Arx, Michael~S Bernstein, Jeannette Bohg, Antoine Bosselut, Emma
+  Brunskill, et~al.
+\newblock On the opportunities and risks of foundation models.
+\newblock {\em arXiv preprint arXiv:2108.07258}, 2021.
+
+\bibitem{moor2023foundation}
+Michael Moor, Oishi Banerjee, Zahra Shakeri~Hossein Abad, Harlan~M Krumholz,
+  Jure Leskovec, Eric~J Topol, and Pranav Rajpurkar.
+\newblock Foundation models for generalist medical artificial intelligence.
+\newblock {\em Nature}, 616(7956):259--265, 2023.
+
+\bibitem{kelly2019key}
+Christopher~J Kelly, Alan Karthikesalingam, Mustafa Suleyman, Greg Corrado, and
+  Dominic King.
+\newblock Key challenges for delivering clinical impact with artificial
+  intelligence.
+\newblock {\em BMC medicine}, 17:1--9, 2019.
+
+\bibitem{cordier2022biology}
+Benjamin~A Cordier, Nicolas~PD Sawaya, Gian~Giacomo Guerreschi, and Shannon~K
+  McWeeney.
+\newblock Biology and medicine in the landscape of quantum advantages.
+\newblock {\em Journal of the Royal Society Interface}, 19(196):20220541, 2022.
+
+\bibitem{ott2022mapping}
+Simon Ott, Adriano Barbosa-Silva, Kathrin Blagec, Jan Brauner, and Matthias
+  Samwald.
+\newblock Mapping global dynamics of benchmark creation and saturation in
+  artificial intelligence.
+\newblock {\em Nature Communications}, 13(1):6793, 2022.
+
+\bibitem{daley2022practical}
+Andrew~J Daley, Immanuel Bloch, Christian Kokail, Stuart Flannigan, Natalie
+  Pearson, Matthias Troyer, and Peter Zoller.
+\newblock Practical quantum advantage in quantum simulation.
+\newblock {\em Nature}, 607(7920):667--676, 2022.
+
+\bibitem{tacchino2020quantum}
+Francesco Tacchino, Alessandro Chiesa, Stefano Carretta, and Dario Gerace.
+\newblock Quantum computers as universal quantum simulators: state-of-the-art
+  and perspectives.
+\newblock {\em Advanced Quantum Technologies}, 3(3):1900052, 2020.
+
+\bibitem{altman2021quantum}
+Ehud Altman, Kenneth~R Brown, Giuseppe Carleo, Lincoln~D Carr, Eugene Demler,
+  Cheng Chin, Brian DeMarco, Sophia~E Economou, Mark~A Eriksson, Kai-Mei~C Fu,
+  et~al.
+\newblock Quantum simulators: Architectures and opportunities.
+\newblock {\em PRX Quantum}, 2(1):017003, 2021.
+
+\bibitem{floether_griffin_2023}
+Frederik~F. Fl\"{o}ther and Paul~F. Griffin.
+\newblock How can quantum technologies be applied in healthcare, medicine and
+  the life sciences?
+\newblock {\em Research Directions: Quantum Technologies}, 1:e7, 2023.
+
+\bibitem{chow_dial_gambetta_2022}
+Jerry Chow, Oliver Dial, and Jay Gambetta.
+\newblock {IBM} quantum breaks the 100‑qubit processor barrier.
+\newblock
+  \url{https://research.ibm.com/blog/127-qubit-quantum-processor-eagle}, Feb
+  2022.
+
+\bibitem{lin2023empirical}
+Sophia~Fuhui Lin, Joshua Viszlai, Kaitlin~N Smith, Gokul~Subramanian Ravi,
+  Charles Yuan, Frederic~T Chong, and Benjamin~J Brown.
+\newblock Empirical overhead of the adapted surface code on defective qubit
+  arrays.
+\newblock {\em arXiv preprint arXiv:2305.00138}, 2023.
+
+\bibitem{google2023suppressing}
+Google A.~I. Quantum.
+\newblock Suppressing quantum errors by scaling a surface code logical qubit.
+\newblock {\em Nature}, 614(7949):676--681, 2023.
+
+\bibitem{egan2021fault}
+Laird Egan, Dripto~M Debroy, Crystal Noel, Andrew Risinger, Daiwei Zhu,
+  Debopriyo Biswas, Michael Newman, Muyuan Li, Kenneth~R Brown, Marko Cetina,
+  et~al.
+\newblock Fault-tolerant control of an error-corrected qubit.
+\newblock {\em Nature}, 598(7880):281--286, 2021.
+
+\bibitem{cross2022openqasm}
+Andrew Cross, Ali Javadi-Abhari, Thomas Alexander, Niel De~Beaudrap, Lev~S
+  Bishop, Steven Heidel, Colm~A Ryan, Prasahnt Sivarajah, John Smolin, Jay~M
+  Gambetta, et~al.
+\newblock Openqasm 3: A broader and deeper quantum assembly language.
+\newblock {\em ACM Transactions on Quantum Computing}, 3(3):1--50, 2022.
+
+\bibitem{jurcevic2021demonstration}
+Petar Jurcevic, Ali Javadi-Abhari, Lev~S Bishop, Isaac Lauer, Daniela~F
+  Bogorin, Markus Brink, Lauren Capelluto, Oktay G{\"u}nl{\"u}k, Toshinari
+  Itoko, Naoki Kanazawa, et~al.
+\newblock Demonstration of quantum volume 64 on a superconducting quantum
+  computing system.
+\newblock {\em Quantum Science and Technology}, 6(2):025020, 2021.
+
+\bibitem{wack2021quality}
+Andrew Wack, Hanhee Paik, Ali Javadi-Abhari, Petar Jurcevic, Ismael Faro,
+  Jay~M. Gambetta, and Blake~R. Johnson.
+\newblock Quality, speed, and scale: three key attributes to measure the
+  performance of near-term quantum computers.
+\newblock {\em arXiv preprint arXiv:2110.14108}, 2021.
+
+\bibitem{piveteau2022circuit}
+Christophe Piveteau and David Sutter.
+\newblock Circuit knitting with classical communication.
+\newblock {\em arXiv preprint arXiv:2205.00016}, 2022.
+
+\bibitem{shehab2019noise}
+Omar Shehab, Isaac~H Kim, Nhung~H Nguyen, Kevin Landsman, Cinthia~H Alderete,
+  Daiwei Zhu, C~Monroe, and Norbert~M Linke.
+\newblock Noise reduction using past causal cones in variational quantum
+  algorithms.
+\newblock {\em arXiv preprint arXiv:1906.00476}, 2019.
+
+\bibitem{patti2022markov}
+Taylor~L Patti, Omar Shehab, Khadijeh Najafi, and Susanne~F Yelin.
+\newblock Markov chain monte carlo enhanced variational quantum algorithms.
+\newblock {\em Quantum Science and Technology}, 8(1):015019, 2022.
+
+\bibitem{smith2023clifford}
+Kaitlin~N Smith, Michael~A Perlin, Pranav Gokhale, Paige Frederick, David
+  Owusu-Antwi, Richard Rines, Victory Omole, and Frederic~T Chong.
+\newblock Clifford-based circuit cutting for quantum simulation.
+\newblock {\em arXiv preprint arXiv:2303.10788}, 2023.
+
+\bibitem{Rossmannek2021}
+Max Rossmannek, Panagiotis~Kl. Barkoutsos, Pauline~J. Ollitrault, and Ivano
+  Tavernelli.
+\newblock {Quantum HF/DFT-embedding algorithms for electronic structure
+  calculations: Scaling up to complex molecular systems}.
+\newblock {\em J. Chem. Phys.}, 154(11), 2021.
+
+\bibitem{Rossmannek2023}
+Max Rossmannek, Fabijan Pavošević, Angel Rubio, and Ivano Tavernelli.
+\newblock Quantum embedding method for the simulation of strongly correlated
+  systems on quantum computers.
+\newblock {\em J. Chem. Phys. Lett.}, 14(14):3491--3497, 2023.
+
+\bibitem{kim2023scalable}
+Youngseok Kim, Christopher~J Wood, Theodore~J Yoder, Seth~T Merkel, Jay~M
+  Gambetta, Kristan Temme, and Abhinav Kandala.
+\newblock Scalable error mitigation for noisy quantum circuits produces
+  competitive expectation values.
+\newblock {\em Nature Physics}, pages 1--8, 2023.
+
+\bibitem{van2022probabilistic}
+Ewout Van Den~Berg, Zlatko~K Minev, Abhinav Kandala, and Kristan Temme.
+\newblock Probabilistic error cancellation with sparse pauli--lindblad models
+  on noisy quantum processors.
+\newblock {\em Nature Physics}, pages 1--6, 2023.
+
+\bibitem{bravyi2022future}
+Sergey Bravyi, Oliver Dial, Jay~M Gambetta, Dario Gil, and Zaira Nazario.
+\newblock The future of quantum computing with superconducting qubits.
+\newblock {\em Journal of Applied Physics}, 132(16):160902, 2022.
+
+\bibitem{cerezo2022challenges}
+M~Cerezo, Guillaume Verdon, Hsin-Yuan Huang, Lukasz Cincio, and Patrick~J
+  Coles.
+\newblock Challenges and opportunities in quantum machine learning.
+\newblock {\em Nature Computational Science}, 2(9):567--576, 2022.
+
+\bibitem{krunic2022quantum}
+Zoran Krunic, Frederik~F Fl{\"o}ther, George Seegan, Nathan~D Earnest-Noble,
+  and Omar Shehab.
+\newblock Quantum kernels for real-world predictions based on electronic health
+  records.
+\newblock {\em IEEE Transactions on Quantum Engineering}, 3:1--11, 2022.
+
+\bibitem{IBMQuantumCentricSupercomputing}
+IBM Research.
+\newblock {The Next Wave of Quantum-Centric Supercomputing}.
+\newblock
+  \url{https://research.ibm.com/blog/next-wave-quantum-centric-supercomputing},
+  March 2021.
+\newblock Accessed: May 3, 2023.
+
+\bibitem{Mensa_2023}
+Stefano Mensa, Emre Sahin, Francesco Tacchino, Panagiotis~Kl Barkoutsos, and
+  Ivano Tavernelli.
+\newblock Quantum machine learning framework for virtual screening in drug
+  discovery: a prospective quantum advantage.
+\newblock {\em Machine Learning: Science and Technology}, 4(1):015023, feb
+  2023.
+
+\bibitem{Barkoutsos2021}
+P.~K. Barkoutsos, F.~Gkritsis, P.~J. Ollitrault, I.~O. Sokolov, S.~Woerner, and
+  I.~Tavernelli.
+\newblock Quantum algorithm for alchemical optimization in material design.
+\newblock {\em Chem Sci}, 12(12):4345--4352, 2021.
+
+\bibitem{kiss2022quantum}
+Oriel Kiss, Francesco Tacchino, Sofia Vallecorsa, and Ivano Tavernelli.
+\newblock Quantum neural networks force fields generation.
+\newblock {\em arXiv:2203.04666 [physics, physics:quant-ph]}, March 2022.
+\newblock arXiv: 2203.04666.
+
+\bibitem{cross2019validating}
+Andrew~W Cross, Lev~S Bishop, Sarah Sheldon, Paul~D Nation, and Jay~M Gambetta.
+\newblock Validating quantum computers using randomized model circuits.
+\newblock {\em Physical Review A}, 100(3):032328, 2019.
+
+\bibitem{IBMQuantumRuntime}
+IBM~Quantum Experience.
+\newblock {Qiskit Runtime overview}.
+\newblock \url{https://quantum-computing.ibm.com/lab/docs/iql/runtime/}, 2021.
+\newblock Accessed: May 3, 2023.
+
+\bibitem{griffiths2018introduction}
+David~J Griffiths and Darrell~F Schroeter.
+\newblock {\em Introduction to quantum mechanics}.
+\newblock Cambridge university press, 2018.
+
+\bibitem{levine2019parallel}
+Harry Levine, Alexander Keesling, Giulia Semeghini, Ahmed Omran, Tout~T Wang,
+  Sepehr Ebadi, Hannes Bernien, Markus Greiner, Vladan Vuleti{\'c}, Hannes
+  Pichler, et~al.
+\newblock Parallel implementation of high-fidelity multiqubit gates with
+  neutral atoms.
+\newblock {\em Physical review letters}, 123(17):170503, 2019.
+
+\bibitem{burkard2021semiconductor}
+Guido Burkard, Thaddeus~D Ladd, John~M Nichol, Andrew Pan, and Jason~R Petta.
+\newblock Semiconductor spin qubits.
+\newblock {\em arXiv preprint arXiv:2112.08863}, 2021.
+
+\bibitem{conlon2019error}
+Aaron Conlon, Domenico Pellegrino, Johannes~K Slingerland, Shane Dooley, and
+  Graham Kells.
+\newblock Error generation and propagation in majorana-based topological
+  qubits.
+\newblock {\em Physical Review B}, 100(13):134307, 2019.
+
+\bibitem{martinis2021optimal}
+John~M Martinis.
+\newblock Optimal design of a superconducting transmon qubit with tapered
+  wiring.
+\newblock {\em arXiv preprint arXiv:2104.01544}, 2021.
+
+\bibitem{chamberland2022building}
+Christopher Chamberland, Kyungjoo Noh, Patricio Arrangoiz-Arriola, Earl~T
+  Campbell, Connor~T Hann, Joseph Iverson, Harald Putterman, Thomas~C
+  Bohdanowicz, Steven~T Flammia, Andrew Keller, et~al.
+\newblock Building a fault-tolerant quantum computer using concatenated cat
+  codes.
+\newblock {\em PRX Quantum}, 3(1):010329, 2022.
+
+\bibitem{cai2022quantum}
+Zhenyu Cai, Ryan Babbush, Simon~C Benjamin, Suguru Endo, William~J Huggins,
+  Ying Li, Jarrod~R McClean, and Thomas~E O'Brien.
+\newblock Quantum error mitigation.
+\newblock {\em arXiv preprint arXiv:2210.00921}, 2022.
+
+\bibitem{kim2023recent}
+Youngseok Kim, Andrew Eddins, Ewout Berg, Ken Wei, Sergey Bravyy, Kristan
+  Temme, and Abhinav Kandala.
+\newblock Recent progress and challenges in error mitigation with
+  fixed-frequency superconducting quantum processors.
+\newblock {\em Bulletin of the American Physical Society}, 2023.
+
+\bibitem{madden2022best}
+Liam Madden and Andrea Simonetto.
+\newblock Best approximate quantum compiling problems.
+\newblock {\em ACM Transactions on Quantum Computing}, 3(2):1--29, 2022.
+
+\bibitem{kim2023evidence}
+Youngseok Kim, Andrew Eddins, Sajant Anand, Ken~Xuan Wei, Ewout Van Den~Berg,
+  Sami Rosenblatt, Hasan Nayfeh, Yantao Wu, Michael Zaletel, Kristan Temme,
+  et~al.
+\newblock Evidence for the utility of quantum computing before fault tolerance.
+\newblock {\em Nature}, 618(7965):500--505, 2023.
+
+\bibitem{gottesman2022opportunities}
+Daniel Gottesman.
+\newblock Opportunities and challenges in fault-tolerant quantum computation.
+\newblock {\em arXiv preprint arXiv:2210.15844}, 2022.
+
+\bibitem{gidney2021factor}
+Craig Gidney and Martin Eker{\aa}.
+\newblock How to factor 2048 bit rsa integers in 8 hours using 20 million noisy
+  qubits.
+\newblock {\em Quantum}, 5:433, 2021.
+
+\bibitem{cross2018ibm}
+Andrew Cross.
+\newblock The ibm q experience and qiskit open-source quantum computing
+  software.
+\newblock In {\em APS March meeting abstracts}, volume 2018, pages L58--003,
+  2018.
+
+\bibitem{computing2019pyquil}
+Rigetti Computing.
+\newblock Pyquil documentation.
+\newblock \url{http://pyquil. readthedocs. io/en/latest}, 2019.
+
+\bibitem{bergholm2018pennylane}
+Ville Bergholm, Josh Izaac, Maria Schuld, Christian Gogolin, Shahnawaz Ahmed,
+  Vishnu Ajith, M~Sohaib Alam, Guillermo Alonso-Linaje, B~AkashNarayanan, Ali
+  Asadi, et~al.
+\newblock Pennylane: Automatic differentiation of hybrid quantum-classical
+  computations.
+\newblock {\em arXiv preprint arXiv:1811.04968}, 2018.
+
+\bibitem{hancockcirq}
+Cirq Developers.
+\newblock Cirq, December 2022.
+\newblock {See full list of authors on Github: https://github
+  .com/quantumlib/Cirq/graphs/contributors}.
+
+\bibitem{gonzalez2021cloud}
+Constantin Gonzalez.
+\newblock Cloud based qc with amazon braket.
+\newblock {\em Digitale Welt}, 5:14--17, 2021.
+
+\bibitem{algorithmiqAurora}
+Algorithmiq's platform for drug discovery with quantum computers.
+\newblock \url{https://algorithmiq.fi/news/quantum-computing-aurora-launch}.
+\newblock Accessed: 2023-17-05.
+
+\bibitem{IBM100000}
+IBM Research.
+\newblock {Charting the course to 100,000 qubits}.
+\newblock \url{https://research.ibm.com/blog/100k-qubit-supercomputer}, 2023.
+\newblock Accessed: Jun 21, 2023.
+
+\bibitem{feynman1985quantum}
+Richard~P Feynman.
+\newblock Quantum mechanical computers.
+\newblock {\em Optics news}, 11(2):11--20, 1985.
+
+\bibitem{Manin2023-fz}
+Yuri~I Manin.
+\newblock {\em Mathematics as metaphor: Selected essays of Yuri I. manin}.
+\newblock American Mathematical Society, 2023.
+
+\bibitem{grover1996fast}
+Lov~K Grover.
+\newblock A fast quantum mechanical algorithm for database search.
+\newblock In {\em Proceedings of the twenty-eighth annual ACM symposium on
+  Theory of computing}, pages 212--219, 1996.
+
+\bibitem{lloyd1996universal}
+Seth Lloyd.
+\newblock Universal quantum simulators.
+\newblock {\em Science}, 273(5278):1073--1078, 1996.
+
+\bibitem{lloyd2010quantum}
+Seth Lloyd.
+\newblock Quantum algorithm for solving linear systems of equations.
+\newblock In {\em APS March Meeting Abstracts}, volume 2010, pages D4--002,
+  2010.
+
+\bibitem{havlivcek2019supervised}
+Vojt{\v{e}}ch Havl{\'\i}{\v{c}}ek, Antonio~D C{\'o}rcoles, Kristan Temme,
+  Aram~W Harrow, Abhinav Kandala, Jerry~M Chow, and Jay~M Gambetta.
+\newblock Supervised learning with quantum-enhanced feature spaces.
+\newblock {\em Nature}, 567(7747):209--212, 2019.
+
+\bibitem{farhi2014quantum}
+Edward Farhi, Jeffrey Goldstone, and Sam Gutmann.
+\newblock A quantum approximate optimization algorithm.
+\newblock {\em arXiv preprint arXiv:1411.4028}, 2014.
+
+\bibitem{peruzzo2014variational}
+Alberto Peruzzo, Jarrod McClean, Peter Shadbolt, Man-Hong Yung, Xiao-Qi Zhou,
+  Peter~J Love, Al{\'a}n Aspuru-Guzik, and Jeremy~L O’brien.
+\newblock A variational eigenvalue solver on a photonic quantum processor.
+\newblock {\em Nature communications}, 5:4213, 2014.
+
+\bibitem{motta2022emerging}
+Mario Motta and Julia~E Rice.
+\newblock Emerging quantum computing algorithms for quantum chemistry.
+\newblock {\em Wiley Interdisciplinary Reviews: Computational Molecular
+  Science}, 12(3):e1580, 2022.
+
+\bibitem{mcardle2020quantum}
+Sam McArdle, Suguru Endo, Al{\'a}n Aspuru-Guzik, Simon~C Benjamin, and Xiao
+  Yuan.
+\newblock Quantum computational chemistry.
+\newblock {\em Reviews of Modern Physics}, 92(1):015003, 2020.
+
+\bibitem{nam2020ground}
+Yunseong Nam, Jwo-Sy Chen, Neal~C Pisenti, Kenneth Wright, Conor Delaney,
+  Dmitri Maslov, Kenneth~R Brown, Stewart Allen, Jason~M Amini, Joel Apisdorf,
+  et~al.
+\newblock Ground-state energy estimation of the water molecule on a trapped-ion
+  quantum computer.
+\newblock {\em npj Quantum Information}, 6(1):33, 2020.
+
+\bibitem{gokhale2020optimization}
+Pranav Gokhale, Olivia Angiuli, Yongshan Ding, Kaiwen Gui, Teague Tomesh,
+  Martin Suchara, Margaret Martonosi, and Frederic~T Chong.
+\newblock Optimization of simultaneous measurement for variational quantum
+  eigensolver applications.
+\newblock In {\em 2020 IEEE International Conference on Quantum Computing and
+  Engineering (QCE)}, pages 379--390. IEEE, 2020.
+
+\bibitem{dumitrescu2018cloud}
+Eugene~F Dumitrescu, Alex~J McCaskey, Gaute Hagen, Gustav~R Jansen, Titus~D
+  Morris, T~Papenbrock, Raphael~C Pooser, David~Jarvis Dean, and Pavel
+  Lougovski.
+\newblock Cloud quantum computing of an atomic nucleus.
+\newblock {\em Physical review letters}, 120(21):210501, 2018.
+
+\bibitem{shehab2019toward}
+Omar Shehab, K~Landsman, Yunseong Nam, Daiwei Zhu, Norbert~M Linke, M~Keesan,
+  Raphael~C Pooser, and C~Monroe.
+\newblock Toward convergence of effective-field-theory simulations on digital
+  quantum computers.
+\newblock {\em Physical Review A}, 100(6):062319, 2019.
+
+\bibitem{fitzpatrick2022selfconsistent}
+Aaron Fitzpatrick, Anton Nykänen, N.~Walter Talarico, Alessandro Lunghi,
+  Sabrina Maniscalco, Guillermo García-Pérez, and Stefan Knecht.
+\newblock A self-consistent field approach for the variational quantum
+  eigensolver: orbital optimization goes adaptive.
+\newblock {\em arXiv preprint arXiv:2212.11405}, 2022.
+
+\bibitem{higgott2019variational}
+Oscar Higgott, Daochen Wang, and Stephen Brierley.
+\newblock Variational quantum computation of excited states.
+\newblock {\em Quantum}, 3:156, 2019.
+
+\bibitem{OllitraultqEOM2020}
+Pauline~J. Ollitrault, Abhinav Kandala, Chun-Fu Chen, Panagiotis~Kl.
+  Barkoutsos, Antonio Mezzacapo, Marco Pistoia, Sarah Sheldon, Stefan Woerner,
+  Jay~M. Gambetta, and Ivano Tavernelli.
+\newblock Quantum equation of motion for computing molecular excitation
+  energies on a noisy quantum processor.
+\newblock {\em Phys. Rev. Res.}, 2:043140, Oct 2020.
+
+\bibitem{motta_quantum_2023}
+Mario Motta, Gavin~O. Jones, Julia~E. Rice, Tanvi~P. Gujarati, Rei Sakuma, Ieva
+  Liepuoniute, Jeannette~M. Garcia, and Yu-ya Ohnishi.
+\newblock Quantum chemistry simulation of ground- and excited-state properties
+  of the sulfonium cation on a superconducting quantum processor.
+\newblock {\em Chemical Science}, 14(11):2915--2927, March 2023.
+\newblock Publisher: The Royal Society of Chemistry.
+
+\bibitem{mcclean2017hybrid}
+Jarrod~R McClean, Mollie~E Kimchi-Schwartz, Jonathan Carter, and Wibe~A
+  de~Jong.
+\newblock Hybrid quantum-classical hierarchy for mitigation of decoherence and
+  determination of excited states.
+\newblock {\em Physical Review A}, 95(4):042308, 2017.
+
+\bibitem{kirby2022exact}
+William Kirby, Mario Motta, and Antonio Mezzacapo.
+\newblock Exact and efficient lanczos method on a quantum computer.
+\newblock {\em arXiv preprint arXiv:2208.00567}, 2022.
+
+\bibitem{gambella2020multiblock}
+Claudio Gambella and Andrea Simonetto.
+\newblock Multiblock admm heuristics for mixed-binary optimization on classical
+  and quantum computers.
+\newblock {\em IEEE Transactions on Quantum Engineering}, 1:1--22, 2020.
+
+\bibitem{szegedy2004quantum}
+Mario Szegedy.
+\newblock Quantum speed-up of markov chain based algorithms.
+\newblock In {\em 45th Annual IEEE symposium on foundations of computer
+  science}, pages 32--41. IEEE, 2004.
+
+\bibitem{wocjan2021szegedy}
+Pawel Wocjan and Kristan Temme.
+\newblock Szegedy walk unitaries for quantum maps.
+\newblock {\em arXiv preprint arXiv:2107.07365}, 2021.
+
+\bibitem{childs2009universal}
+Andrew~M Childs.
+\newblock Universal computation by quantum walk.
+\newblock {\em Physical review letters}, 102(18):180501, 2009.
+
+\bibitem{stkechly2023connecting}
+Michal Stechly, Lanruo Gao, Boniface Yogendran, Enrico Fontana, and Manuel
+  Rudolph.
+\newblock Connecting the hamiltonian structure to the qaoa energy and fourier
+  landscape structure.
+\newblock {\em arXiv preprint arXiv:2305.13594}, 2023.
+
+\bibitem{biamonte2017quantum}
+Jacob Biamonte, Peter Wittek, Nicola Pancotti, Patrick Rebentrost, Nathan
+  Wiebe, and Seth Lloyd.
+\newblock Quantum machine learning.
+\newblock {\em Nature}, 549(7671):195--202, 2017.
+
+\bibitem{schuld2015introduction}
+Maria Schuld, Ilya Sinayskiy, and Francesco Petruccione.
+\newblock An introduction to quantum machine learning.
+\newblock {\em Contemporary Physics}, 56(2):172--185, 2015.
+
+\bibitem{liu2021rigorous}
+Yunchao Liu, Srinivasan Arunachalam, and Kristan Temme.
+\newblock A rigorous and robust quantum speed-up in supervised machine
+  learning.
+\newblock {\em Nature Physics}, 17(9):1013--1017, 2021.
+
+\bibitem{Rebentrost_2014}
+Patrick Rebentrost, Masoud Mohseni, and Seth Lloyd.
+\newblock Quantum support vector machine for big data classification.
+\newblock {\em Physical Review Letters}, 113(13), sep 2014.
+
+\bibitem{Kavitha2022}
+S.~S. Kavitha and N.~Kaulgud.
+\newblock Quantum k-means clustering method for detecting heart disease using
+  quantum circuit approach.
+\newblock {\em Soft comput}, pages 1--14, 2022.
+
+\bibitem{abbas2021power}
+Amira Abbas, David Sutter, Christa Zoufal, Aur{\'e}lien Lucchi, Alessio
+  Figalli, and Stefan Woerner.
+\newblock The power of quantum neural networks.
+\newblock {\em Nature Computational Science}, 1(6):403--409, 2021.
+
+\bibitem{carlssonTDA}
+Gunnar Carlsson, Afra Zomorodian, Anne Collins, and Leonidas~J. Guibas.
+\newblock Persistence barcodes for shapes.
+\newblock {\em International Journal of Shape Modeling}, 11(02):149--187, 2005.
+
+\bibitem{edelsbrunnerTDA}
+H.~Edelsbrunner, D.~Letscher, and A.~Zomorodian.
+\newblock Topological persistence and simplification.
+\newblock In {\em Proceedings 41st Annual Symposium on Foundations of Computer
+  Science}, pages 454--463, 2000.
+
+\bibitem{TDAbiologyfolding}
+Yuan Yao, Jian Sun, Xuhui Huang, Gregory~R. Bowman, Gurjeet Singh, Michael
+  Lesnick, Leonidas~J. Guibas, Vijay~S. Pande, and Gunnar Carlsson.
+\newblock {Topological methods for exploring low-density states in biomolecular
+  folding pathways}.
+\newblock {\em The Journal of Chemical Physics}, 130(14), 04 2009.
+
+\bibitem{TDAmedicinearrhythmia}
+Meryll Dindin, Yuhei Umeda, and Frederic Chazal.
+\newblock Topological data analysis for arrhythmia detection through modular
+  neural networks.
+\newblock In Cyril Goutte and Xiaodan Zhu, editors, {\em Advances in Artificial
+  Intelligence}, pages 177--188, Cham, 2020. Springer International Publishing.
+
+\bibitem{TDAimageneural}
+Bastian Rieck, Matteo Togninalli, Christian Bock, Michael Moor, Max Horn,
+  Thomas Gumbsch, and Karsten Borgwardt.
+\newblock Neural persistence: A complexity measure for deep neural networks
+  using algebraic topology.
+\newblock In {\em International Conference on Learning Representations}, 2019.
+
+\bibitem{TDAtimeseries}
+Yuhei Umeda.
+\newblock Time series classification via topological data analysis.
+\newblock {\em Information and Media Technologies}, 12:228--239, 2017.
+
+\bibitem{Dey2022}
+T.~K. Dey, S.~Mandal, and S.~Mukherjee.
+\newblock Gene expression data classification using topology and machine
+  learning models.
+\newblock {\em BMC Bioinformatics}, 22(Suppl 10):627, 2022.
+
+\bibitem{Masoomy2021}
+H.~Masoomy, B.~Askari, S.~Tajik, A.~K. Rizi, and G.~R. Jafari.
+\newblock Topological analysis of interaction patterns in cancer-specific gene
+  regulatory network: persistent homology approach.
+\newblock {\em Scientific Reports}, 11(1):16414, 2021.
+
+\bibitem{Loughrey2021}
+C.~F. Loughrey, P.~Fitzpatrick, N.~Orr, and A.~Jurek-Loughrey.
+\newblock The topology of data: opportunities for cancer research.
+\newblock {\em Bioinformatics}, 37(19):3091--3098, 2021.
+
+\bibitem{Rabadan2020}
+R.~Rabadan, Y.~Mohamedi, U.~Rubin, T.~Chu, A.~N. Alghalith, O.~Elliott,
+  L.~Arnes, S.~Cal, A.~J. Obaya, A.~J. Levine, and P.~G. Camara.
+\newblock Identification of relevant genetic alterations in cancer using
+  topological data analysis.
+\newblock {\em Nature Communications}, 11(1):3808, 2020.
+
+\bibitem{Camara2017}
+P.~G. Camara.
+\newblock Topological methods for genomics: present and future directions.
+\newblock {\em Curr Opin Syst Biol}, 1:95--101, 2017.
+
+\bibitem{Nicolau2011}
+M.~Nicolau, A.~J. Levine, and G.~Carlsson.
+\newblock Topology based data analysis identifies a subgroup of breast cancers
+  with a unique mutational profile and excellent survival.
+\newblock {\em Proc Natl Acad Sci U S A}, 108(17):7265--70, 2011.
+
+\bibitem{LGZalgorithm}
+Seth Lloyd, Silvano Garnerone, and Paolo Zanardi.
+\newblock Quantum algorithms for topological and geometric analysis of data.
+\newblock {\em Nature Communications}, 7, 2014.
+
+\bibitem{ReviewQTDA}
+Sam Gunn and Niels Kornerup.
+\newblock Review of a quantum algorithm for betti numbers.
+\newblock {\em arXiv preprint arXiv:1906.07673}, 2019.
+
+\bibitem{QTDAtowardsadv}
+Casper Gyurik, Chris Cade, and Vedran Dunjko.
+\newblock Towards quantum advantage via topological data analysis.
+\newblock {\em {Quantum}}, 6:855, November 2022.
+
+\bibitem{QTDAhayakawa}
+Ryu Hayakawa.
+\newblock Quantum algorithm for persistent {B}etti numbers and topological data
+  analysis.
+\newblock {\em {Quantum}}, 6:873, December 2022.
+
+\bibitem{schmidhuber2022complexitytheoretic}
+Alexander Schmidhuber and Seth Lloyd.
+\newblock Complexity-theoretic limitations on quantum algorithms for
+  topological data analysis.
+\newblock {\em arXiv preprint arXiv:2209.14286}, 2022.
+
+\bibitem{QTDAlindepth}
+Shashanka Ubaru, Ismail~Yunus Akhalwaya, Mark~S. Squillante, Kenneth~L.
+  Clarkson, and Lior Horesh.
+\newblock Quantum topological data analysis with linear depth and exponential
+  speedup.
+\newblock {\em arXiv preprint arXiv:2108.02811}, 2021.
+
+\bibitem{QTDAlinexp}
+Ismail~Yunus Akhalwaya, Shashanka Ubaru, Kenneth~L. Clarkson, Mark~S.
+  Squillante, Vishnu Jejjala, Yang-Hui He, Kugendran Naidoo, Vasileios
+  Kalantzis, and Lior Horesh.
+\newblock Towards quantum advantage on noisy quantum computers.
+\newblock {\em arXiv preprint arXiv:2209.09371}, 2022.
+
+\bibitem{parida_l_redescription_2005}
+Laxmi Parida and Naren Ramakrishnan.
+\newblock Redescription mining: {Structure} theory and algorithms.
+\newblock {\em Proceedings of the 20th national conference on Artificial
+  intelligence}, 2, 2005.
+
+\bibitem{platt_character2016}
+D.~E. Platt, S.~Basu, P.~A. Zalloua, and L.~Parida.
+\newblock Characterizing redescriptions using persistent homology to isolate
+  genetic pathways contributing to pathogenesis.
+\newblock {\em BMC Syst Biol}, 10 Suppl 1(Suppl 1):10, 2016.
+
+\bibitem{karisani_topology_2022}
+Negin Karisani, Daniel~E Platt, Saugata Basu, and Laxmi Parida.
+\newblock Topology and redescriptions detect multiple alternative biological
+  pathways from clinical phenotypes.
+\newblock {\em Experimental Biology and Medicine}, 247(22):2015--2024, November
+  2022.
+\newblock Publisher: SAGE Publications.
+
+\bibitem{platt_epidemiological_2022}
+Daniel Platt, Aritra Bose, Chaya Levovitz, Kahn Rhrissorrakrai, and Laxmi
+  Parida.
+\newblock Epidemiological topology data analysis links severe covid-19 to raas
+  and hyperlipidemia associated metabolic syndrome conditions.
+\newblock {\em medRxiv}, 2022.
+
+\bibitem{bose_cuna_2021}
+Aritra Bose, Daniel~E. Platt, Niina Haiminen, and Laxmi Parida.
+\newblock Cuna: Cumulant-based network analysis of genotype-phenotype
+  associations in parkinson{\textquoteright}s disease.
+\newblock {\em medRxiv}, 2021.
+
+\bibitem{percus_correlation_1975}
+J.~K. Percus.
+\newblock Correlation inequalities for {Ising} spin lattices.
+\newblock {\em Communications in Mathematical Physics}, 40(3):283--308, October
+  1975.
+
+\bibitem{lee_statistical_1952}
+T.~D. Lee and C.~N. Yang.
+\newblock Statistical {Theory} of {Equations} of {State} and {Phase}
+  {Transitions}. {II}. {Lattice} {Gas} and {Ising} {Model}.
+\newblock {\em Physical Review}, 87(3):410--419, August 1952.
+\newblock Publisher: American Physical Society.
+
+\bibitem{Barabasi2011}
+A.~L. Barabasi, N.~Gulbahce, and J.~Loscalzo.
+\newblock Network medicine: a network-based approach to human disease.
+\newblock {\em Nat Rev Genet}, 12(1):56--68, 2011.
+
+\bibitem{Luck2020}
+K.~Luck, D.~K. Kim, L.~Lambourne, K.~Spirohn, B.~E. Begg, W.~Bian, R.~Brignall,
+  T.~Cafarelli, F.~J. Campos-Laborie, B.~Charloteaux, D.~Choi, A.~G. Cote,
+  M.~Daley, S.~Deimling, A.~Desbuleux, A.~Dricot, M.~Gebbia, M.~F. Hardy,
+  N.~Kishore, J.~J. Knapp, I.~A. Kovacs, I.~Lemmens, M.~W. Mee, J.~C. Mellor,
+  C.~Pollis, C.~Pons, A.~D. Richardson, S.~Schlabach, B.~Teeking, A.~Yadav,
+  M.~Babor, D.~Balcha, O.~Basha, C.~Bowman-Colin, S.~F. Chin, S.~G. Choi,
+  C.~Colabella, G.~Coppin, C.~D'Amata, D.~De~Ridder, S.~De~Rouck,
+  M.~Duran-Frigola, H.~Ennajdaoui, F.~Goebels, L.~Goehring, A.~Gopal,
+  G.~Haddad, E.~Hatchi, M.~Helmy, Y.~Jacob, Y.~Kassa, S.~Landini, R.~Li, N.~van
+  Lieshout, A.~MacWilliams, D.~Markey, J.~N. Paulson, S.~Rangarajan, J.~Rasla,
+  A.~Rayhan, T.~Rolland, A.~San-Miguel, Y.~Shen, D.~Sheykhkarimli, G.~M.
+  Sheynkman, E.~Simonovsky, M.~Tasan, A.~Tejeda, V.~Tropepe, J.~C. Twizere,
+  Y.~Wang, R.~J. Weatheritt, J.~Weile, Y.~Xia, X.~Yang, E.~Yeger-Lotem,
+  Q.~Zhong, P.~Aloy, G.~D. Bader, J.~De~Las~Rivas, S.~Gaudet, T.~Hao, J.~Rak,
+  J.~Tavernier, D.~E. Hill, M.~Vidal, F.~P. Roth, and M.~A. Calderwood.
+\newblock A reference map of the human binary protein interactome.
+\newblock {\em Nature}, 580(7803):402--408, 2020.
+
+\bibitem{maniscalco2022quantum}
+Sabrina Maniscalco, Elsi-Mari Borrelli, Daniel Cavalcanti, Caterina Foti, Adam
+  Glos, Mark Goldsmith, Stefan Knecht, Keijo Korhonen, Joonas Malmi, Anton
+  Nykänen, Matteo A.~C. Rossi, Harto Saarinen, Boris Sokolov, N.~Walter
+  Talarico, Jussi Westergren, Zoltán Zimborás, and Guillermo García-Pérez.
+\newblock Quantum network medicine: rethinking medicine with network science
+  and quantum algorithms.
+\newblock {\em arXiv preprint arXiv:2206.12405}, 2022.
+
+\bibitem{Goldsmith2023}
+M.~Goldsmith, H.~Saarinen, G.~Garcia-Perez, J.~Malmi, M.~A.~C. Rossi, and
+  S.~Maniscalco.
+\newblock Link prediction with continuous-time classical and quantum walks.
+\newblock {\em Entropy (Basel)}, 25(5), 2023.
+
+\bibitem{scannell2012diagnosing}
+Jack~W Scannell, Alex Blanckley, Helen Boldon, and Brian Warrington.
+\newblock Diagnosing the decline in pharmaceutical r\&d efficiency.
+\newblock {\em Nature reviews Drug discovery}, 11(3):191--200, 2012.
+
+\bibitem{moffat2017opportunities}
+John~G Moffat, Fabien Vincent, Jonathan~A Lee, J{\"o}rg Eder, and Marco
+  Prunotto.
+\newblock Opportunities and challenges in phenotypic drug discovery: an
+  industry perspective.
+\newblock {\em Nature reviews Drug discovery}, 16(8):531--543, 2017.
+
+\bibitem{sams2005target}
+Frank Sams-Dodd.
+\newblock Target-based drug discovery: is something wrong?
+\newblock {\em Drug discovery today}, 10(2):139--147, 2005.
+
+\bibitem{lin2019off}
+Ann Lin, Christopher~J Giuliano, Ann Palladino, Kristen~M John, Connor
+  Abramowicz, Monet~Lou Yuan, Erin~L Sausville, Devon~A Lukow, Luwei Liu,
+  Alexander~R Chait, et~al.
+\newblock Off-target toxicity is a common mechanism of action of cancer drugs
+  undergoing clinical trials.
+\newblock {\em Science translational medicine}, 11(509):eaaw8412, 2019.
+
+\bibitem{sharma2017primary}
+Padmanee Sharma, Siwen Hu-Lieskovan, Jennifer~A Wargo, and Antoni Ribas.
+\newblock Primary, adaptive, and acquired resistance to cancer immunotherapy.
+\newblock {\em Cell}, 168(4):707--723, 2017.
+
+\bibitem{abbott2021quantum}
+Alison Abbott.
+\newblock Quantum computers to explore precision oncology.
+\newblock {\em Nature Biotechnology}, 39(11):1324--1325, 2021.
+
+\bibitem{hargrave2012serendipity}
+Emily Hargrave-Thomas, Bo~Yu, and J{\'o}hannes Reynisson.
+\newblock Serendipity in anticancer drug discovery.
+\newblock {\em World journal of clinical oncology}, 3(1):1, 2012.
+
+\bibitem{Chen2023}
+J.~Chen, H.~Xu, W.~Tao, Z.~Chen, Y.~Zhao, and J.~J. Han.
+\newblock Transformer for one stop interpretable cell type annotation.
+\newblock {\em Nature Communications}, 14(1):223, 2023.
+
+\bibitem{Theodoris2023}
+C.~V. Theodoris, L.~Xiao, A.~Chopra, M.~D. Chaffin, Z.~R. Al~Sayed, M.~C. Hill,
+  H.~Mantineo, E.~M. Brydon, Z.~Zeng, X.~S. Liu, and P.~T. Ellinor.
+\newblock Transfer learning enables predictions in network biology.
+\newblock {\em Nature}, 2023.
+
+\bibitem{Cui2023}
+Haotian Cui, Chloe Wang, Hassaan Maan, and Bo~Wang.
+\newblock scgpt: Towards building a foundation model for single-cell
+  multi-omics using generative ai.
+\newblock {\em bioRxiv}, 2023.
+
+\bibitem{Hao2023}
+Minsheng Hao, Jing Gong, Xin Zeng, Chiming Liu, Yucheng Guo, Xingyi Cheng,
+  Taifeng Wang, Jianzhu Ma, Le~Song, and Xuegong Zhang.
+\newblock Large scale foundation model on single-cell transcriptomics.
+\newblock {\em bioRxiv}, 2023.
+
+\bibitem{andreyev2020integration}
+Dmitry~S Andreyev and Boris~L Zybailov.
+\newblock Integration of flow cytometry and single cell sequencing.
+\newblock {\em Trends in Biotechnology}, 38(2):133--136, 2020.
+
+\bibitem{guedan2020single}
+Sonia Guedan, Aviv Madar, Victoria Casado-Medrano, Carolyn Shaw, Anna Wing,
+  Fang Liu, Regina~M Young, Carl~H June, Avery~D Posey, et~al.
+\newblock Single residue in cd28-costimulated car-t cells limits long-term
+  persistence and antitumor durability.
+\newblock {\em The Journal of clinical investigation}, 130(6):3087--3097, 2020.
+
+\bibitem{das2021accelerated}
+Payel Das, Tom Sercu, Kahini Wadhawan, Inkit Padhi, Sebastian Gehrmann, Flaviu
+  Cipcigan, Vijil Chenthamarakshan, Hendrik Strobelt, Cicero Dos~Santos, Pin-Yu
+  Chen, et~al.
+\newblock Accelerated antimicrobial discovery via deep generative models and
+  molecular dynamics simulations.
+\newblock {\em Nature Biomedical Engineering}, 5(6):613--623, 2021.
+
+\bibitem{krause1998antigen}
+Anja Krause, Hong-Fen Guo, Jean-Baptiste Latouche, Cuiwen Tan, Nai-Kong~V
+  Cheung, and Michel Sadelain.
+\newblock Antigen-dependent cd28 signaling selectively enhances survival and
+  proliferation in genetically modified activated human primary t lymphocytes.
+\newblock {\em The Journal of experimental medicine}, 188(4):619--626, 1998.
+
+\bibitem{roybal2016engineering}
+Kole~T Roybal, Jasper~Z Williams, Leonardo Morsut, Levi~J Rupp, Isabel Kolinko,
+  Joseph~H Choe, Whitney~J Walker, Krista~A McNally, and Wendell~A Lim.
+\newblock Engineering t cells with customized therapeutic response programs
+  using synthetic notch receptors.
+\newblock {\em Cell}, 167(2):419--432, 2016.
+
+\bibitem{tousley2023co}
+Aidan~M Tousley, Maria~Caterina Rotiroti, Louai Labanieh, Lea~Wenting Rysavy,
+  Won-Ju Kim, Caleb Lareau, Elena Sotillo, Evan~W Weber, Skyler~P Rietberg,
+  Guillermo~Nicolas Dalton, et~al.
+\newblock Co-opting signalling molecules enables logic-gated control of car t
+  cells.
+\newblock {\em Nature}, pages 1--10, 2023.
+
+\bibitem{roybal2016precision}
+Kole~T Roybal, Levi~J Rupp, Leonardo Morsut, Whitney~J Walker, Krista~A
+  McNally, Jason~S Park, and Wendell~A Lim.
+\newblock Precision tumor recognition by t cells with combinatorial
+  antigen-sensing circuits.
+\newblock {\em Cell}, 164(4):770--779, 2016.
+
+\bibitem{martinez2022scaling}
+Guillermo Mart{\'\i}nez-Ara, Kristina~S Stapornwongkul, and Miki Ebisuya.
+\newblock Scaling up complexity in synthetic developmental biology.
+\newblock {\em Science}, 378(6622):864--868, 2022.
+
+\bibitem{harrison2017assembly}
+S.~E. Harrison, B.~Sozen, N.~Christodoulou, C.~Kyprianou, and
+  M.~Zernicka-Goetz.
+\newblock Assembly of embryonic and extraembryonic stem cells to mimic
+  embryogenesis in vitro.
+\newblock {\em Science}, 356(6334), 2017.
+
+\bibitem{shahbazi2018deconstructing}
+Marta~N Shahbazi and Magdalena Zernicka-Goetz.
+\newblock Deconstructing and reconstructing the mouse and human early embryo.
+\newblock {\em Nature cell biology}, 20(8):878--887, 2018.
+
+\bibitem{labanieh2023car}
+Louai Labanieh and Crystal~L Mackall.
+\newblock Car immune cells: design principles, resistance and the next
+  generation.
+\newblock {\em Nature}, 614(7949):635--648, 2023.
+
+\bibitem{gordon2022screening}
+Khloe~S Gordon, Taeyoon Kyung, Caleb~R Perez, Patrick~V Holec, Azucena Ramos,
+  Angela~Q Zhang, Yash Agarwal, Yunpeng Liu, Catherine~E Koch, Alina
+  Starchenko, et~al.
+\newblock Screening for cd19-specific chimaeric antigen receptors with enhanced
+  signalling via a barcoded library of intracellular domains.
+\newblock {\em Nature Biomedical Engineering}, 6(7):855--866, 2022.
+
+\bibitem{castellanos2022speedingcars}
+Roc{\'\i}o Castellanos-Rueda, Rapha{\"e}l~B Di~Roberto, Florian Bieberich,
+  Fabrice~S Schlatter, Darya Palianina, Oanh~TP Nguyen, Edo Kapetanovic, Heinz
+  L{\"a}ubli, Andreas Hierlemann, Nina Khanna, et~al.
+\newblock speedingcars: accelerating the engineering of car t cells by
+  signaling domain shuffling and single-cell sequencing.
+\newblock {\em Nature Communications}, 13(1):6555, 2022.
+
+\bibitem{cong2019quantum}
+Iris Cong, Soonwon Choi, and Mikhail~D Lukin.
+\newblock Quantum convolutional neural networks.
+\newblock {\em Nature Physics}, 15(12):1273--1278, 2019.
+
+\bibitem{pesah2021absence}
+Arthur Pesah, Marco Cerezo, Samson Wang, Tyler Volkoff, Andrew~T Sornborger,
+  and Patrick~J Coles.
+\newblock Absence of barren plateaus in quantum convolutional neural networks.
+\newblock {\em Physical Review X}, 11(4):041011, 2021.
+
+\bibitem{lewis2021spatial}
+Sabrina~M Lewis, Marie-Liesse Asselin-Labat, Quan Nguyen, Jean Berthelet, Xiao
+  Tan, Verena~C Wimmer, Delphine Merino, Kelly~L Rogers, and Shalin~H Naik.
+\newblock Spatial omics and multiplexed imaging to explore cancer biology.
+\newblock {\em Nature methods}, 18(9):997--1012, 2021.
+
+\bibitem{hetzel2021graph}
+Leon Hetzel, David~S Fischer, Stephan G{\"u}nnemann, and Fabian~J Theis.
+\newblock Graph representation learning for single-cell biology.
+\newblock {\em Current Opinion in Systems Biology}, 28:100347, 2021.
+
+\bibitem{li2022graph}
+Michelle~M Li, Kexin Huang, and Marinka Zitnik.
+\newblock Graph representation learning in biomedicine and healthcare.
+\newblock {\em Nature Biomedical Engineering}, pages 1--17, 2022.
+
+\bibitem{jaume2021quantifying}
+Guillaume Jaume, Pushpak Pati, Behzad Bozorgtabar, Antonio Foncubierta,
+  Anna~Maria Anniciello, Florinda Feroce, Tilman Rau, Jean-Philippe Thiran,
+  Maria Gabrani, and Orcun Goksel.
+\newblock Quantifying explainers of graph neural networks in computational
+  pathology.
+\newblock In {\em Proceedings of the IEEE/CVF conference on computer vision and
+  pattern recognition}, pages 8106--8116, 2021.
+
+\bibitem{brbic2022annotation}
+Maria Brbi{\'c}, Kaidi Cao, John~W Hickey, Yuqi Tan, Michael~P Snyder, Garry~P
+  Nolan, and Jure Leskovec.
+\newblock Annotation of spatially resolved single-cell data with stellar.
+\newblock {\em Nature Methods}, pages 1--8, 2022.
+
+\bibitem{fischer2022modeling}
+David~S Fischer, Anna~C Schaar, and Fabian~J Theis.
+\newblock Modeling intercellular communication in tissues using spatial graphs
+  of cells.
+\newblock {\em Nature Biotechnology}, pages 1--5, 2022.
+
+\bibitem{yuan2020gcng}
+Ye~Yuan and Ziv Bar-Joseph.
+\newblock Gcng: graph convolutional networks for inferring gene interaction
+  from spatial transcriptomics data.
+\newblock {\em Genome biology}, 21(1):1--16, 2020.
+
+\bibitem{wu2022graph}
+Zhenqin Wu, Alexandro~E Trevino, Eric Wu, Kyle Swanson, Honesty~J Kim, H~Blaize
+  D’Angio, Ryan Preska, Gregory~W Charville, Piero~D Dalerba, Ann~Marie
+  Egloff, et~al.
+\newblock Graph deep learning for the characterization of tumour
+  microenvironments from spatial protein profiles in tissue specimens.
+\newblock {\em Nature Biomedical Engineering}, pages 1--14, 2022.
+
+\bibitem{brancati2022bracs}
+Nadia Brancati, Anna~Maria Anniciello, Pushpak Pati, Daniel Riccio, Giosu{\`e}
+  Scognamiglio, Guillaume Jaume, Giuseppe De~Pietro, Maurizio Di~Bonito,
+  Antonio Foncubierta, Gerardo Botti, et~al.
+\newblock Bracs: A dataset for breast carcinoma subtyping in h\&e histology
+  images.
+\newblock {\em Database}, 2022, 2022.
+
+\bibitem{bulten2022}
+W.~Bulten, K.~Kartasalo, P.C. Chen, P.~Ström, H.~Pinckaers, K.~Nagpal, Y.~Cai,
+  D.F. Steiner, H.~van Boven, R.~Vink, C.~Hulsbergen-van~de Kaa, J.~van~der
+  Laak, M.B. Amin, A.J. Evans, T.~van~der Kwast, R.~Allan, P.A. Humphrey,
+  H.~Grönberg, H.~Samaratunga, B.~Delahunt, T.~Tsuzuki, T.~Häkkinen,
+  L.~Egevad, M.~Demkin, S.~Dane, F.~Tan, M.~Valkonen, G.S. Corrado, L.~Peng,
+  C.H. Mermel, P.~Ruusuvuori, G.~Litjens, M.~Eklund, and the PANDA~challenge
+  consortium.
+\newblock Artificial intelligence for diagnosis and gleason grading of prostate
+  cancer: the panda challenge.
+\newblock {\em Nature Medicine}, 28:154–163, 2022.
+
+\bibitem{srivatsan2020massively}
+Sanjay~R Srivatsan, Jos{\'e}~L McFaline-Figueroa, Vijay Ramani, Lauren
+  Saunders, Junyue Cao, Jonathan Packer, Hannah~A Pliner, Dana~L Jackson,
+  Riza~M Daza, Lena Christiansen, et~al.
+\newblock Massively multiplex chemical transcriptomics at single-cell
+  resolution.
+\newblock {\em Science}, 367(6473):45--51, 2020.
+
+\bibitem{lotfollahi2019scgen}
+Mohammad Lotfollahi, F~Alexander Wolf, and Fabian~J Theis.
+\newblock scgen predicts single-cell perturbation responses.
+\newblock {\em Nature methods}, 16(8):715--721, 2019.
+
+\bibitem{villani2009optimal}
+C{\'e}dric Villani et~al.
+\newblock {\em Optimal transport: old and new}, volume 338.
+\newblock Springer, 2009.
+
+\bibitem{cuturi2013sinkhorn}
+Marco Cuturi.
+\newblock Sinkhorn distances: Lightspeed computation of optimal transport.
+\newblock {\em Advances in neural information processing systems}, 26, 2013.
+
+\bibitem{peyre2019computational}
+Gabriel Peyr{\'e}, Marco Cuturi, et~al.
+\newblock Computational optimal transport: With applications to data science.
+\newblock {\em Foundations and Trends{\textregistered} in Machine Learning},
+  11(5-6):355--607, 2019.
+
+\bibitem{bunne2022supervised}
+Charlotte Bunne, Andreas Krause, and marco cuturi.
+\newblock Supervised training of conditional monge maps.
+\newblock In Alice~H. Oh, Alekh Agarwal, Danielle Belgrave, and Kyunghyun Cho,
+  editors, {\em Advances in Neural Information Processing Systems}, 2022.
+
+\bibitem{norman2019exploring}
+Thomas~M Norman, Max~A Horlbeck, Joseph~M Replogle, Alex~Y Ge, Albert Xu, Marco
+  Jost, Luke~A Gilbert, and Jonathan~S Weissman.
+\newblock Exploring genetic interaction manifolds constructed from rich
+  single-cell phenotypes.
+\newblock {\em Science}, 365(6455):786--793, 2019.
+
+\bibitem{gehring2020highly}
+Jase Gehring, Jong Hwee~Park, Sisi Chen, Matthew Thomson, and Lior Pachter.
+\newblock Highly multiplexed single-cell rna-seq by dna oligonucleotide tagging
+  of cellular proteins.
+\newblock {\em Nature biotechnology}, 38(1):35--38, 2020.
+
+\bibitem{platt_characterizing_2016}
+Daniel~E. Platt, Saugata Basu, Pierre~A. Zalloua, and Laxmi Parida.
+\newblock Characterizing redescriptions using persistent homology to isolate
+  genetic pathways contributing to pathogenesis.
+\newblock {\em BMC Systems Biology}, 10(1):S10, January 2016.
+
+\end{thebibliography}

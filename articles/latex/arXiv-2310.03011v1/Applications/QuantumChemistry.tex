@@ -1,0 +1,354 @@
+%!TEX root = ../main.tex
+
+
+
+\section{Quantum chemistry }\label{appl:QuantumChemistry}
+
+\begin{refsection}
+Computational chemistry seeks to use the rules of quantum mechanics to predict the physical properties and behavior of atoms, molecules, and materials. Despite the apparent exponential cost of exact classical methods for this task, scientists have made incredible progress over the last century via increasingly sophisticated approximate methods. As a result, computational chemistry is now a core part of the analyses of chemistry experiments, the pharmaceutical drug discovery pipeline, and the optimization of materials for catalysts and batteries. Two of the most widely performed calculations are the computation of the \hyperref[appl:ElectronicStructure]{electronic structure} and the \hyperref[appl:VibrationalStructure]{vibrational structure} of chemical systems. Given the inherently quantum mechanical nature of these problems, it follows that a number of quantum algorithms have been proposed for computational chemistry~\cite{aspuru2005simulated}. In this section, we focus on the \hyperref[appl:ElectronicStructure]{electronic structure problem} for molecules and materials, as well as the \hyperref[appl:VibrationalStructure]{vibrational structure problem}. For further reviews of quantum computing for chemistry, we refer readers to~\cite{mcArdle2017QuantCompuChem, cao2019, bauer2020ChemicalReviews, motta2022QuantumChemistryReview}.
+
+
+
+
+\localtableofcontents
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+\end{refsection}
+
+
+
+\newpage
+
+
+
+\begin{refsection}
+
+\subsection{Electronic structure problem}\label{appl:ElectronicStructure} 
+
+\subsubsection*{Overview}
+We seek the energy eigenstates (or thermal states) of the Hamiltonian used to describe the electrons in molecules or material systems. The electrons interact with each other, in addition to fields produced by the nuclei (which are typically assumed to be fixed in position, and classical) and any external applied fields.
+
+In simulations of a finite sized system, there is not a clear distinction between a ``molecule'' and a ``material''---materials may be viewed as an extended molecule, typically with a repeating underlying atomic structure. In materials we are additionally concerned with extrapolating finite size properties to the thermodynamic limit by repeating the simulation at a range of system sizes. This enables the measurement of thermodynamic properties, such as phase diagrams.
+For molecular systems, we are interested in measuring microscopic properties, such as excitation energies, reaction rates, dipole moments, or nuclear forces. 
+
+One may also consider time evolution under the electronic structure Hamiltonian; this is a less well-studied problem in both classical and quantum settings, likely due to the high costs of classical simulations. As such, we will predominantly focus on static properties, commenting on dynamics simulations where relevant.
+
+
+
+
+\subsubsection*{Actual end-to-end problem(s) solved}
+The Hamiltonian of a system consisting of $K$ nuclei and $\eta$ electrons interacting via the Coulomb interaction is (in atomic units) 
+\begin{equation}
+\begin{aligned}
+	H = -\sum_{i=1}^\eta \frac{(\nabla_{i})^2}{2}  - \sum_{I=1}^K \frac{(\nabla_{I})^2}{2M_I} - \sum_{i,I}\frac{Z_I}{|r_{i}-R_{I}|} +\frac{1}{2}\sum_{i\neq j}\frac{1}{|r_{i}-r_{j}|} + \frac{1}{2}\sum_{I\neq J}\frac{Z_IZ_J}{|R_{I}-R_{J}|}
+\end{aligned}
+\end{equation}
+where $\nabla$ is the derivative operator, $r_{i}$ gives the position of the $i$th electron, and $R_{I}$ and $Z_I$ give the position and charge of the $I$th nucleus. It is often appropriate to make the Born--Oppenheimer approximation, fixing the positions of the nuclei, which are treated as classical particles. The resulting electronic Hamiltonian at a fixed nuclear configuration is given by
+\begin{equation}\label{Eq:BornOppElectronic}
+	H(\{R_{I}\}) = -\sum_i\frac{(\nabla_{i})^2}{2} - \sum_{i,I}\frac{Z_I}{|r_{i}-R_{I}|} + \frac{1}{2}\sum_{i\neq j}\frac{1}{|r_{i}-r_{j}|} + V(\{R_{I}\})
+\end{equation}
+where $V(\{R_{I}\})$ is the constant offset from the nuclear repulsion energy. This Hamiltonian can be projected onto a basis set $\{\phi_i(r)\}_{i=1}^N$ of electron spin orbital functions or grid points, and solved for the electronic eigenstates $\ket{E_i}$ or thermal state $\rho \propto e^{-\beta H}$. We note that for many molecules, the ground state of the electronic structure Hamiltonian is a good approximation for the thermal state at room temperature. This can be contrasted with the \hyperref[appl:VibrationalStructure]{vibrational structure of molecules}, where excited states are also populated at room temperature.
+When simulating dynamics, it is necessary to use a basis set that is sufficiently flexible (or adaptive) to accurately describe the states at all times (for example, many chemical basis sets are highly optimized for ground state calculations and so are less suitable for dynamics calculations). 
+
+The electronic energy is the largest contribution to the energy of molecular/material systems in ambient conditions, and dictates the equilibrium structure and motion of the nuclei. As a result, the electronic energy eigenstates (or thermal states) often provide a good description of a wide range of system properties. Preparing the desired electronic state for a given nuclear configuration is typically the first step in learning properties of the system. We then measure the expectation values of observables with respect to these states. Properties of interest for molecular systems include:
+\begin{itemize}
+    \item Energy values, potentially across a range of nuclear configurations (for electronic excitation energies at a fixed nuclear geometry, determining molecular geometries by computing the electronic ground state energy at different geometries, and finding reaction pathways \& rates by computing energy differences between a sequence of geometries involved in a reaction).
+    \item Determining transition probabilities between states (for reactions and optical properties).
+    \item Differential changes in electronic energy in response to an applied field, for example, electronic or magnetic dipole moments, polarizability.
+    \item Calculating forces on the nuclei, for use in molecular dynamics calculations (used in a range of applications, including protein folding and calculating drug molecule binding affinities).
+\end{itemize}
+Properties of interest for materials include:
+\begin{itemize}
+    \item Energy densities for given system parameters (to determine phase diagrams).
+    \item Thermodynamic properties (magnetization, thermal/electrical conductivity, bulk modulus).
+    \item Particle densities and correlation functions between positions.
+\end{itemize}
+In order to understand how these observables vary as the system parameters (i.e.~nuclear positions, atomic doping, temperature, applied field etc.) are changed, the desired state may need to be prepared and measured a number of times. 
+
+In dynamics simulations, one may consider how the system evolves in response to a perturbation such as that induced by an ultrafast laser pulse~\cite{kohler1995LaserChemistry,assion1998LaserChemicalReactions,krausz2009AttosecondPhysics}, or in particle scattering interactions.
+
+
+
+\subsubsection*{Dominant resource cost/complexity}
+
+
+\subparagraph{Mapping the problem to qubits:}
+We discretize the electron positions by projecting onto a basis of spin orbitals. The discretization error typically decays as $1/N$ where $N$ is the number of spin orbitals used~\cite{halkier1998BasisSet,shepherd2012PlaneWaveConvergence} and is limited by the resolution of singularities in the Coulomb interaction at charge coalescences. A variety of functional forms have been considered for the electron orbitals (see Table~\ref{Tab:ElectronicStructureMappings}). The optimal choice will be system dependent and must consider:
+\begin{itemize}
+    \item The resolution of the orbital (improved by matching the character of local vs delocalized physics in the system to that of the orbital).
+    \item The cost of computing the Hamiltonian, either in classical precomputation or (if required) coherently on a quantum device (see ``Accessing the Hamiltonian,'' below). 
+    \item The properties of the resulting Hamiltonian (number of terms, 1-norm, locality of terms, etc.) which determine the cost of accessing the Hamiltonian in algorithms.
+\end{itemize}
+
+
+We can represent electronic states on a quantum computer using either first or second quantized representations.
+\begin{itemize}
+    \item For $\eta$ electrons in $N$ spin orbitals, first quantization uses $\eta$ registers, which each contain $\log_2(N)$ qubits; each register enumerates which orbital its corresponding electron is in, and the wavefunction must then be antisymmetrized to respect fermionic constraints~\cite{berry2018ImprovedEigenstatesFermionic}. The Hamiltonian of Eq.~(\ref{Eq:BornOppElectronic}) in first quantization can be written as
+    \begin{equation}
+        H = \sum_\alpha^\eta \sum_{i,j}^N h_{ij} \ket{i}\bra{j}_\alpha + \frac{1}{2} \sum_{\alpha \neq \beta}^\eta \sum_{i,j,k,l}^N h_{ijkl} \ket{i}\bra{l}_\alpha \otimes \ket{j}\bra{k}_\beta
+    \end{equation}
+    with one- and two-electron integrals
+    \begin{align}
+        h_{ij} &= \int dr \phi_i^*(r) \left(-\frac{(\nabla)^2}{2} - \sum_I \frac{Z_I}{|r - R_I|}  \right) \phi_j(r) \\
+        h_{ijkl} &= \int dr_1 dr_2 \frac{\phi_i^*(r_1) \phi_j^*(r_2) \phi_k(r_2) \phi_l(r_1)}{|r_1 - r_2|}.
+    \end{align}
+    \item In second quantization, antisymmetry is stored in the operators, which obey fermionic anticommutation relations. The Hamiltonian of Eq.~(\ref{Eq:BornOppElectronic}) in second quantization can be written as
+    \begin{equation}
+    H = \sum_{i,j}^N h_{ij} a_i^\dag a_j + \frac{1}{2}  \sum_{i,j,k,l}^N h_{ijkl} a_i^\dag a_j^\dag a_k a_l.
+    \end{equation}
+    Under the commonly used Jordan--Wigner mapping (other mappings have also been studied, see \cite{mcArdle2017QuantCompuChem} for discussion) we require $N$ qubits, where each qubit stores the occupancy of the corresponding spin orbital. These mappings induce a mapping of the Hamiltonian (and other observables) to qubit operators.
+\end{itemize}
+
+
+
+\begin{table}[!ht]
+    \centering
+    \begin{adjustbox}{max width=\textwidth}
+    \begin{tabular}{c|c|c|c|c}
+        \textbf{Representation} & \textbf{Gaussians} & \textbf{Plane waves} & \textbf{Bloch/Wannier functions} & \textbf{Grids} \\ \hline\hline
+        First quantized & \cite{babbush2017ExponentiallyConfigInt}~\tablefootnote{This reference is not technically a first quantized representation, as antisymmetry is stored in the operators rather than the wavefunction, but it stores states in an analogously compressed way to first quantized representations.} & \cite{su2021FaultTolerantChemistryFirstQuantized,chan2023RealSpaceChemistry} & Not yet studied & \cite{kivlichan2017RealSpace,kassal2008QuantumSimChemicalDynamics,chan2023RealSpaceChemistry} \\ \hline
+        Second quantized & \cite{whitfield2011ChemistrySimulation} & \cite{babbush2018LowDepthQSimMaterial} & \cite{ivanov2022PeriodicSolidsChemistry,rubin2023MaterialsSim} & \cite[Appendix A]{babbush2018LowDepthQSimMaterial} \\
+    \end{tabular}
+    \end{adjustbox}
+    \caption{Representative references (chosen based on their discussion of their choice of representation) showing the use of different basis functions in quantum algorithms for the electronic structure problem. Note, this is not intended to be a complete list of all works that have used these basis sets.
+    }
+\label{Tab:ElectronicStructureMappings}
+\end{table}
+
+
+
+
+\subparagraph{Accessing the Hamiltonian:}
+Quantum algorithms for the electronic structure problem require access to the Hamiltonian. This is typically provided by \hyperref[prim:BlockEncodings]{block-encoding} or \hyperref[prim:HamiltonianSimulation]{Hamiltonian simulation}. For some approaches, it may be necessary to compute Hamiltonian coefficients (molecular integrals) or matrix elements coherently~\cite{kassal2008QuantumSimChemicalDynamics,babbush2017ExponentiallyConfigInt, babbush2016ExponentiallySecondQuant, babbush2019FirstQuantizedSublinear, su2021FaultTolerantChemistryFirstQuantized,chan2023RealSpaceChemistry}, or \hyperref[prim:LoadingClassicalData]{load them} from a quantum memory~\cite{Berry2019QubitizationOfArbitraryBasisChemistry,burg2021QuantumComputingEnhancedComputationalCataylysis,lee2021EvenMoreEfficientChemistryTensorHyp}. As this access is often a dominant contribution to the cost of quantum algorithms, significant effort has been spent on methods of factorizing the electronic structure Hamiltonian to reduce the resources required for accessing it coherently~\cite{motta2021lowrankrep,Berry2019QubitizationOfArbitraryBasisChemistry,burg2021QuantumComputingEnhancedComputationalCataylysis,lee2021EvenMoreEfficientChemistryTensorHyp, rubin2023MaterialsSim}. Some data-loading routines provide the ability to trade gate count for additional ancilla qubits, leading to a larger logical qubit count than required to store the system wavefunction (see the section on \hyperref[prim:LoadingClassicalData]{loading classical data} for additional details).
+
+
+
+
+
+\subparagraph{State preparation:}
+Solving the electronic structure problem on a quantum computer reduces to the task of preparing a desired state, and measuring observables. The state to be prepared is typically an energy eigenstate, a thermal state, or a time evolved state.
+
+
+\begin{itemize}
+    \item Energy eigenstates:
+    In the following discussion, we refer to the overlap $\gamma = |\braket{\psi}{E_j}|$ between a desired eigenstate $\ket{E_j}$ and a given initial state $\ket{\psi}$, and the minimum gap $\Delta$ between the desired energy eigenvalue and other energy eigenvalues. Below, we list several methods for preparing energy eigenstates, or approximations to them.
+    \begin{itemize}
+        \item Approximate eigenstates: Approximate eigenstates obtained from a classical calculation can be prepared as quantum trial states using the methods of \cite{tubman2018PostponingCatastrophe,sugisaki2019MulticonfigurationalChemistryPrep}, which scale as $\bigO{ND}$, where $D$ is the number of Slater determinants in the trial state. These states can be used as input for the methods below.
+        \item Eigenstate filtering: Methods such as those in~\cite{lin2019OptimalQEigenstateFiltering,lin2020NearOptimalGroundState} filter out undesired eigenstates using spectral window functions applied via \hyperref[prim:QSVT]{quantum singular value transformation (QSVT)} to a \hyperref[prim:BlockEncodings]{block-encoding} of the Hamiltonian. The complexity to prepare the ground state (to infidelity $\epsilon$, with failure probability less than $\theta$) using this approach scales as $\bigOt{ \frac{\alpha}{\gamma \Delta} \log(\theta^{-1} \epsilon^{-1}) } $ calls to an $(\alpha, m, 0)$-block-encoding of the Hamiltonian (where $\alpha \geq \nrm{H}$ is a normalization factor of the block-encoding). For comparison to related methods, we refer the reader to \cite{ge2017FasterGroundStatePrep,lin2020NearOptimalGroundState}.
+        \item \hyperref[prim:QuantumAdiabaticAlgorithm]{Adiabatic state preparation (ASP)}: ASP can be used to prepare a target eigenstate (typically the ground state) by evolving from the corresponding easy-to-prepare eigenstate of an initial Hamiltonian $H(0)$ to the full electronic structure Hamiltonian $H(1)$. Time evolution can be implemented using algorithms for \hyperref[prim:HamiltonianSimulation]{Hamiltonian simulation}. The total evolution time is typically chosen according to the heuristic $T \gg \max_{0 \leq s \leq 1} \nrm{\frac{dH}{ds}} / \Delta(s)^2 $ where $s$ describes the adiabatic path $H(s)$ and $\Delta(s)$ is the spectral gap of $H(s)$. It is difficult to analytically bound this complexity for molecular systems (see e.g.,~\cite{reiher2017ElucidatingReactionMechanisms}) motivating numerical studies on small molecules~\cite{veis2014AdiabaticStatePrepMethylene,kremenetski2021AdiabaticMolecular, lee2022isThereEvidenceChemistry,Sugisaki2022AdiabaticMolecular}.\item \hyperref[prim:QPE]{Quantum phase estimation (QPE)}: The above techniques all provide methods of preparing approximate eigenstates, in some cases using promises on the gap $\Delta$, or by exploiting pre-existing knowledge of the energy eigenvalue. Given an approximate eigenstate, we can use QPE to project into the desired eigenstate and provide an estimate of the eigenenergy. QPE makes $\bigO{\gamma^{-2} \epsilon^{-1}}$ calls to a unitary $U$ encoding the spectrum of the Hamiltonian, where $\gamma = |\braket{\psi}{E_j}|$ is the overlap between the state $\ket{\psi}$ input to quantum phase estimation, and the desired energy eigenstate $\ket{E_j}$, and $\epsilon$ is the desired precision in the energy estimate. It is possible to improve the complexity to $\bigO{\gamma^{-1} \epsilon^{-1}}$ using \hyperref[prim:AA]{amplitude amplification}, or to $\bigO{\gamma^{-2} \Delta^{-1} + \epsilon^{-1}}$ by exploiting knowledge of the gap $\Delta$ between the energy eigenstates to perform rejection sampling~\cite{berry2018ImprovedEigenstatesFermionic}.
+        The unitary encoding the Hamiltonian is typically either $U \approx e^{-iHt}$ (the approximation error must be balanced against the error from QPE) implemented via \hyperref[prim:HamiltonianSimulation]{Hamiltonian simulation}, or a quantum walk operator $W$ which acts like $e^{i\arccos{H}}$ and can be implemented via \hyperref[prim:Qubitization]{qubitization}~\cite{poulin2018SpectralQubitization,berry2018ImprovedEigenstatesFermionic} (note that if phase estimation is performed on a qubitization operator, the output state will have the form $\frac{1}{\sqrt{2}}(\ket{E_j}\ket{0} \pm \ket{\phi_j 0^\perp})$, which reduces the success probability of obtaining the desired eigenstate by 50\%~\cite{berry2018ImprovedEigenstatesFermionic}). The costs to implement $U$ are inherited from the method used, based on the properties (commutativity, locality, number of terms, 1-norm, cost of coherently calculating coefficients) of the Hamiltonian in the chosen spin orbital basis.   
+    \end{itemize}
+
+    \item Thermal states: Several quantum algorithms have been proposed for \hyperref[prim:GibbsSampling]{preparing thermal states}~\cite{poulin2009GibbsSamplingAndEval,chowdhury2016QGibbsSampling,temme2011quantumMetropolis,chen2023QThermalStatePrep}. The most efficient algorithms typically make repeated calls to a \hyperref[prim:BlockEncodings]{block-encoding} of the Hamiltonian. The complexity of these methods for concrete electronic structure problems of interest has not yet been determined. Thermal states could also be used as an approximation to the ground state, by choosing the temperature to be sufficiently low compared to the gap between the ground and first excited state~\cite{chen2023QThermalStatePrep}.
+
+    \item Time evolved states: A time evolved state can be prepared using \hyperref[prim:HamiltonianSimulation]{Hamiltonian simulation algorithms}, up to an error $\epsilon$. While many proposed quantum algorithms for chemistry simulation have considered using Hamiltonian simulation as a subroutine in quantum phase estimation, these have typically considered the use of Gaussian basis functions, which are not sufficiently flexible to accurately describe the time dynamics of the electrons. Classical algorithms for this task typically consider grid- or plane wave--based methods for dynamics simulations. Reference \cite{Babbush2023Dynamics} compared the costs of \hyperref[prim:ProductFormulae]{Trotter-based} methods~\cite{kassal2008QuantumSimChemicalDynamics} and prior work in the interaction picture~\cite{babbush2019FirstQuantizedSublinear,su2021FaultTolerantChemistryFirstQuantized,low2018HamiltonianInteractionPicture} against classical mean-field methods, finding large polynomial speedups, even for this apples-to-oranges comparison.
+\end{itemize}
+
+
+
+
+
+
+\subparagraph{Measuring observables:}
+In a \hyperref[prim:FTQC]{fault-tolerant computation}, it is preferable to measure observables through phase estimation-like approaches, rather than direct measurement averaging, as the former is asymptotically more efficient and can be made robust to logical errors through repetition and majority voting. Measurement schemes have been developed which achieve this using overlap estimation~\cite{knill2007ObservableMeasurement} (which can be viewed as a special case of \hyperref[prim:AmpEst]{amplitude estimation}) or the approach of~\cite{huggins2022ExpectationValue,apeldoorn2022TomographyStatePreparationUnitaries} based on the \hyperref[prim:GradientEstimation]{quantum gradient estimation} algorithm of~\cite{gilyen2017OptQOptAlgGrad}. Both approaches require access to a state preparation unitary $U_\psi$, and its inverse\footnote{Note that it can be substantially cheaper to directly execute the reflection $R_\psi = I - 2 \ket{\psi}\bra{\psi}$ used in both methods, rather than through the use of $U_\psi$, as the complexity of $R_\psi$ does not depend on the overlap $\gamma$ that appears in state preparation---see~\cite{lin2020NearOptimalGroundState} for additional discussion.}. The algorithm based on overlap estimation can be formulated as performing amplitude estimation on $U_O$, a unitary \hyperref[prim:BlockEncodings]{block-encoding} of the observable $O$ with subnormalization factor $\alpha_O$. The complexity to compute the expectation value to precision $\epsilon$ is $\bigO{\alpha_O/\epsilon}$ calls to $U_O$ and $U_\psi$ (or the reflection $R_\psi = I - 2 \ket{\psi}\bra{\psi}$) and their inverses. This approach has been considered in the context of measuring: correlation functions, density of states, and linear response properties (all in~\cite{rall2020EstimatingPhysicalQuantities}), and energy gradients with respect to various parameters (which can be used to compute forces or dipole moments, and for which a range of estimation strategies are possible)~\cite{obrien2022MolecularForces,steudtner2023MolecularObservables}.  
+
+The gradient-based algorithm simultaneously computes the value of $M$ (noncommuting) observables $O_j$ by making $\bigOt{M^{1/2}/\epsilon}$ calls to $U_\psi, U_\psi^\dag$ (or $R_\psi$) and either $\bigOt{M^{3/2}/\epsilon}$ calls to gates of the form $e^{i x O_j}$~\cite{huggins2022ExpectationValue} or $\bigOt{M/\epsilon}$ calls to a block-encoding of the observables~\cite{apeldoorn2022TomographyStatePreparationUnitaries}. The algorithm also requires $\bigO{M \log(1/\epsilon) }$ additional qubits. This approach has been considered in the context of measuring nuclear forces~\cite{obrien2022MolecularForces}, fermionic reduced density matrices~\cite{huggins2022ExpectationValue} and dynamic correlation functions~\cite{huggins2022ExpectationValue}.
+
+
+
+
+
+
+
+\subsubsection*{Existing error corrected resource estimates}
+There are a large number of resource estimates for performing phase estimation to learn the ground state energies of molecular or material systems, which we list in Table~\ref{Tab:ResourceEst_MolecularElectronicStructure} and Table~\ref{Tab:ResourceEst_MaterialElectronicStructure}. These resource estimates use compilation methods described in the \hyperref[prim:FTQC]{fault-tolerant quantum computing} section. We also note the existence of a software package that provides features for calculating the non-Clifford costs of quantum phase estimation for the electronic structure problem~\cite{Casares2022TFermionSoftwarePackage}. There are currently no results that provide resource estimates for solving a full end-to-end application (see caveats below).
+
+
+\begin{table}[!ht]
+    \centering
+    \begin{adjustbox}{max width=\textwidth}
+    \begin{tabular}{c|c|c|c}
+        \textbf{Molecule(s)} & \textbf{References} & \makecell{\textbf{Number of} \\\textbf{Logical qubits}} & \makecell{\textbf{Number of} \\\textbf{$T$/Toffoli gates}} \\ \hline\hline
+        \makecell{FeMo-co \\ (Nitrogen fixation)} & \cite{reiher2017ElucidatingReactionMechanisms, Berry2019QubitizationOfArbitraryBasisChemistry, burg2021QuantumComputingEnhancedComputationalCataylysis, lee2021EvenMoreEfficientChemistryTensorHyp,wan2021RandPhaseEst, Casares2022TFermionSoftwarePackage} & \makecell{2196~\cite{lee2021EvenMoreEfficientChemistryTensorHyp} \\ $\sim$193~\cite{wan2021RandPhaseEst} } & \makecell{$3.2 \times 10^{10}$~\cite{lee2021EvenMoreEfficientChemistryTensorHyp} \\ $\sim 5 \times 10^{11}$~\cite{wan2021RandPhaseEst}} \\ \hline
+        \makecell{Cytochrome P450 \\ (Biological drug \\ metabolizing enzyme)} & \cite{goings2022ReliablyAssessingCytochromeEnzyme} & $1434$ & $7.8 \times 10^{9}$ \\ \hline
+        \makecell{Lithium-ion \\ battery molecules} & \cite{kim2022FaultTolerantQuantumChemicalSimulationsLiIon, su2021FaultTolerantChemistryFirstQuantized} & \makecell{($10^4 - 10^5$)~\cite{kim2022FaultTolerantQuantumChemicalSimulationsLiIon} \\ ($2000 - 3000$)~\cite{su2021FaultTolerantChemistryFirstQuantized} } & \makecell{($10^{12} - 10^{14}$)~\cite{kim2022FaultTolerantQuantumChemicalSimulationsLiIon} \\ $(10^{11} - 10^{12})$~\cite{su2021FaultTolerantChemistryFirstQuantized} } \\ \hline
+        Chromium dimer & \cite{elfving2020HowQuantumComputationalAdvantageChemistry} & $\sim 1300$ & $\sim 10^{10}$ \\ \hline
+        \makecell{Ruthenium catalyst \\  (CO$_2$ fixation)} & \cite{burg2021QuantumComputingEnhancedComputationalCataylysis} &  $\sim 4000$ & $\sim 3 \times 10^{10}$ \\ \hline
+        \makecell{Ibrutinib \\ (drug molecule)} &  \cite{blunt2022ChemistryDrugDiscovery} &  $2207$ & $ 1.1 \times 10^{10}$ 
+    \end{tabular}
+    \end{adjustbox}
+    \caption{\hyperref[prim:FTQC]{Fault-tolerant resource estimates} for \hyperref[prim:QPE]{quantum phase estimation} applied to a range of molecular systems. The presented gate counts are for a single run of the phase estimation circuit. QPE must be run a number of times if the overlap is $\leq 1$, and to account for rounding errors in phase estimation~\cite{nielsen2002QCQI}. The molecules presented can have different numbers of electrons, orbitals, and classical simulation complexities, and so the results may not be directly comparable, even within a single row of the table.}
+    \label{Tab:ResourceEst_MolecularElectronicStructure}
+\end{table}
+
+
+\begin{table}[!ht]
+    \centering
+    \begin{adjustbox}{max width=\textwidth}
+    \begin{tabular}{c|c|c|c}
+        \textbf{Material(s)} & \textbf{References} & \makecell{\textbf{Number of} \\ \textbf{Logical qubits}} & \makecell{\textbf{Number of $T$/Toffoli gates}} \\ \hline\hline
+        \makecell{Homogeneous electron gas \\ (Prototypical model)} & \cite{babbush2018EncodingElectronicSpectraLinearT,Kivlichan2020ImprovedFaultTolerantSimulationCondensedMatter,mcardle2022ExploitingFermionNumber,su2021FaultTolerantChemistryFirstQuantized} & \makecell{$(1500 - 5000)$~\cite{su2021FaultTolerantChemistryFirstQuantized} \\ $\sim(100 - 1000)$~\cite{babbush2018EncodingElectronicSpectraLinearT,mcardle2022ExploitingFermionNumber} } & \makecell{$(10^9 - 10^{14})$~\cite{su2021FaultTolerantChemistryFirstQuantized} \\ $\sim(10^8 - 10^{11})$~\cite{babbush2018EncodingElectronicSpectraLinearT,mcardle2022ExploitingFermionNumber} } \\ \hline
+        \makecell{Lithium-ion \\ battery materials} & \cite{delgado2022SimulateLiIonBattery,shokrianZini2023BatteryMaterials,rubin2023MaterialsSim} & \makecell{($2375 - 6652$)~\cite{delgado2022SimulateLiIonBattery} \\ $10^4$~\cite{shokrianZini2023BatteryMaterials} \\ $(10^5 - 10^6)$~\cite{rubin2023MaterialsSim} } & \makecell{($5 \times 10^{12} - 5 \times 10^{14}$)~\cite{delgado2022SimulateLiIonBattery} \\ $10^{15}$~\cite{shokrianZini2023BatteryMaterials} \\ $(10^{12} - 10^{14})$~\cite{rubin2023MaterialsSim} } \\ \hline
+        \makecell{Condensed phase elements \\ Lithium, Diamond, etc} & \cite{babbush2018EncodingElectronicSpectraLinearT,Kivlichan2020ImprovedFaultTolerantSimulationCondensedMatter} & 128~\cite{Kivlichan2020ImprovedFaultTolerantSimulationCondensedMatter} & $(10^8 - 10^{11})$~\cite{Kivlichan2020ImprovedFaultTolerantSimulationCondensedMatter} \\ \hline
+        \makecell{Transition metal catalysts \\ Nickel/Palladium Oxide} & \cite{ivanov2022PeriodicSolidsChemistry} & $10^4 - 10^5$ & $10^{10} - 10^{13}$
+    \end{tabular}
+    \end{adjustbox}
+    \caption{\hyperref[prim:FTQC]{Fault-tolerant resource estimates} for \hyperref[prim:QPE]{quantum phase estimation} applied to a range of material systems. The presented gate counts are for a single run of the phase estimation circuit. QPE must be run a number of times if the overlap is $\leq 1$, and to account for rounding errors in phase estimation~\cite{nielsen2002QCQI}. The systems presented in a given row may be different chemical compounds, and/or can have different numbers of electrons, orbitals, and classical simulation complexities, and so the results may not be directly comparable.}
+    \label{Tab:ResourceEst_MaterialElectronicStructure}
+\end{table}
+
+
+
+There have been comparatively few studies of the fault-tolerant resources required for the simulation of chemical dynamics. Recent work has computed the resources required to calculate the energy loss of charged particles moving through a medium (``stopping power"), as pertaining to nuclear fusion experiments~\cite{rubin2023FusionDynamics}. End-to-end resource estimates were determined, including the costs of initial state preparation, measurement of observables, and repetitions across a range of parameters. The resource estimates for the end-to-end task ranged from $\sim 2000$ logical qubits and $\bigO{10^{13}}$ Toffoli gates, to $\sim 30000$ logical qubits and $\bigO{10^{17}}$ Toffoli gates.
+
+
+
+
+
+\subsubsection*{Caveats}
+Existing resource estimates typically consider only a single run of phase estimation and assume that we have access to the desired energy eigenstate. As outlined above, both phase estimation and eigenstate filtering scale as $\Omega{\gamma^{-1} \Delta^{-1}}$ when we have a lower bound on the gap. The    ``orthogonality catastrophe'' suggests that the overlap of simple trial states with the desired eigenstate will decay exponentially as a function of system size. It is still an open question~\cite{tubman2018PostponingCatastrophe, lee2022isThereEvidenceChemistry} as to whether initial states with nonexponentially vanishing overlaps can be prepared for systems of interest. This issue may become more pressing for materials systems as we scale to the thermodynamic limit. In general, we know that the problem of finding the ground state of electronic structure Hamiltonians is QMA-hard~\cite{whitfield2013ComplexityElectronicStructure}, but it is not yet known if these complexity theoretic statements provide intuition for physically realistic Hamiltonians. 
+
+As noted above, to accurately resolve the system, a large basis set must be used (the discretization error decays as $1/N$ where $N$ is the number of spin orbitals considered). In practice, one typically repeats the calculation using increasingly accurate basis sets and then extrapolates to the continuum limit. Most quantum resource estimates to date have considered basis sets of the minimal allowable size (for exceptions, see~\cite{kim2022FaultTolerantQuantumChemicalSimulationsLiIon,su2021FaultTolerantChemistryFirstQuantized,elfving2020HowQuantumComputationalAdvantageChemistry,mcardle2022ExploitingFermionNumber,delgado2022SimulateLiIonBattery,shokrianZini2023BatteryMaterials,rubin2023MaterialsSim, rubin2023FusionDynamics}), and so underestimate the resources required to achieve sufficiently accurate results to be informative.
+
+The end-to-end applications typically solved in the electronic structure problem can require between tens (structure determination) and millions (molecular dynamics) of energy evaluations---each with different Hamiltonian parameters that may require preparing a new state to be measured. For example, a recent analysis of quantum algorithms applied to pharmaceutical chemistry~\cite{santagati2023DrugDesign} highlighted that to calculate the binding affinity between a drug molecule and its target (free energy differences) requires sampling a range of thermodynamic configurations, resulting in millions to billions of single-point energy evaluations. This introduces a large overhead when preparing a different state for each configuration and measuring its energy~\cite{obrien2022MolecularForces}, although alternative approaches may provide more favorable scaling~\cite{simon2023MolecularDynamics}.
+
+
+
+
+\subsubsection*{Comparable classical complexity and challenging instance sizes}
+The cost of exact diagonalization of the electronic structure Hamiltonian scales exponentially with the number of electrons and basis set size. As such, classical approaches to the electronic structure problem typically utilize a range of approximations that reduce their complexity to polynomial in an approximation parameter but introduce a (potentially uncontrolled) deviation from the exact ground state, leading to a bias in energy estimates and/or the expectation values of other observables.
+Approaches include: Hartree--Fock, density functional theory, perturbation theory, configuration interaction methods, coupled cluster methods, quantum Monte Carlo techniques, and tensor network approaches. The cheapest approaches can be applied to thousands of orbitals, but can be qualitatively inaccurate for strongly correlated systems. The most expensive approaches are more effective for strongly correlated systems, but their higher computational cost limits their applicability to roughly 100 spin orbitals. For example, \cite{goings2022ReliablyAssessingCytochromeEnzyme} found that a density matrix renormalization group (DMRG) calculation performed on an 86 spin orbital active space of the Cytochrome P450 enzyme molecule referenced in Table~\ref{Tab:ResourceEst_MolecularElectronicStructure} required around 50 hours, using 32 threads, 48~GB of RAM, and 235~GB of disk memory. We also refer to \cite{williams2020DirectComparisonManyBodyElectronicHamiltonians} for a comparison of 20 first-principles many-body electronic structure methods applied to a test set of seven transition metal atoms and their ions and monoxides.
+
+
+Due to their extended nature, material systems are most commonly targeted with density functional theory (DFT). DFT can be applied to systems with thousands of electrons and orbitals, but can lead to uncontrolled energy bias  in strongly correlated systems. Quantum Monte Carlo and tensor network methods have been successfully applied to prototypical models of material systems, and are becoming increasingly practical for more realistic models. We refer to \cite{leblanc2015TwoDimHubbard, motta2017TowardsHydrogenChainManyBodyMethods, motta2020GroundStatePropertiesHydrogenChain, schafer2021MultiMethodHubbard} for cutting edge benchmarks of classical electronic structure methods on hydrogen chains and Hubbard models scaling to the thermodynamic limit, which act as simplified models for real materials. 
+
+
+
+
+\subsubsection*{Speedup}
+It is nontrivial to determine the speedup of quantum algorithms for the electronic structure problem over their classical counterparts. If we consider the subtask of determining energy eigenstates, then for speedup greater than polynomial to be achieved, we require:
+\begin{itemize}
+    \item The ability to prepare a trial state with nonexponentially vanishing overlap with the ground state as the system size increases.
+    \item Polynomially scaling classical algorithms having an exponential growth in their approximation parameter (e.g., bond dimension, number of excitations) as the system size increases.
+\end{itemize}
+Whether these two requirements can coexist in systems of interest is an active area of research \cite{lee2022isThereEvidenceChemistry}. Even if exponential speedups are not available, it may be the case that quantum algorithms provide polynomial speedups over exact classical algorithms---and potentially over approximate classical algorithms.
+
+From a complexity theoretic viewpoint, we know that simulating the dynamics of a quantum system is a BQP-complete problem~\cite{lloyd1996UnivQSim}. Combined with the observed difficulty of classically simulating the time evolution of electronic structure Hamiltonians, this may be taken as evidence for the possibility of an exponential speedup when simulating dynamics. In \cite{Babbush2023Dynamics} quantum algorithms for simulating the dynamics of electrons in a grid or plane-wave basis~\cite{kassal2008QuantumSimChemicalDynamics,babbush2019FirstQuantizedSublinear,su2021FaultTolerantChemistryFirstQuantized} were compared against classical methods for mean-field dynamics. Large polynomial speedups were observed, ranging from superquadratic to seventh power in the salient parameters, depending on the relation between $N$ and $\eta$.
+
+
+
+
+\subsubsection*{NISQ implementations}
+Solving the electronic structure problem is one of the most widely studied and touted NISQ applications. The primary NISQ approach is the \hyperref[prim:VQA]{variational quantum eigensolver} (VQE). There have been a number of experimental demonstrations on small molecules, e.g., Refs.~\cite{kandala2017VQE,google2020HartreeFockVQE}, as well as proposals to simulate material systems~\cite{yoshioka2022MaterialsVQE,manrique2020VQEmaterials2}. Related methods, such as quantum computing assisted quantum Monte Carlo methods~\cite{huggins2022QuantumQMC} have also been developed. Nevertheless, current device noise rates are too high to enable the running of circuits sufficiently deep that they can outperform classical electronic structure methods. There is currently no evidence that heuristic NISQ approaches will be able to scale to large system sizes and provide advantage over classical methods. There have also been proposals to simulate the electronic structure problem using analog quantum simulators~\cite{arguello2019AnalogChemistry}, though to the best of our knowledge, these have not yet been experimentally demonstrated.  
+
+
+
+\subsubsection*{Outlook}
+Solving the electronic structure problem has repeatedly been identified as one of the most promising applications for quantum computers. Nevertheless, the discussion above highlights a number of challenges for current quantum approaches to become practical. Most notably, after accounting for the approximations typically made (i.e.~incorporating the cost of initial state preparation, using nonminimal basis sets, including repetitions for correctness checking and sampling a range of parameters), a large number of logical qubits and total $T$/Toffoli gates are required. A major difficulty is that, unlike problems such as factoring, the end-to-end electronic structure problem typically requires solving a large number of closely related problem instances.
+
+Solving the electronic structure problem for materials is likely to be more difficult than for molecules for both classical and quantum algorithms. This is predominantly due to the larger system sizes considered. First quantized quantum algorithms may provide a promising approach to efficiently represent the large system sizes required, and their natural use of a plane wave basis is well suited to periodic material systems~\cite{su2021FaultTolerantChemistryFirstQuantized}. Nevertheless, additional developments are required to understand how to best apply these algorithms to real systems~\cite{shokrianZini2023BatteryMaterials}.
+
+
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+\end{refsection}
+
+
+
+
+
+
+
+
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
+\begin{refsection}
+
+\subsection{Vibrational structure problem}\label{appl:VibrationalStructure}
+
+
+\subsubsection*{Overview}
+We seek the energy eigenstates (or thermal states) of the Hamiltonian that describes the vibrations of the nuclei in a molecule around their equilibrium positions. This Hamiltonian contains the kinetic energy of the nuclei and the effective potential that they move on, which is determined by the electronic potential energy surface (i.e.~the electronic energy expressed as a function of the nuclear coordinates). 
+
+
+\subsubsection*{Actual end-to-end problem(s) solved}
+Solving the Schrodinger equation while treating electrons and nuclei on an equal footing has prohibitively high computational cost for all but the smallest systems. For systems where it is valid to separate the electronic and nuclear motions (the Born--Oppenheimer approximation), we can imagine the nuclei moving on the electronic potential energy surface (PES). For molecules composed of light atoms (where relativistic effects can be neglected) the vibrations of the nuclei around their equilibrium positions provide a first-order correction to the electronic energies, and influence photo-emission/absorption properties. For a system with $G$ classical nuclei at equilibrium positions $\{R_I\}$ the vibrational Hamiltonian can be written as
+\begin{equation}
+    H = - \sum_I \frac{\nabla_I^2}{2 M_I} + V_e(\{ R_I \})
+\end{equation}
+where $V_e(\{ R_I \})$ denotes the nuclear potential determined by the electronic potential energy surface, obtained by first solving the \hyperref[appl:ElectronicStructure]{electronic structure problem} for a range of nuclear positions. The vibrational structure problem can be made classically tractable by modelling $V_e$ as a harmonic potential, which reduces the problem to solving a number of coupled quantum harmonic oscillators. In order to accurately describe nonrigid molecules or highly excited vibrational states, additional anharmonic terms are required in the potential. These can be obtained by expanding the potential $V_e$ to degree $d$. Obtaining accurate solutions of this Hamiltonian is prohibitively costly for many systems of interest. We seek to prepare eigenstates (or thermal states) of this anharmonic vibrational Hamiltonian, and then measure the expectation values of observables with respect to these states. Properties of interest include:
+\begin{itemize}
+    \item The vibrational energy at the minimum of the PES, which provides a first-order correction to the electronic energies (for calculating excitation energies, determining stable molecular structures, or finding reaction pathways and rates).
+    \item Determining transition probabilities between states, and transition dipole moments (for calculating infrared/Raman spectra between vibrational levels of the same electronic state, or vibronic spectra between vibrational levels of different electronic states).
+\end{itemize}
+\hyperref[prim:GibbsSampling]{Thermal states} are often of greater interest in the vibrational case than in the electronic case: the differences between vibrational energy levels are smaller than the differences between electronic energy levels, and as a result, excited vibrational states are populated even at room temperature. This can be contrasted with the \hyperref[appl:ElectronicStructure]{electronic structure problem}, where the larger electronic energy gaps of many molecules mean that ground states are typically of primary interest at room temperature.
+
+
+
+\subsubsection*{Dominant resource cost/complexity}
+A molecule with $G$ atoms has $M= 3G - 6$ ($M=3G-5$ for linear molecules) vibrational modes. Each vibrational mode is treated as distinguishable and is considered to be in one of $N$ vibrational energy levels of the harmonic oscillator Hamiltonian (one can also work in different basis sets). We thus require $M\log(N)$ qubits to represent the problem, where the energy level of each vibrational mode is encoded in binary (or an equivalent representation, such as the Gray code~\cite{sawaya2020ResourceEfficientQuantumDLevel}).
+
+Preparing the desired eigenstate or thermal state can be achieved using the methods introduced for the \hyperref[appl:ElectronicStructure]{electronic structure problem}, although the costs of most of these methods have not yet been determined for the vibrational problem. For example, energy eigenstates can be prepared using \hyperref[prim:QPE]{quantum phase estimation (QPE)}, given a state with sufficient overlap with the target state. Methods for preparing eigenstates depend polynomially on either the overlap between an initial state and the desired eigenstate (e.g. QPE or \hyperref[prim:QSVT]{quantum singular-value transformation (QSVT)}-based eigenstate filtering~\cite{lin2020NearOptimalGroundState}), or on the minimum energy gap along an \hyperref[prim:QuantumAdiabaticAlgorithm]{adiabatic} path from the initial to desired state (e.g.,~\cite{wan2020FastDigitalMethodsForAdiabatic}). The complexities of subroutines to prepare eigenstates and extract observables are determined by the following observations:
+\begin{enumerate}
+    \item All methods scale as $\Omega(1/\epsilon)$ to measure the desired observable to an error of $\pm \epsilon$. For the energy, we typically seek $\epsilon \sim (1 - 10)$~cm$^{-1}$~$\approx (4.56 \times 10^{-6}) - (4.56 \times 10^{-5})~\mathrm{Hartree}$ (due to the close historical ties with spectroscopy, in vibrational chemistry it is common to see energies expressed as wavenumbers. Interconversion can be performed using the Planck relation). For comparison, the largest matrix elements in the vibrational Hamiltonian (the harmonic couplings) are typically on the order of 1000~cm$^{-1}$, and there are $\bigO{M}$ such terms~\cite{sawaya2021NearLongTermQuantumVibrationalSpectroscopy}. As such, the ratio $\nrm{H}_1 / \epsilon$ that features multiplicatively in the complexity of \hyperref[prim:QPE]{quantum phase estimation} (at least, variants based on \hyperref[prim:Qubitization]{qubitization}) can be on the order of $10^4$ (or larger) for modest system sizes with $M \approx 100$.
+    \item To date, only \hyperref[prim:ProductFormulae]{product-formula}-based methods have been considered for providing coherent access to the vibrational Hamiltonian. These methods scale with the number of Pauli terms in the Hamiltonian, which grows as $\bigO{M^d N^{2d}}$ for a degree $d$ of anharmonic terms considered in the Hamiltonian (often at least 4th order).
+\end{enumerate}
+
+
+
+
+\subsubsection*{Existing error corrected resource estimates}
+To date, there have been no error corrected resource estimates for the vibrational structure problem. In terms of initial steps in this direction, \cite{sawaya2020ResourceEfficientQuantumDLevel} considered the resources required to map vibrational operators to qubit operators, while~\cite{sawaya2021NearLongTermQuantumVibrationalSpectroscopy} compared the number of terms (and their magnitudes) in vibrational Hamiltonians to those in \hyperref[appl:ElectronicStructure]{electronic structure Hamiltonians}. 
+
+\subsubsection*{Caveats}
+Both classical and quantum algorithms for the vibrational structure problem require the availability of a high-accuracy electronic PES, from classical calculations. For a grid-based interpolation of the multidimensional PES with $h$ points per dimension, we require $\bigO{h^M}$ PES evaluations.  Nevertheless, a number of interpolation techniques and adaptive methods have been developed to obtain high-accuracy PESs, at lower costs. Moreover, a number of molecules with classically challenging vibrational spectra have been identified with classically easy electronic structures~\cite{sawaya2021NearLongTermQuantumVibrationalSpectroscopy}.
+
+There has been less work on the number of vibrational basis states required to achieve a given accuracy than in the electronic case. While rigorous results exist for more simple bosonic Hamiltonians~\cite{tong2021ProvablyAccurateGaugeTheoryBosonicSystems}, the truncation level $N$ has not yet been established for anharmonic potentials. 
+
+When calculating overlaps between the vibrational states belonging to different electronic energy levels (vibronic transitions), the Hamiltonians are expressed in different coordinates, and so one must either transform the state or the Hamiltonian using the Duschinsky transformation (see, e.g., \cite{Huh2015VibrationBosonSampling, mcardle2019VibrationalSim} for a discussion of this issue).
+
+
+
+\subsubsection*{Comparable classical complexity and challenging instance sizes}
+A hierarchy of classical methods has been developed for the vibrational structure problem, which trade increased accuracy for increased cost. Vibrational states with a multireference nature (which are required to describe vibrational resonances that arise due to near-degeneracies between different vibrational eigenstates, resulting from anharmonicities in the PES) require more accurate (and thus costly) methods. Moreover, nonrigid molecules require a higher degree approximation of the PES, leading to an increased cost for classical methods (and potentially increasing the complexity of the resulting eigenstates). For such challenging systems, accurate classical results have been obtained for molecules with $G=20$--$30$ atoms~\cite{carrington2017PerspectiveVibrationalSpectra,baiardi2017VibrationalDMRG,thomas2018UsingIterativeEigensolverVibrationalSpectra,Barone2021ComputationalMolecularSpectroscopy}.
+
+
+\subsubsection*{Speedup}
+In order to achieve superpolynomial speedup over classical methods for preparing a given eigenstate we require:
+\begin{itemize}
+    \item Polynomially scaling classical methods to grow their approximation parameter exponentially as the system size increases.
+    \item The ability to prepare an initial state with nonexponentially vanishing overlap with the desired state, in polynomial time.
+\end{itemize}
+There exist spectroscopy calculations in which the initial state is easy to prepare for both quantum and classical computers, but certain excited states may be difficult to prepare, due to their small overlap with this initial state. However, in such calculations this can be exploited as a feature, rather than a bug. For example in~\cite{sawaya2019QuantumAlgorithmMolecularSpectra} it was proposed to use \hyperref[prim:QPE]{quantum phase estimation} to project from the initial state into other eigenstates with probability given by the squared overlap between the states. This corresponds to the transition probability measured in the desired spectrum. We note that whereas a single (exponentially costly) classical diagonalization of the vibrational Hamiltonian would provide complete access to the entire vibrational absorption/emission spectrum, a large number of repetitions of the quantum algorithm would be required to reconstruct the spectrum.
+Even if quantum algorithms do not provide an exponential speedup, they may still provide polynomial speedups over exact (and approximate) classical methods.
+
+
+\subsubsection*{NISQ implementations}
+There have been proposals to apply \hyperref[prim:VQA]{variational algorithms} to solve the vibrational structure problem~\cite{mcardle2019VibrationalSim,ollitrault2020VibrationalVQE,sawaya2020ResourceEfficientQuantumDLevel,sawaya2021NearLongTermQuantumVibrationalSpectroscopy}, but it seems unlikely that sufficiently deep circuits can be implemented to surpass classical methods. There have also been a number of analog quantum simulations that map the vibrational structure problem onto bosonic modes such as photons~\cite{sparrow2018VibrationAnalogPhotons,Huh2015VibrationBosonSampling,wang2020AnalogVibrationSuperconducting}. Nevertheless, it appears challenging to scale these simulations to sufficiently large system sizes, due to the decoherence present in the simulation platforms.
+
+
+
+\subsubsection*{Outlook}
+Further work is required to identify target systems that are challenging to simulate classically, but that may be amenable to quantum algorithms. In addition, existing quantum algorithms need to be further optimized for the accuracy required in vibrational structure problems and the form of the vibrational Hamiltonian. This will enable resource estimates for end-to-end applications, such as estimating vibrational spectra.
+
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+\end{refsection}
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
+
+
+
+
+
+

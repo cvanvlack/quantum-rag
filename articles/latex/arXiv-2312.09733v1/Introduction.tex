@@ -1,0 +1,34 @@
+\newcommand{\cmt}[1]{\textcolor{red}{#1}}
+
+\newpage
+
+Materials science use cases are being investigated as some of the first applications of quantum computing to show practical quantum advantages. The strongest motivation for this belief is that a great deal of materials science problems are quantum in nature~\cite{feynman1982simulating}. 
+A computational advancement in the field will have consequences in many areas, from scientific exploration to industrial advancements and sustainability.
+
+Currently, high-performance supercomputing centers dedicate a substantial amount of resources to computations in the materials science space~\cite{ALCF_MaterialsScience,austin2020nersc,Connor2023instcomp,DIPC_HPC}. A fundamental issue is that ab-initio computations of materials, in the full configuration interation (CI) limit, suffer from an exponential or factorial growth of the computational resources in the system size~\cite{ciapprox-book,ciapprox-1,doi:10.1021/acs.jctc.7b00725,ciapprox-2,ciapprox-3,ciapprox-4}. Therefore, memory and processing times requirements rapidly become untractable, as the size of the quantum systems increase.
+To tame this dire scaling, various approximations are employed to reduce classical computational costs, although ultimately even these either fail - for highly correlated materials - or become intractable for sufficiently large and general systems~\cite{solomonik2014massively,Kim_2018,supermatchem-1,supermatchem-2,supermatchem-3,supermatchem-4,supermatchem-5,supermatchem-6,supermatchem-7,supermatchem-8,supermatchem-9,10.1063/1.3659143}, thus consuming a great deal of computational resources of supercomputing centers.
+
+
+Quantum computers present an attractive alternative, since many quantum algorithms avoid incurring in the exponential memory overheads of classical computations of quantum matter.
+ For practical use-cases, quantum computers may be expected to operate embedded in classical high-performance computing (HPC) environments, so-called \emph{quantum-centric supercomputing}. Intensive classical processing is required before, after, and concurrently with these quantum computations, for important reasons: alleviating the workload of quantum computers, integrate into existing classical HPC algorithms, extract signal from noisy quantum devices and exploit fault-tolerant codes to the best extent.
+
+ In this paper, we motivate that quantum-centric supercomputing is critical for materials science research and industrial development, we identify the challenges ahead to achieve practical quantum advantage on these use cases and propose some directions to address them. It is important to note that this work is intended as a perspective and not as an exhaustive review of the existing literature. More specifically, our discussion will be centered around addressing these particular aspects:
+
+\emph{Key Algorithms.} We identify quantum algorithms for materials science applications, in terms of practical applications and potential for quantum advantage. 
+    
+\emph{Implications on the design of quantum-centric supercomputing architectures.} We discuss the requirements that arise for quantum-centric supercomputing architectures. This includes evaluating the computational and operational demands, scalability, and integration hurdles of deploying these algorithms in combined quantum-classical HPC environments.
+    
+\emph{Materials Science Use Cases.} We highlight specific use cases in materials science where quantum and HPC algorithms can be most effectively utilized. 
+We select the algorithms and use cases according to three principles, which are necessary for quantum advantage:
+\begin{enumerate}
+    \item the use case must be classically hard in some limit;
+    \item the use case and algorithm considered must be amenable to execution on a noisy or fault-tolerant quantum computer, depending on the scenario;
+    \item the use case represent an interesting problem in materials science.
+\end{enumerate}
+
+We organize the discussion as follows.
+Section~\ref{high_level_algo_summary} highlights some key  existing algorithms relevant to materials science.
+Section~\ref{sec:DataPreprocessing} exposes classical computations in quantum-HPC workflows, keeping key algorithms and use cases as a reference.
+Section~\ref{sec:Queuing} goes into the details of the challenges for hybrid quantum-classical workload management and quantum-HPC integration.
+Section~\ref{sec:ClassicalSimulationOfQSystems} summarizes the state-of-the-art in classical simulation of quantum circuits, which is a necessary crucial consideration in evaluating the potential for quantum advantage.
+Finally, Section~\ref{sec:UseCaseDiscovery} gives an overview of potential use cases in materials science, bringing together considerations and threads from previous sections. 

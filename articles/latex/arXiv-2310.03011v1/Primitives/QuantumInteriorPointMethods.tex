@@ -1,0 +1,125 @@
+%!TEX root = ../main.tex
+
+\begin{refsection}
+
+\section{Quantum interior point methods}\label{prim:QIPM}
+
+\subsubsection*{Rough overview (in words)}
+
+Interior point methods (IPMs) are a type of efficient classical algorithm for solving \hyperref[appl:ConicProgramming]{convex optimization problems} such as linear programs (LPs), second-order cone programs (SOCPs), and semidefinite programs (SDPs). IPMs are the basis for effective optimization software tools (e.g.,~\cite{domahidi2013ECOS,andersen2000MOSEK}), which are widely used for solving convex optimization problems that arise in industry. They are called \emph{interior} point methods because, in contrast to the simplex method, they iteratively generate a sequence of points that lie in the interior of the convex region; this sequence of points is guaranteed to rapidly approach the optimal point (which, when it exists and the objective function is convex, is guaranteed to lie at the boundary of the convex region). At each iteration, the next point is produced by solving a system of linear equations. See, e.g., \cite{wright2005interior, nemirovski2008interior} for context on how IPMs fit into the history of methods for optimization. 
+
+\emph{Quantum interior point methods} (QIPMs), first introduced in~\cite{kerenidis2018QIntPoint}, are quantum algorithms that are identical to classical IPMs, except that they determine the next point using a \hyperref[prim:QuantumLinearSystemSolvers]{quantum linear system solver} combined with \hyperref[prim:Tomography]{quantum state tomography}.
+
+Classical IPMs are generally efficient in the sense that they can solve convex optimization problems in time scaling as a polynomial in the number of variables. The exact degree of the polynomial depends on which kind of convex optimization problem is being solved, as well as certain choices about the IPM. Due to the need for quantum state tomography, QIPMs will also require time that scales at least linearly in the number of variables; thus, \emph{the best one can hope for is a polynomial speedup} over classical IPMs. The exact runtime of the quantum algorithm depends on instance-specific parameters, such as the condition number of matrices that appear during the course of the algorithm, which makes it difficult to determine whether a speedup can exist.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Rough overview (in math)}
+
+For simplicity, we focus on LPs, the simplest kind of optimization problem where QIPMs can be applied. An LP is specified by an $m \times n$ matrix $A$, an $n$-dimensional vector $c$, and an $m$-dimensional vector $b$, and it is given by
+\begin{equation}\label{eq:LP-QIPM}
+    \begin{split}
+        &\min_{x \in \mathbb{R}^n} \langle c, x\rangle \\
+        \text{subject to } & Ax=b \\
+        & x_i \geq 0 \text{ for } i=1,\ldots,n
+    \end{split}
+\end{equation}
+where $\langle u,v\rangle$ denotes the standard dot product between vectors $u$ and $v$. 
+
+The function $\langle c, x\rangle$ is called the objective function, and a point $x$ is called feasible if it satisfies $Ax=b$ and $x_i \geq 0$ for all $i$. Inequality constraints of the form $Ax \leq b$ can be handled by introducing slack variables. We denote the feasible point that optimizes the objective function by $x^*$.  
+
+An important concept in mathematical optimization is duality, where given one optimization problem, an equivalent ``dual'' optimization problem can be generated through the method of Lagrange multipliers (see~\cite[Section 5]{boyd2004ConvexOptimization}). The dual of the LP in Eq.~\eqref{eq:LP-QIPM} is given by
+\begin{equation}\label{eq:dual-LP-QIPM}
+    \begin{split}
+        &\max_{y \in \mathbb{R}^m} \langle b, y \rangle \\
+        \text{subject to } & A^\intercal y + s =c \\
+        & s_i \geq 0 \text{ for } i=1,\ldots,n
+    \end{split}\,.
+\end{equation}
+Alternatively, one can drop the $s$ variable and constraints that $s_i$ are positive, and simply write $A^\intercal y \leq c$. Denote 
+the optimal feasible points for the dual by $(y^*,s^*)$. 
+
+It can be shown that the optimal point lies at the boundary of the feasible region and satisfies the relationship $x_is_i = 0$ for all $i$. A key concept in IPMs is the \emph{central path}, a set of points parameterized by $\mu > 0$. The central point with parameter $\mu$ is the feasible point for which $x_is_i = \mu$ for all $i$. In general, this point will be in the interior of the feasible region, but as $\mu \rightarrow 0$, the central path approaches the optimal point on the boundary. 
+
+The most effective classical IPMs are ``primal-dual path-following methods,'' which generate a length-$T$ sequence of primal-dual point pairs $(x^{(t)},y^{(t)},s^{(t)}) \in \mathbb{R}^n \times \mathbb{R}^m \times \mathbb{R}^n$ for $t=0,\ldots,T-1$ that approximately follows the central path toward the optimum. Given  $(x^{(t)},y^{(t)},s^{(t)})$, the point $(x^{(t+1)},y^{(t+1)},s^{(t+1)}) = (x^{(t)}+\Delta x,y^{(t)} + \Delta y,s^{(t)} + \Delta s)$ is formed by solving the following linear system of equations, which is called the \emph{Newton system}, as it corresponds to one iteration of Newton's method. 
+\begin{equation}\label{eq:Newton_system}
+    \begin{pmatrix}
+    A & 0 & 0 \\
+    0 & A^\intercal & I \\
+    S & 0 & X
+    \end{pmatrix}
+    \begin{pmatrix}
+    \Delta x \\
+    \Delta y \\
+    \Delta s
+    \end{pmatrix}
+    = 
+    \begin{pmatrix}
+    b-Ax^{(t)} \\
+    c-A^\intercal y^{(t)} - s^{(t)} \\
+    \sigma \frac{x^{(t)\intercal} s^{(t)}}{n}\mathbf{1} - Xs^{(t)}
+    \end{pmatrix}\,,
+\end{equation}
+where $\sigma<1$, $\mathbf{1}$ denotes the all 1s vector, and $S = \text{diag}(s^{(t)}), X = \text{diag}(x^{(t)})$ are diagonal $n \times n$ matrices formed from the entries of $s^{(t)}$ and $x^{(t)}$. Note that there are alternative ways to formulate the Newton system (see, e.g.,~\cite{augustino2021quantum,augustino2022inexact}). To understand Eq.~\eqref{eq:Newton_system}, note that if the point $(x^{(t)}, y^{(t)}, s^{(t)})$ is feasible, then the first two entries on the right-hand-side are zero. Furthermore, if it is on the central path, then $Xs^{(t)} = \frac{x^{(t)\intercal} s^{(t)}}{n} \OnesVec$, so if we were to choose $\sigma=1$, then the entire right-hand-side would be zero, and the solution to the system would be $\Delta x = \Delta y = \Delta s = 0$. If instead we set $\sigma = 1-\delta$ for sufficiently small $\delta$, the solution will correspond to taking a small step along the central path in the direction of decreasing $\mu$. Technically, we do not exactly follow the central path, but it can be guaranteed that the sequence of points stays within a small neighborhood of it.  As $\mu \rightarrow 0$, the central path approaches the optimal point $(x^*,y^*,s^*)$, so by following the path toward $\mu = 0$, a classical or quantum IPM can guarantee success. 
+
+The classical IPM can solve the Newton system exactly using Gaussian elimination in $\bigO{n^3}$ operations, or it can solve the system approximately using a variety of iterative solvers such as conjugate gradient descent or the Kaczmarz method~\cite{strohmer2009kaczmarz}. In contrast, the QIPM solves the Newton system by using a \hyperref[prim:QuantumLinearSystemSolvers]{quantum linear system solver} to repeatedly prepare the $\bigO{\log(n)}$-qubit state $\ket{\Delta x, \Delta y, \Delta s}$ whose amplitudes encode the solution to the Newton system. 
+By preparing many copies, the algorithm can perform (pure state) quantum state tomography to yield an estimate $(\overline{\Delta x}, \overline{\Delta y}, \overline{\Delta s})$ for the amplitudes $(\Delta x, \Delta y, \Delta s)$ to some desired precision $\xi$ (in 2-norm), i.e.
+\begin{equation}
+    \lVert (\overline{\Delta x}, \overline{\Delta y}, \overline{\Delta s})-(\Delta x, \Delta y, \Delta s) \rVert \leq \xi \lVert (\Delta x, \Delta y, \Delta s) \rVert 
+\end{equation}
+
+Due to the tomography step, the QIPM is only able to generate solutions to the Newton system that are \emph{inexact}. There has been some question in the literature whether the fastest IPMs still work even when inexact solutions are used, as this causes intermediate points to be (slightly) infeasible~\cite{augustino2021quantum}. However, if $\xi$ is sufficiently small, the method appears to work empirically even using the inexact solutions that would be output by a quantum solver~\cite{dalzell2022socp}. Alternatively, there exist workarounds~\cite{augustino2021quantum} that ensure feasibility is maintained even when linear systems are solved inexactly, at the expense of some additional classical cost.
+
+The IPMs and QIPMs for SOCPs~\cite{kerenidis2019QAlgsSecondOrderConeSVM,augustino2022inexact} are quite similar to the one for LPs described above: the main difference is that the matrices $X$ and $S$ are no longer strictly diagonal matrices. QIPMs have also been proposed for SDPs~\cite{kerenidis2018QIntPoint,augustino2021quantum,huang2022fasterQuantumIPM}, which are more complex but have more expressive power; here, additional considerations must be taken to guarantee that the intermediate solutions continue to be symmetric even after experiencing errors due to tomography. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Dominant resource cost (gates/qubits)}
+
+The outer loop of QIPMs is purely classical; at each iteration a small step is taken to form the next point in the sequence. For LP, SOCP, and SDP, the number of iterations $T$ required to yield a point for which the objective function is within $\epsilon$ of optimal is $\mathcal{O}(\sqrt{n}\log(1/\epsilon))$. The main cost of each iteration is solving the Newton system. 
+
+The QIPM solves the Newton system by preparing many copies of the state corresponding to the solution to the linear system. This state can be prepared in time $\text{polylog}(n)\cdot \zeta \kappa$, where $\kappa$ is the condition number of the matrix in Eq.~\eqref{eq:Newton_system} and $\zeta$ is the ratio $\lVert \cdot \rVert_F / \lVert \cdot \rVert$ of the Frobenius and spectral norms of the matrix, assuming that one can perform a \hyperref[prim:BlockEncodingsClassical]{block-encoding} of the Newton matrix in $\text{polylog}(n)$ time, a task that requires access to large-scale \hyperref[prim:QRAM]{quantum random access memory} (QRAM). For LP and SOCP, the number of copies that must be prepared scales as $\bigO{n/\xi^2}$ when using the basic version (see~\cite[Section 4]{kerenidis2018QIntPoint} and~\cite[Section IVD]{dalzell2022socp}) of pure state \hyperref[prim:Tomography]{tomography} that simply measures each copy in the computational basis. A more recent and complex version of tomography~\cite{apeldoorn2022TomographyStatePreparationUnitaries} can achieve this task using $\bigO{n/\xi}$ copies along with additional gates. For SDP, since the variables are matrices rather than vectors, the number of copies is $\bigO{n^2/\xi^2}$ or $\bigO{n^2/\xi}$. Overall, using the more efficient version of tomography and ignoring the additional gates, the runtime of the QIPM is expected to scale as 
+\begin{equation}
+\begin{split}
+    \text{LP, SOCP:}& \qquad \bigOt{ \frac{n^{1.5}\zeta \kappa}{\xi}\log(1/\epsilon)} \\
+    \text{SDP:}& \qquad \bigOt{\frac{n^{2.5}\zeta \kappa}{\xi}\log(1/\epsilon)}
+\end{split}
+\end{equation}
+where $\kappa$ denotes the maximum condition number, $\zeta$ the maximum ratio of Frobenius to spectral norm, and $\xi$ the minimum tomographic precision required across all iterations. In the worst case, it may be necessary to take $\xi$ as small as $\bigO{1/\kappa}$, and $\zeta$ can be as large as $\sqrt{n}$ (SOCP/LP) or $n$ (SDP). 
+The hidden constant prefactors are dependent primarily on the implementation of the \hyperref[prim:QuantumLinearSystemSolvers]{quantum linear system solver} and \hyperref[prim:Tomography]{tomography}. It is clear that the viability of the QIPM is highly dependent on the value and scaling of the parameters $\kappa$ and $\xi$. Unfortunately, it is believed that for some LP/SOCP/SDP instances, the value of $\kappa$ will diverge as the target precision $\epsilon$ is made smaller, perhaps as $\bigO{1/\epsilon}$~\cite{kerenidis2019QAlgsSecondOrderConeSVM,augustino2021quantum}, although this may not be the case in every instance~\cite{huang2022fasterQuantumIPM}. 
+
+The QIPM only requires a register of $\bigO{\log(n)}$ qubits to hold the solution of the linear system; however, achieving the runtimes quoted requires queries to \hyperref[prim:QRAM]{QRAM}. In this case, the explicit QRAM circuits that achieve shallow depths of $\bigO{\log(n)}$ necessarily require $\bigO{n^2}$ total gates across $\bigO{n^2}$ total qubits. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Caveats}
+There are several important caveats that must be considered when evaluating a speedup claimed by QIPM.
+\begin{itemize}
+    \item Even in a best case scenario, the quantum speedup is at most polynomial (and even subquadratic). Since quantum computation requires significant constant-factor overheads due to \hyperref[prim:QEC]{slower clock speeds and error correction}, the value of $n$ for which a QIPM would be faster than a classical IPM on actual hardware is likely to be large (see \cite{dalzell2022socp} for further discussion). 
+    \item Since $n$ must be large for a quantum speedup to be obtained, a very large \hyperref[prim:QRAM]{QRAM}, corresponding to millions or billions of (logical) qubits, would be needed for any speedup to be realized. 
+    \item QIPMs are most effective when the condition number $\kappa$ is relatively small since they rely on \hyperref[prim:QuantumLinearSystemSolvers]{quantum linear system solvers}. However, when $\kappa$ is small, iterative classical methods may also be effective, limiting the advantage of the quantum algorithm. In particular, a linear system with $\bigO{n}$ constraints on $n$ variables can be solved to error $\xi$ in time $\bigO{n\zeta^2 \kappa^2\log(1/\xi)}$ using the randomized Kaczmarz method~\cite{strohmer2009kaczmarz}. The QIPM performs this task in time $\bigO{n \zeta \kappa/\xi}$. Even if $\xi = \Omega(1)$, this limits the magnitude of the quantum speedup to $\bigO{\zeta \kappa}$. Thus, for the quantum speedup to be maximized, $\kappa$ can be neither too small nor too large. 
+    \item If the matrices that define the convex problem have a certain structure (e.g.~sparsity), this could be exploited to potentially reduce the overhead from block-encoding---in particular, the value of $\zeta$ and the size of the QRAM required. However, this can help the quantum algorithm only to a limited extent, as the vectors $(\Delta x, \Delta y, \Delta s)$ will still be dense and reading out estimates for all $\bigO{n}$ amplitudes with quantum tomography will be necessary.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Example use cases}
+\begin{itemize}
+    \item \hyperref[appl:PortfolioOptimization]{Portfolio optimization}, the canonical optimization problem that appears in finance, can be formulated as an SOCP and solved with a QIPM; a study of the condition number of the matrices that appear in this application was consistent with a small quantum speedup~\cite{kerenidis2019PortfolioOptimization}; however, a follow-up study did not replicate this finding~\cite{dalzell2022socp} and also pointed out that in any case large constant-factor overheads would make achieving practical advantage challenging. 
+    \item Support vector machines, a common task in \hyperref[appl:ClassicalML]{machine learning}, can be reduced to SOCP and solved with a QIPM; a study of the condition number of the matrices that appear in this application was consistent with a small quantum speedup~\cite{kerenidis2019QAlgsSecondOrderConeSVM}. 
+    \item Sample-efficient protocols for mixed-state \hyperref[prim:Tomography]{tomography} reduce the problem of reconstructing an estimate of the quantum state to solving an SDP. This SDP could be solved with a QIPM (note that the tomography needed within the QIPM is always on \emph{pure states} and does not require solving an SDP, thus avoiding an issue of circular logic).
+    \item Nonconvex optimization is often solved approximately by relaxing the problem into a convex problem like an SDP. For example, the $\mathsf{MAX}$-$\mathsf{CUT}$ problem is  a\hyperref[appl:CombOpt]{combinatorial optimization} problem over the nonconvex space $\{+1,-1\}^n$, but by solving the associated SDP relaxation and rounding, an approximate solution can be obtained. 
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Further reading}
+
+\begin{itemize}
+    \item See Boyd and Vandenberghe~\cite{boyd2004ConvexOptimization} for an accessible book on convex optimization including (classical) interior point methods. 
+    \item QIPMs are an active area of research. A QIPM for LP and SDP was originally proposed by Kerenidis and Prakash in~\cite{kerenidis2018QIntPoint}. This was followed up by a QIPM for SOCP in~\cite{kerenidis2019QAlgsSecondOrderConeSVM}, along with numerical simulations for specific applications~\cite{kerenidis2019QAlgsSecondOrderConeSVM,kerenidis2019PortfolioOptimization}. Later,~\cite{augustino2021quantum} pointed out a potential error in the convergence analysis of previous works, and they presented two possible workarounds called the ``inexact-infeasible'' and ``inexact-feasible'' IPMs. Note also the work in \cite{huang2022fasterQuantumIPM} for another way to avoid this issue, giving a QIPM for SDP. 
+\end{itemize}
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+
+\end{refsection}

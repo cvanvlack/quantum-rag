@@ -1,0 +1,131 @@
+\section{Algorithms, Methods and Limitations\label{sec:algs}}
+
+
+\subsection{Quantum Algorithms for Quantum Dynamics}
+\label{subsubsec_algo_dyn}
+
+The development of quantum algorithms for the simulation of quantum dynamics is a very active field of research, with potential applications covering a broad spectrum across the physical sciences~\cite{Tacchino2020,Miessen2023}.
+A plethora of powerful methods has been developed over the past years, which can generally be classified as either decomposition-based or variational in nature~\cite{Miessen2023}. Techniques belonging to the former category aim at realising a target unitary evolution $U(t)=e^{-iHt}$ through a decomposition into elementary quantum logic operations. This approach typically yields rigorous scaling laws, a priori error bounds and, most importantly, provides a systematic way of exchanging resources (i.e., circuit depth, gate counts, ancilla qubits) for accuracy. Examples of decomposition methods include product formulas (see below), linear combinations of unitaries~\cite{berry2015simulating}, quantum signal processing~\cite{low2017} and qubitization~\cite{Low2019hamiltonian}. On the other hand, variational strategies address the task of approximating $U(t)$ by resorting to parametrized quantum circuits, for example implementing time-dependent ansatzes or learning effective partial representations of the dynamics. This often reduces the circuit complexity compared to decomposition methods, thus lowering the experimental requirements for implementations on current noisy quantum processors. However, such an advantage comes at the cost of some classical overhead (e.g., optimization, additional measurements) and within a more heuristic framework where accuracy guarantees are harder to obtain. Both decomposition and variational algorithms have been applied for specific dynamical studies in \gls{lgt} on quantum computers~\cite{Mathis2020,nagano2023}.
+
+\subsubsection{Product Formulas} 
+Among decomposition methods, product formulas represent the simplest and most widely adopted paradigm~\cite{Lloyd96,chiesa_quantum_2019,Kim2022Scalable}. In their basic implementation, these rely on the general Trotter approximation rule~\cite{trotter1959product}
+\begin{equation} \label{eq:trotter}
+    e^{-i\mathcal{H}t} = \lim_{n\to\infty} \bigg(\prod_i^M e^{-i\mathcal{H}_it/n} \bigg)^n 
+\end{equation}
+where $\mathcal{H}=\sum_i^M \mathcal{H}_i$. At first order and for every finite choice of $n$, one has 
+\begin{equation}
+    e^{-i\mathcal{H}t}\simeq \biggl(\prod_i^M e^{-i\mathcal{H}_it/n} \biggr)^n + \mathcal{O}\bigl(\sum^M_{i>j} \lVert [\mathcal{H}_i, \mathcal{H}_j)]\rVert t^2 / n \bigr),
+\end{equation} 
+i.e., the decomposition error amounts to $\mathcal{O} ( M^2 t^2/n )$. This may be systematically reduced either by choosing a larger $n$ or by employing higher-order \gls{pf}, for which the error becomes $\mathcal{O} ((M \tau)^{2k+1} / n^{2k})$ at order $2k$ ($k \geq 1)$ (see also Sec.~\ref{subsubsec:limitsQD}). In both cases, better theoretical accuracy is obtained in return for an increased gate count. Further improvements are possible, based, e.g., on randomization and adaptive techniques~\cite{zhang2012randomized,Childs2019fasterquantum,campbell2019,Zhang2023Low} or on the use of linear combinations of \gls{pf} (multi-product formulas)~\cite{chin2010multi,Vazquez2022}, which can reduce Trotter errors. 
+Importantly, \glspl{pf} can also be employed for simulating time-dependent Hamiltonians~\cite{wiebe2010higher,poulin2011quantum,watkins2022timedependent}.
+
+\subsubsection{Variational Approaches} 
+Parametrized quantum circuits can be used to tackle quantum dynamical problems by either resorting to well-established variational principles or by recasting them as optimization tasks. In the first case~\cite{Yuan2019}, one builds a time-dependent wavefunction ansatz spanning a suitable manifold in the Hilbert space of the target system and propagates the parameters by solving a classical \gls{eom}. For sufficiently well-behaved dynamics, the trajectory of a specific quantum state in time can be approximated with a number of parameters that is significantly smaller than the dimension of the full space. This in principle results in a simulation whose cost in terms of quantum resources -- and specifically circuit depth -- is constant, or only increases moderately, with time (in contrast to, e.g., \glspl{pf}). As an example, for an ansatz $\ket{\Phi(\theta(t))} \equiv \ket{\Phi}$ evolving under the action of a Hamiltonian $H$, the application of McLachlan’s variational principle leads to a set of differential equations for the parameters of the form~\cite{Yuan2019}
+\begin{equation}
+    \mathcal{M} \dot{\bm{\theta}} = \bm{\mathcal{V}} 
+\label{eq:McLachlanEOM}
+\end{equation}
+where
+\begin{equation}
+    \mathcal{M} = \Re \biggl( \frac{\partial \bra{\Phi}}{\partial \theta_i} \frac{\partial \ket{\Phi}}{\partial \theta_j} + \frac{\partial \bra{\Phi}}{\partial \theta_i} \ket{\Phi} \frac{\partial \bra{\Phi}}{\partial \theta_j} \ket{\Phi} \biggr)
+\end{equation}
+and
+\begin{equation}
+    \bm{\mathcal{V}} = \Im \biggl( \frac{\partial \bra{\Phi}}{\partial \theta_i} H \ket{\Phi} - \frac{\partial \bra{\Phi}}{\partial \theta_i} \ket{\Phi} \braket{\Phi | H | \Phi} \biggr) \ .
+\end{equation}
+The matrix elements of $\mathcal{M}$ and $\bm{\mathcal{V}}$ have to be evaluated through measurements on the quantum processor where the ansatz is prepared, while Eq.~\eqref{eq:McLachlanEOM} is integrated classically. 
+Two main versions of the \gls{vte} algorithms have been devised and applied in quantum simulations: the \gls{varQTE}  algorithm for real-time propagation, and the \gls{varQITE} algorithms for `dynamical' ground state preparation (for a review see~\cite{Miessen2023}). 
+
+This \gls{vte} algorithm is particularly attractive in those cases where a direct decomposition of unitary Hamiltonian evolution becomes quickly demanding with growing system size, such as, e.g., in first quantization~\cite{ollitrault2022quantum} or when dealing with fermionic/bosonic degrees of freedom~\cite{macridin2018,endo_calculation_2020,miessen2021quantum,LibbiGreen2022} and gauge fields~\cite{Mathis2020, Mazzola2021}. 
+In practice, one crucial ingredient is the choice of the ansatz, which ideally should incorporate physical intuition (e.g., respecting symmetries and/or conservation laws) and good mathematical properties (e.g., concerning the form of the tangent space associated with the parametrized manifold along time-evolution paths). While several promising strategies for ansatz construction have been proposed, including adaptive 
+ones~\cite{gomes2023computing}, it remains challenging, in general, to correlate in a systematic way ansatz expressivity with simulation accuracy and performances, if not with a posteriori error bounds~\cite{zoufal2021error}. The application of \gls{vte} is also limited by the high numerical sensitivity associated with the solution of Eq.~\eqref{eq:McLachlanEOM} via matrix inversion and by the large number of measurements required to construct $\mathcal{M}$ and $\bm{\mathcal{V}}$~\cite{miessen2021quantum, zoufal2021error}. 
+
+In parallel to the standard \gls{vte} algorithm, numerous other approaches are being explored. For instance, variational quantum methods have been employed to learn a (partial) diagonalization of the short-time evolution of a system~\cite{heya2019subspace, cirstoiu2020variational, gibbs2021long, gibbs2022dynamical} and to compress the circuits required to implement a short time-step on a given state~\cite{otten2019noise, Lin2021Real, barison2021efficient, benedetti2020hardware}. Additional proposals aimed at implementing near-term quantum simulations include: quantum-assisted methods which perform all necessary quantum measurements at the start of the algorithm instead of employing a classical-quantum feedback loop~\cite{bharti2020quantum,lau2021quantum,haug2020generalized}, methods based around Cartan decompositions~\cite{Kokcu2022Fixed, steckmann2021simulating} and approaches using Krylov theory~\cite{jamet2021krylov}.  
+
+\subsubsection{Algorithmic Limitations\label{subsubsec:limitsQD}}  
+Of the two approaches for performing time-evolution dynamics, it is considerably more straightforward to characterise the (near-term) simulation errors associated with Trotterisation-based methods.
+For a fixed total time $T$, the discretization in $n$ time-intervals ($dt=T/n$) of the time-evolution operator according to Eq.~\eqref{eq:trotter} (i.e., using first-order Trotter expansion) will lead to a residual error $\epsilon$ of $\mathcal{O}(\alpha_{\text{c}} (T/n)^{p+1})$ with $p=1$ where $\alpha_{\text{c}}=\sum_{i,j} || \mathcal{H}_j,[\mathcal{H}_j,\mathcal{H}_i]||$ (see~\cite{PhysRevX.11.011020}). 
+This implies that one would require $n \times \mathcal{O}(M \alpha_{\text{comm}} (T/n)^{2})$ gates to achieve the desired accuracy, where $M$ is the number of Pauli strings building up the system Hamiltonian.
+On the other hand, a practical implementation of the Trotter expansion in near-term, noisy, quantum computers will need to face the additional errors arising from the gate infidelities. Assuming only errors induced by the 2-qubit \gls{cnot} operations, $\epsilon_{\text{2g}}$, the overall Trotter error will scale as
+\begin{equation}
+    \epsilon_{\text{Trotter}} \sim \mathcal{O} (\alpha_{\text{c}} (T/n)^{2} + (n_0 \epsilon_{\text{2g}})^n )
+\end{equation}
+where $n_0$ is the number of 2-qubit operations required for the circuit implementation of the operator $e^{i \mathcal{H} t}$, for fixed $t$.
+We therefore conclude that for the Trotter formula there must be an optimal value of the the discretization variable $n$, that we name $n^*$, which minimizes the overall error.
+
+In the case of the \gls{vte} algorithm, the quantum circuit is of a constant depth, while the number of gates required for its implementation depends on the number of degrees of freedom necessary to produce a suitable representation of the subspace that spans the dynamics of the system. Assuming the knowledge of a variational form that can be systematically improved by adding circuit layers, $L$, one can - in principle - achieve a desired accuracy as a function of the circuit depth. 
+In the case of \gls{lgt}, one could for instance employ a recently proposed Hamiltonian inspired variational Ans\"atze~\cite{Mazzola2021}, which has the advantage of combining a physical motivated variational circuit with the possibility of naturally enforce dynamical constrained, such has Gauss law. On the formal side, Ref.~\cite{zoufal2021error} has investigated error bounds associated with \gls{vte}. However, unfortunately, and in contrast to the Trotter expansion and alike, there appears to be no systematic ways to assess a priori the scaling of the variational error in \gls{vte} algorithm as a function of the total simulation time, $T$, or circuit layers, $L$. 
+Preliminary studies~\cite{thesisNicola} showed that in the case of \gls{qed} calculations in \gls{1p1D} dimensions the number of Hamiltonian-inspired layers to reach a desired accuracy increases rapidly with the dimensionality of the problem, approaching the number of gates required to implement the Trotter formula already with 10 to 15 sites. 
+Finally, it is also important to mention that the quality of the \gls{vte} approach depends on the accuracy in the solution of the system of linear differential equations in Eq.~\eqref{eq:McLachlanEOM}. 
+
+\subsubsection{Near-term Applications} 
+We would like to conclude this section with a rough estimation of the resources needed for the quantum simulations. For the \gls{qed} static study we take ground state properties as our main target (e.g., the important phase structure for which high precision is not necessarily required). Also for \gls{qed} dynamics we are interested in the qualitative behaviour of scattering particles.    
+Therefore the entries presented below concern only the number of qubits and layers required (within the $100 \otimes 100$ challenge constraints) and do not refer to the precision of the solutions or the algorithms run times.
+
+\begin{table*}
+\caption{ 
+For \gls{2p1D}~QED, we consider a minimum linear lattice size, $L$, of 4 and a maximum of 8; this leads to 8 to 16 qubits to describe the fermionic d.o.f. and 10/15 gauge links, which leads - with truncation of the gauge fields $l=2,3$ - to 20/100 and 30/150 qubits, respectively. The final number of resources is reported in the table. For \gls{1p1D} \gls{qed} dynamics we give a suitable number of lattice points which allows us to study the time evolution of scattering particles;
+For two flavor neutrinos we consider a direct mapping to qubits, the cost is based on a first order \gls{pf}; for the largest system with 40 neutrinos the \gls{cnot} count would still be $2340$ with depth $120$.
+}
+\label{table:resources}
+\begin{tabular}{| c | c| c | c | c |} 
+  \hline
+  \textbf{Systems}                 & \textbf{Phys.~size (min/max)} & \textbf{No.~qubits  (min/max)} & \textbf{Alg.}           & \textbf{No. CNOT layers}\\ 
+  \hline 
+  \hline
+  \gls{2p1D}~QED static            & 4x4/8x8 sites                 & 30/160                         & \gls{vqe}/\gls{varQITE} & $\sim 10/100$   \\
+  \hline
+  \gls{1p1D} QED dynamics          & 12/20 sites                   & 30/100                         & \gls{varQTE}/Trotter    & $20/100$  \\
+  \hline
+  Collective Neutrino Oscillations & 10/40 neutrinos               & 10/40                          & \gls{vte}/\gls{pf}      & $30/120$  \\
+  \hline
+\end{tabular}
+\end{table*}
+
+
+\subsection{Quantum Machine Learning}
+
+
+\subsubsection{Opportunities for Quantum Advantage}
+\gls{qml} is an area of particular interest in experimental particle physics encompassing many of the algorithms described in this section. In general terms, two main approaches have emerged in the development of quantum-enhanced machine learning: the role of the quantum computer as an accelerator of otherwise established classical learning methods and the design of genuinely quantum methods, which do not mimic classical algorithms. This first method includes the relatively straightforward application of \gls{qc} methods to speed up an otherwise computationally costly training method~\cite{neven2008training}. Such approaches include classes of methods, dubbed \textit{quantum linear-algebra based methods}, in which the principle goal is to represent high-dimensional data in states of just logarithmically many qubits. This approach may allow even exponential speed-ups but comes with numerous caveats~\cite{Aaronson:2015scy}, most notably requiring some means of generating the required data-bearing quantum states, which, if done naively, already nullifies any possible advantage. Solutions to this may exist e.g. by the use QRAM~\cite{PhysRevLett.100.160501}, but in any case  these methods are mostly considered only in the context of large-scale fault-tolerant quantum computers.
+
+In contrast, the design of genuinely quantum methods, may yet offer advantages based around the idea of parameterised quantum circuits (\gls{pqc}-based methods) as the key building block of the model. The basic examples here include the quantum support vector machine~\cite{havlivcek2019supervised} and the closely related quantum kernel methods~\cite{Schuld2019QML},  and, more generally, so called quantum neural network models. It is important to note that learning separations (so, provable exponential advantages) for learning using quantum models have already been proven in most learning settings ~\cite{liu2021rigorous}, subject to standard assumptions in complexity theory, and it can be shown~\cite{Gyurik:2022iqm} that these separations may be much more common when data is generated by a quantum process (under slightly stronger computational assumptions).
+
+In general, the quantum model attains the form  $f_{\theta}(x)=Tr[\rho(x,\theta) O(x,\theta)]$, where the observable $O$ is most often fixed and independent from data ($x$) or trainable parameters ($\theta$), and $\rho(x,\theta)$ is prepared by applying a parametrized circuit on some fiducial state, e.g. $\rho(x,\theta) = U(x,\theta) |0\rangle \langle 0| U(x,\theta)$. In so-called linear models such as kernels and QSVMs, in contrast to data reuploading models~\cite{P_rez_Salinas_2020}, the state depends only on $x$, and this constitutes the loading of the data. Note, the targeted advantage in these settings is not in the dimensionality or number of data points, but rather in the \emph{quality} of learning that can be achieved. 
+
+The mapping $x \mapsto \rho(x, \theta)$, a process which is typically independent of the setting of the $\theta$ parameters, constitutes the data loading, in which the key questions here are in finding a suitable mapping which will allow for a favourable data processing. Unlike in the case of quantum linear algebra approaches, the dimensionality of the state $\rho(x)$ is typically independent from the data dimensionality. In particular, as was proven in~\cite{P_rez_Salinas_2020}, already a single qubit line can express arbitrary multi-dimensional functions, given sufficient depth and data-re uploading. This is analogous how 1 hidden layer neural nets allow for functional universality~\cite{Cybenko1989ApproximationBS}, but nonetheless using multiple layers allows the more efficient access to useful function families. 
+Using more qubits allows for more expressive function families at shallower circuit depths, and indeed qubit number scaling as a function of data dimension is necessary for any potential of a quantum advantage (as constant-sized quantum circuits are simulatable in polynomial time in the depth).
+
+Indeed, the minimum is superlogarithmic scaling of the qubit numbers in the dimension of $x$, and linear scalings already can ensure the exponential cost of the classical simulation of the quantum model using best known classical algorithms.
+This freedom also stymies any good approximations of how many qubits would be necessary to achieve good performance of quantum learning algorithms of this type; it is easy to construct models that are not classically simulatable, but at present it is not known how the increase of qubit number influences the quality of outcomes, and thus eventually outperform classical models.
+In practice, it has been suggested that a linear scaling between qubits an input dimension may be a good starting point~\cite{Schuld2019QML}, however this necessitates the use of either classical dimensionality reduction techniques, or circuit cutting techniques~\cite{Marshall:2022jld} for any real-world applications in this field.
+
+
+\subsubsection{Algorithmic Limitations\label{subsec:qml_limitations}}
+
+A fundamental limitation to the scaling up most \gls{pqc}-based machine learning methods is the so-called barren plateau phenomenon, where the gradients~\cite{2018NatCo...9.4812M} of the cost function vanish exponentially with $n$. 
+On such barren plateau landscapes, the cost function exponentially concentrates about its mean, leading to an exponentially narrow minima (a narrow gorge)~\cite{arrasmith2021equivalence}.  Hence, on a barren plateau, exponential precision is required to detect a cost minimizing direction and
+therefore to navigate through the landscape.
+Thus minimizing the cost typically requires an exponential number of shots, even if we use gradient-free~\cite{2020arXiv201112245A} or higher-derivative~\cite{cerezo2021higher} optimizers. While this phenomenon was originally identified in the context of variational quantum algorithms and quantum neural networks, it has recently been shown that  exponential concentration is also a barrier to the scalability of quantum generative modeling~\cite{rudolph2023trainability} and quantum kernel methods~\cite{thanasilp2022exponential}. 
+
+A number of causes of barren plateaus have by now been identified, including using variational ansatze that are too expressive~\cite{2018NatCo...9.4812M,2022PRXQ....3a0313H, larocca2021diagnosing, tangpanitanon2020expressibility} or too entangling~\cite{PRXQuantum.2.040316, sharma2020trainability, patti2020entanglement}. However, even inexpressive and low-entangling \gls{qnn}s may exhibit barren plateaus if the cost function is `global'~\cite{2021NatCo..12.1791C}, i.e. relies on measuring global properties of the system, or if the training dataset is too random or entangled~\cite{PhysRevLett.126.190501, 2021arXiv211014753T, li2022concentration, 2022arXiv221101477L}. Finally, barren plateaus can be caused by quantum error processes washing out all landscape features, leading to noise-induced barren plateaus~\cite{2021NatCo..12.6961W,franca2020limitations}. 
+
+Several methods to mitigate or avoid barren plateaus have been proposed. The simplest is perhaps to use a shallow ansatz along with a local cost function~\cite{2021NatCo..12.1791C, 2018NatCo...9.4812M}; however, it is questionable whether physically interesting and classically intractable problems can be solved within this regime. More promising is the ongoing search for problem-inspired ansatze~\cite{PhysRevX.11.041011,PhysRevLett.129.270501,2022arXiv220900292C,zhang2020toward,2020arXiv200802941W}, problem-inspired initialization strategies~\cite{2019arXiv190305076G}, pre-training strategies~\cite{Huggins_2019, dborin2022pretraining, rudolph2022synergy, rudolph2022decomposition, cheng2022clifford, niu2023warm} or layerwise learning~\cite{2020arXiv200614904S}. Of particular interest currently is the field of geometric quantum machine learning, which provides a group-theoretic strategy for building symmetries into \gls{qnn}s~\cite{larocca2022group, meyer2022exploiting, 2022arXiv220714413S, 2022arXiv221008566N}. 
+In the context of \gls{lgt} simulations, this approach could be suitable since we can utilize the (local and global) gauge symmetry (see~\cite{Mazzola2021} for a gauge invariant construction of the ansatz, though it is not clear if this ansatz can mitigate the barren plateau problem).
+
+Beyond barren plateaus there is a growing awareness of the problems induced by local minima~\cite{Bittel2021Training, you2021exponentially, rivera2021avoiding, anschuetz2022beyond}. Namely, it has been shown that quantum cost landscapes for a large class of problems can exhibit highly complex and non-convex landscapes that are resource intensive to optimize~\cite{Bittel2021Training, you2021exponentially, anschuetz2022beyond}. Thus constructing strategies to mitigate and avoid local minima~\cite{ rivera2021avoiding} is another important research direction to ensure the successful scaling up of hybrid variational quantum algorithms.
+
+\subsubsection{Near-term Applications}
+Given access to a noiseless 100-qubit system, assuming the capacity to train the model, it is in principle possible to tackle very high dimensional systems, and also learning problems where the underlying physics generating the data is very sophisticated. In essence, any system where a 100-qubit quantum simulation would be able to capture relevant physics, could in principle be captured by a 100-qubit learning model. In practice, as mentioned, this will only be possible if the \gls{pqc} architecture is carefully tailored to the learning task to enable the trainability of the system.
+
+
+As shown in section \ref{subsect_Experiments} architectures inspired by the properties of classical deep neural networks have been successfully trained in the quantum context: quantum hierarchical classifiers, such as TTN and MERA, for example,  have been successfully trained to reproduce two-dimensional images representing the output of a \gls{hep} detector~\cite{rehm2023full, borras2023impact,chang2021dual}, quantum convolutions achieved optimal results for image analysis and image generation while mitigating the problem of barren plateaus~\cite{chang2022quantum}. A $100 \otimes 100$ machine could be used to understand to which extent a QCNN could reproduce the hierarchical learning of classical CNN, before incurring into limitations mentioned in the next subsection.
+
+While a graph based interpretation of \gls{hep} data had been tested for a relatively small setup in the field of particle trajectory reconstruction, interesting quantum graph implementations have been proposed~\cite{mernyei2022equivariant} and could be tested in conjunction to point-cloud interpretation of \gls{hep} data for applications ranging from tracking to jet reconstruction and jet tagging to event generation of matrix element calculations. 
+Quantum equivariant neural networks are also under study. Examples implementing spatial symmetries (rotations or reflections) have shown great potential on image related tasks and are being studied on \gls{hep} dataset as well. The case of physics symmetries, equally, if not more interesting, is also very promising, although for certain applications in classical data processing, a major challenge is represented by the difference existing between he original symmetries underlying the quantum process and the remnants accessible through measurements and observables.
+An appropriate choice of loss functions and learning process will determine the task \gls{pqc}s can be trained for.
+
+As explained throughout this paper, generative models are among the most powerful and versatile architectures that could be studied on a $100 \otimes 100$ machine: in particular, it should be possible to move from hybrid to fully quantum version of the more complex topologies such as \gls{qgan} or \gls{qae}. Designing a mechanism for efficiently reproducing attention on quantum states, could pave the way for the implementation of transformers, which are among the most powerful architectures existing today in the classical domain.
+Similar considerations can be made in the choice of feature maps and kernels for kernel-based methods such as quantum support vector machines, which together with variational algorithms are used classification, clustering or anomaly detections problems, in the frameworks of both supervised or unsupervised learning.
+
+

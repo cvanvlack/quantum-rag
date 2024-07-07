@@ -1,0 +1,690 @@
+%!TEX root = ../main.tex
+
+\begin{refsection}
+
+\section{Quantum linear algebra}\label{prim:LinearAlgebra}
+At a high level of abstraction, quantum computers compose unitary matrices, and do so with classically unparalleled efficiency. This hints at quantum speedups for linear algebra tasks. However, often one needs to work with large non-unitary matrices; thus, for performing general linear algebra tasks we often wish to embed certain non-unitary matrices into unitary matrices represented by efficient quantum circuits, and then apply them to quantum states, take their sums or products, or implement more general matrix functions. These tasks are collectively referred to as ``quantum linear algebra,'' the building blocks of which are discussed in this section.
+
+The techniques described in this section evolved over the past decades and converged to the presented unified framework within several distinct research threads. \hyperref[prim:BlockEncodings]{Block-encodings} emerged as a natural approach for embedding non-unitary matrices into quantum circuits, inspired by approaches based on purification, dilation,\footnote{That is, representing an incoherent state or operation as a coherent one with the help of an ancillary system---see for example Stinespring representation \cite{wolf2012QChannelsOpsLectureNotes} or Stinespring dilation \cite{wilde2017QIT}.} and postselection. \hyperref[prim:QSP]{Quantum signal processing} (QSP) was discovered as a byproduct of the characterization of simple single-qubit pulse sequences used in nuclear magnetic resonance~\cite{low2016CompositeQuantGates}, for synthesizing polynomial transformations applicable to a ``signal parameter'' encoded as a matrix element of a single-qubit rotation matrix. Meanwhile, it was extensively studied how matrix functions could be synthesized using the \hyperref[prim:LCU]{linear combinations of unitaries} technique on matrix exponentials implemented by Hamiltonian simulation~\cite{childs2012HamSimLCU,apeldoorn2017QSDPSolvers,chakraborty2018BlockMatrixPowers}, or Chebyshev polynomials of operators implemented via quantum walk techniques~\cite{berry2013ExpPrecHamSimSTOC,berry2015HamSimNearlyOpt,childs2015QLinSysExpPrec}. Such matrix exponentials or Chebyshev polynomials can be implemented, e.g., via \hyperref[prim:Qubitization]{qubitization} of a block-encoded operator. In parallel to progress on advanced \hyperref[prim:AmpAmp]{amplitude amplification}~\cite{grover2005FixedPointSearch, yoder2014FixedPointSearch} techniques, it was recognized~\cite{low2016HamSimQSignProc,low2016HamSimQubitization} that QSP can be ``lifted'' for applying polynomial transformations to the eigenvalues of quantum walk operators (such as those implemented by qubitization), and thus for implementing a rich family of matrix functions, immediately yielding an optimal algorithm for time-independent \hyperref[prim:QSPqubitization]{Hamiltonian simulation}. The concepts of qubitization and QSP were later generalized and unified into the framework of \hyperref[prim:QSVT]{quantum singular value transformation}~\cite{gilyen2018QSingValTransf}, providing generalizations and more efficient implementations of a number of existing quantum algorithms and leading to the discovery of several new algorithms.  
+
+
+\localtableofcontents
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+
+\end{refsection}
+
+\newpage
+
+
+
+
+
+
+
+\begin{refsection}
+
+\subsection{Block-encodings}\label{prim:BlockEncodings}
+
+\subsubsection*{Rough overview (in words)}
+In a quantum algorithm, the quantum gates that are applied to quantum states are necessarily unitary operators. However, one often needs to apply a linear transformation to some encoded data that is not represented by a unitary operator, and furthermore one generally needs coherent access to these non-unitary transformations. How can we encode such a non-unitary transformation within a unitary operator? Block-encoding is one method of providing exactly this kind of coherent access to generic linear operators. Block-encoding works by embedding the desired linear operator as a suitably normalized block within a larger unitary matrix, such that the full encoding is a unitary operator, and the desired linear operator is given by restricting the unitary to an easily recognizable subspace. To be useful for quantum algorithms, this block-encoding unitary must also be realized by some specific quantum circuit acting on the main register and additional ancilla qubits. 
+
+Block-encodings are ubiquitous within quantum algorithms, but they have both benefits and drawbacks. They are easy to work with, since one can efficiently perform \hyperref[prim:ManipulatingBlockEncodings]{manipulations of block-encodings}, such as taking products or convex combinations. On the other hand, this improved working efficiency comes at the cost of having more limited access. For example, if a matrix is stored in classical random access memory, the matrix entries can be explicitly accessed with a single query to the memory, whereas if one only has access to a block-encoding of the matrix, estimating a matrix entry to precision $\varepsilon$ requires $\bigO{1/\varepsilon}$ uses of the block-encoding unitary in general (by utilizing an \hyperref[prim:AmpEst]{amplitude estimation} subroutine). 
+
+Block-encodings also provide a layer of abstraction that assists in the design and analysis of quantum algorithms. One can simply assume access to a block-encoding and count the number times it is applied. To run the algorithm, it is necessary to choose a method for implementing the block-encoding. There are many ways of constructing block-encodings that could be suited to the structure of the input. For instance, there are efficient block-encoding strategies for density matrices, positive operator-valued measures (POVMs), Gram matrices, sparse-access matrices, matrices that are stored in quantum data structures, structured matrices, and operators given as a linear combination of unitaries (with a known implementation). We discuss these constructions below. For unstructured, dense matrices, the strategy for Gram matrices can be instantiated using \hyperref[prim:StatePrepData]{state-preparation} and \hyperref[prim:QRAM]{quantum random access memory} (QRAM) as subroutines. For more details on a particular block-encoding scheme for loading matrices of classical data, see \hyperref[prim:BlockEncodingsClassical]{block-encoding matrices of classical data}.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Rough overview (in math)}
+
+Our goal is to build a unitary operator that gives coherent access to an $M\times M$ matrix $A$ (we will later relax the assumption that $A$ is square), with normalization $\alpha \geq \nrm{A}$, where $\nrm{A}$ denotes the spectral norm of $A$. As the name suggests, block-encoding is a way of encoding the matrix $A$ as a block in a larger unitary matrix:
+\begin{equation}
+U_A = 
+\begin{blockarray}{ccc}
+& \ket{0}^{\otimes a}  & \ket{0}^{\otimes a}_\perp \\
+\begin{block}{c(cc)}
+  \ket{0}^{\otimes a} & A/\alpha & \cdot \\
+  \ket{0}^{\otimes a}_\perp & \cdot & \cdot \\
+\end{block}
+\end{blockarray}
+\end{equation}
+More precisely, we say that the unitary $U_A$ is an $(\alpha, a, \epsilon)$-block-encoding of the matrix $A\in\mathbb{C}^{M\times M}$ if 
+\begin{equation}\label{eq:BEDef}
+\left\lVert A - \alpha (\bra{0}^{\otimes a} \otimes I )U_A(\ket{0}^{\otimes a} \otimes I)\right\rVert \leq \epsilon,
+\end{equation}
+where $a\in\mathbb{N}$ is the number of ancilla qubits used for embedding the block-encoded operator, and $\alpha,\epsilon\in\mathbb{R}_+$ define the normalization and error, respectively. Note that $\alpha\geq \nrm{A}-\epsilon$ is necessary for $U_A$ to be unitary. 
+The definition above can be extended for general matrices, though additional embedding or padding may be needed (e.g., to make the matrix square).
+
+Once a block-encoding is constructed, it can be used in a quantum algorithm to apply the matrix $A$ to a quantum state by applying the unitary $U_A$ to the larger quantum system. The application of the block-encoding can be thought of as a probabilistic application of $A$: applying $U_A$ to $\ket{0}^{\otimes a}\ket{\psi}$ and postselecting on the first register being in the state $\ket{0}^{\otimes a}$ gives an output state proportional to $A\ket{\psi}$ in the second register.
+
+There are several ways of implementing block-encodings based on the choice of matrix $A$~\cite[Section 4.2]{gilyen2018QSingValTransf}:\footnote{References to locations in \cite{gilyen2018QSingValTransf} typically refer to the longer \href{https://arxiv.org/abs/1806.01838}{arXiv version}, rather than the \href{http://dx.doi.org/10.1145/3313276.3316366}{STOC version}.}
+\begin{itemize}
+\item Unitary matrices are $(1,0,0)$-block-encodings of themselves. Controlled unitaries (e.g.~$\mathrm{CNOT}$) are essentially $(1,1,0)$-block-encodings of the controlled operation.
+
+\item Given an $s$-qubit density matrix $\rho$ and an $(a+s)$-qubit unitary $G$ that prepares a \emph{purification} of $\rho$ as $G\ket{0}^{\otimes a}\ket{0}^{\otimes s}=\ket{\rho}$ (s.t. $\tr_a \ket{\rho}\!\bra{\rho}=\rho$, where $\tr_a$ denotes trace over the first register), then the operator~\cite{low2016HamSimQubitization}
+\begin{equation}
+(G^\dagger\otimes I_s)(I_a\otimes \mathrm{SWAP}_s)(G\otimes I_s)
+\end{equation}
+is a $(1, a+s, 0)$-block-encoding of the density matrix $\rho$, where $I_x$ denotes the identity operator on a register with $x$ qubits, and $\mathrm{SWAP}_s$ denotes the operation that swaps two $s$-qubit registers \cite[Lemma 45]{gilyen2018QSingValTransf}. 
+
+\item Similarly, one can construct block-encodings of POVM operators, given access to a unitary that implements the POVM~\cite{apeldoorn2018ImprovedQSDPSolving}. Specifically, if $U$ is a unitary that implements the POVM $M$ to precision $\epsilon$ such that, for all $s$-qubit density operators $\rho$ we have
+\begin{equation}
+    \left |\mathrm{Tr}(\rho M) -\mathrm{Tr}\left [U(\ket{0}\!\bra{0}^{\otimes a}\otimes\rho)U^\dagger (\ket{0}\!\bra{0}\otimes I_{a+s-1}))\right ] \right |\leq \epsilon,
+\end{equation}
+then $(I_1\otimes U^\dagger)(\mathrm{CNOT}\otimes I_{a+s-1})(I_1\otimes U)$ is a $(1,1+a,\epsilon)$-block-encoding of $M$ \cite[Lemma 46]{gilyen2018QSingValTransf}.
+
+\item One can also implement a block-encoding of a Gram matrix using a pair of state-preparation unitaries $U_L$ and $U_R$. In particular, the product
+\begin{equation}
+U_A=U_L^\dagger U_R
+\end{equation}
+is a $(1,a,0)$-block-encoding of the Gram matrix $A$ whose entries are $A_{ij}=\braket{\psi_i}{\phi_j}$, where~\cite[Lemma 47]{gilyen2018QSingValTransf}
+\begin{equation}
+U_L\ket{0}^{\otimes a}\ket{i}=\ket{\psi_i},\qquad U_R\ket{0}^{\otimes a}\ket{j}=\ket{\phi_j}.
+\end{equation} 
+
+\item One can generalize the above strategy from Gram matrices to arbitrary matrices to produce $(\alpha, a, \epsilon)$-block-encodings of general matrices $A$, where again $\alpha\geq\nrm{A}$. See \hyperref[prim:BlockEncodingsClassical]{Block-encoding classical data} for details.
+
+\item Sparse-access matrices: Given a matrix $A\in\mathbb{C}^{2^w \times 2^w}$ that is $s_r$-row sparse and $s_c$-column sparse (meaning each row/column has at most $s_r$ or $s_c$ nonzero entries), 
+then, defining $\nrm{A}_{\mathrm{max}} = \max_{i,j} |A_{ij}|$, one can create a $(\sqrt{s_rs_c}\nrm{A}_{\mathrm{max}},w+3,\epsilon)$-block-encoding of $A$ using oracles $O_r$, $O_c$, and $O_A$, defined below \cite[Lemma 48]{gilyen2018QSingValTransf}:
+\begin{align}
+    &O_r:\ket{i}\ket{k}\mapsto \ket{i}\ket{r_{ik}}, &\forall i\in [2^w]-1, k\in [s_r]\\
+    &O_c:\ket{\ell}\ket{j}\mapsto \ket{c_{\ell j}}\ket{j}, &\forall \ell\in [s_c], j\in [2^w]-1\\
+    &O_A:\ket{i}\ket{j}\ket{0}^{\otimes b}\mapsto \ket{i}\ket{j}\ket{A_{ij}}, &\forall i,j\in [2^w]-1
+\end{align}
+In the above, $r_{ij}$ is the index of the $j$-th nonzero entry in the $i$-th row of $A$ (or $j+2^w$ if there are less than $i$ nonzero entries), and $c_{ij}$ is the index of the $i$-th nonzero entry in the $j$-th column of $A$ (or $i+2^w$ if there are less than $j$ nonzero entries), and $\ket{A_{ij}}$ is a $b$-bit binary encoding of the matrix element $A_{ij}$. To build the block-encoding, one needs one query to each of $O_r$ and $O_c$, and two queries of $O_A$---see \cite[Lemma 48]{gilyen2018QSingValTransf} and the more recent \cite{sanders2019BlackBoxQuantumStatePreparation} for implementation details.
+If, in addition to being sparse, the matrix also enjoys some additional \textit{structure}, e.g., there are only a few distinct values that the matrix elements can take, the complexity can be further improved, c.f.~\cite{sunderhauf2023block, camps2023explicitBlockEncoding}.
+Finally, note that the sparsity dependence can be essentially quadratically improved to $(\max(s_r.s_c))^{\frac{1}{2}+o(1)}$ using advanced \hyperref[prim:HamiltonianSimulation]{Hamiltonian simulation} techniques~\cite[Theorem 2]{low2018HamSimNearlyOptSpecNorm} combined with taking the logarithm of unitaries~\cite[Corollary 71]{gilyen2018QSingValTransf}, however the resulting subroutine may be impractical and comes with a worse precision dependence.
+
+\item For matrices given as a linear combination of unitary operators (LCU), we can block-encode the matrix using the LCU technique~\cite{childs2012HamSimLCU}. We provide a full description in the \hyperref[prim:LCU]{LCU section}, and only give a brief outline here. For $A = \sum_{i=1}^L c_i V_i$ with $V_i$ unitary, we define the oracles $\mathrm{PREPARE}$ (acting on $\lceil \log_2(L)\rceil$ ancilla qubits) and $\mathrm{SELECT}$ (acting on the ancilla and register qubits), and implement a $(\sum_i |c_i|, \lceil \log_2(L)\rceil, 0)$-block-encoding of $A$, using $U := \mathrm{PREPARE}^\dag \cdot \mathrm{SELECT} \cdot \mathrm{PREPARE}$. The Hamiltonians of physical systems can often be written as a linear combination of a moderate number of Pauli operators, leading to a prevalence of this technique in quantum algorithms for \hyperref[appl:ElectronicStructure]{chemistry}~\cite{babbush2018EncodingElectronicSpectraLinearT,Berry2019QubitizationOfArbitraryBasisChemistry} and \hyperref[appl:CondensedMatter]{condensed matter physics}~\cite{babbush2018EncodingElectronicSpectraLinearT,childs2018towardsFirstQSimSpeedup,Wan2021exponentiallyfaster}.
+\end{itemize}
+
+In addition to the definition of block-encoding in \eqref{eq:BEDef}, one can also define an asymmetric version as follows:
+\begin{equation}
+\left\lVert A - \alpha (\bra{0}^{\otimes a} \otimes I )U_A(\ket{0}^{\otimes b} \otimes I)\right\rVert \leq \epsilon,
+\end{equation}
+where $a$ may not equal $b$. In this case, $U_A$ can be considered to be an $(\alpha, (a,b), \epsilon)$- or an $(\alpha, \max(a,b), \epsilon)$-block-encoding of $A$. This can be useful for block-encoding a non-square matrix. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Dominant resource cost (gates/qubits)}
+
+The complexity of block-encoding an operator depends on the type of data or operator being encoded and any underlying assumptions. For instance, unitaries are naturally block-encodings of themselves, and hence their resource requirements depend entirely on their circuit-level implementation without any additional overhead for being a ``block-encoding.'' By contrast, approaches that make use of \hyperref[prim:StatePrepData]{state-preparation} and \hyperref[prim:QRAM]{QRAM} to implement the block-encoding tend to have larger complexities, as those two subroutines typically dominate the resource requirements. For example, the best-known circuits that implement \hyperref[prim:BlockEncodingsClassical]{block-encoding matrices of classical data} for general, dense $N\times N$ matrices use $\bigO{N\log(1/\epsilon)}$ qubits to achieve minimum $T$-gate count (which also scales as $\bigO{N \log(1/\epsilon)}$), or a larger $\bigO{N^2}$ number of qubits to achieve minimum $T$-gate depth (which scales as $\bigO{\log(N)+\log(1/\epsilon)}$ \cite{clader2022resourcesForBlockEncoding}. 
+In the sparse-access model, one can use $\bigO{w+\log^{2.5}(s_rs_c/\epsilon)}$ one- and two-qubit gates, and $\bigO{b+ \log^{2.5}(s_rs_c/\epsilon)}$ ancilla qubits~\cite{gilyen2018QSingValTransf}, in addition to the calls to the matrix entry $O_A$ and sparse access oracles $O_r$ and $O_c$, which must be implemented either by computing matrix entries ``on-the-fly'' or by using a \hyperref[prim:QRAM]{QRAM} primitive. Assuming appropriate binary representations of the numbers $A_{ij}$, the exponents of the above logarithms can be reduced to $1$ using the techniques of~\cite{sanders2019BlackBoxQuantumStatePreparation} (see also \cite[Section III.D]{babbush2018EncodingElectronicSpectraLinearT} and \cite[Supplementary Material VII.A.2]{burg2021QuantumComputingEnhancedComputationalCataylysis}).
+
+The value of block-encodings is not that it is always cheap to implement them (as it depends on the relevant cost metric and the data access model); rather, the concept of block-encodings is powerful because it allows a practitioner of quantum algorithms to study and optimize the block-encoding construction independently of how it is used within the larger algorithm.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Caveats}
+
+A block-encoded matrix $A$ must have norm $\|A\|\leq 1$, or otherwise the matrix must first be normalized, and one must take care to keep track of normalization throughout the computation. In the definition of block-encodings shown above, the parameter $\alpha$ plays the role of normalizing~$A$. Note that often the above constructions are suboptimal in the sense that $\alpha\gg \|A\|$, which can lead to increased complexity.
+
+For a given desired block-encoding, there can be several independent, yet equally valid implementations, and one can sometimes optimize for various resources when building the block-encoding. For example, many block-encoding strategies require a step in which some classical data is loaded into QRAM, but there are several ways of performing this data-loading step.
+
+When using a block-encoding as part of a larger quantum algorithm, it is important to ensure that the overhead introduced by implementing a block-encoding will not outweigh any potential quantum speedups, as block-encoding can be very resource intensive.
+
+The use of $\ket{0}^{\otimes a}$ as the ``signal'' state is just one convention---we can use any ``signal'' state, given a unitary to prepare it~\cite{low2016HamSimQubitization}. One can also consider a more general definition known as ``projected unitary encodings'' which allows using an arbitrary subspace, rather than just a state-indexed block~\cite{gilyen2018QSingValTransf}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Example use cases}
+ Block-encodings are ubiquitous in quantum algorithms, and they prevail in quantum algorithms that need coherent access to some linear operator or a method of implementing a non-unitary transformation on quantum data. Some specific examples:
+\begin{itemize}
+    \item We can \hyperref[prim:ManipulatingBlockEncodings]{manipulate block-encoded operators}---for example, take convex or \hyperref[prim:LCU]{linear combinations}, products, tensor products, and other transformations of an input operator.
+    \item The combination of \hyperref[prim:Qubitization]{qubitization} with \hyperref[prim:QSP]{quantum signal processing}, or \hyperref[prim:QSVT]{quantum singular value transformation} can be used to realize algorithms by applying polynomial transformations to block-encoded matrices. Prominent examples are \hyperref[prim:HamiltonianSimulation]{Hamiltonian simulation} via \hyperref[prim:Qubitization]{qubitization}, and matrix (pseudo) inversion~\cite[Theorem 41]{gilyen2018QSingValTransf} that can be used for \hyperref[prim:QuantumLinearSystemSolvers]{solving large linear systems of equations}~\cite{harrow2009QLinSysSolver} or more generally least-squares regression problems~\cite{chakraborty2018BlockMatrixPowers}.
+    \item Block-encoding can be used to provide coherent access to classical data in a quantum algorithm; for example, \hyperref[prim:BlockEncodingsClassical]{loading classical data} into a \hyperref[prim:QIPM]{quantum interior point method} for \hyperref[appl:PortfolioOptimization]{portfolio optimization}~\cite{dalzell2022socp}.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Further reading}
+
+Reference~\cite{chakraborty2018BlockMatrixPowers} provides an instructive overview of the concept of block-encoding and showcases its power in several applications related to (generalized) regression problems. Meanwhile, \cite{gilyen2018QSingValTransf} is a comprehensive collection of technical results about block-encodings and quantum linear algebra more generally. 
+
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+
+\end{refsection}
+
+
+\newpage
+
+
+\begin{refsection}
+
+\subsection{Manipulating block-encodings}\label{prim:ManipulatingBlockEncodings}
+
+
+\subsubsection*{Rough overview (in words)}
+Given one or more \hyperref[prim:BlockEncodings]{block-encodings}, we often want to form a single block-encoding of a product, tensor product, or linear combination of the individual block-encoded operators. This can be achieved as outlined below, using additional ancilla qubits. 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Rough overview (in maths) and resource cost}
+We will consider the case of two operators $A$ and $B$, with straightforward generalizations to additional operators~\cite{gilyen2018QSingValTransf}. We are given an $(\alpha, a, \epsilon_a)$-block-encoding $U_A$ of $A$, and a $(\beta, b, \epsilon_b)$-block-encoding $U_B$ of $B$. Operators $A$ and $B$ act on system qubits $s$. 
+
+\paragraph{Products:}
+The operation $U_{AB} := (I_b \otimes U_A)(U_B \otimes I_a ) $ is an $(\alpha \beta, a+b, \alpha \epsilon_b + \beta \epsilon_a)$-block-encoding of $AB$~\cite[Lemma 53]{gilyen2018QSingValTransf}, where $I_x$ denotes the identity operator on $x$ qubits (see Fig.~\ref{fig:BlockEncodeProduct}). For example, if $a=b$, this construction uses twice as many ancilla qubits for block-encoding the product compared to the block-encoding of the individual matrices. In fact we can assume without loss of generality that $a=b$ (by taking the max of the two) and improve the construction using the circuit in Fig.~\ref{fig:BlockEncodeProduct2}.
+
+\begin{figure}[!h]
+    \centering
+    \begin{displaymath}
+\Qcircuit @C=1em @R=0.7em {
+\lstick{\ket{0^{b}}} & \multigate{2}{U_{AB}} & \qw & & & \multigate{1}{U_{B}} & \qw & \qw \\
+ & \ghost{U_{AB}} & \qw & \push{\rule{.3em}{0em}=\rule{.3em}{0em}} & & \ghost{U_{B}} & \ghost{U_{A}} & \qw \\
+\lstick{\ket{0^{a}}} & \ghost{U_{AB}} & \qw & & & \qw & \multigate{-1}{U_{A}} & \qw \\
+}
+    \end{displaymath}
+    \caption{Implementing the block-encoding $U_{AB}$ of $AB$ that acts on $s$ qubits. The cost is $a+b$ ancilla qubits, and 1 call to each of $U_A$, $U_B$.
+    }
+    \label{fig:BlockEncodeProduct}
+\end{figure}
+
+
+\begin{figure}[!h]
+    \centering
+    \begin{displaymath}
+\Qcircuit @C=1em @R=0.7em {
+\lstick{\ket{0}} & \multigate{2}{U_{AB}} & \qw & & & \qw & \targ & \gate{X} & \qw \\
+\lstick{\ket{0^{a}}} & \ghost{U_{AB}} & \qw & \push{\rule{.3em}{0em}=\rule{.3em}{0em}} & & \multigate{1}{U_{B}} & \ctrlo{-1}  & \ghost{U_{A}} & \qw \\
+ & \ghost{U_{AB}} & \qw & & & \ghost{U_{B}} &\qw& \multigate{-1}{U_{A}} & \qw  \\
+}
+    \end{displaymath}
+    \caption{Implementing the block-encoding $U_{AB}$ of $AB$ for the case where both $U_A$ and $U_B$ act on $a$ ancilla qubits. The controlled gate is an $a$-controlled generalized Toffoli gate.}
+    \label{fig:BlockEncodeProduct2}
+\end{figure}
+
+
+\paragraph{Tensor products:}
+The operation $U_{A \otimes B} := (U_A \otimes U_B)$ is an $(\alpha \beta, a+b, \alpha \epsilon_b + \beta \epsilon_a)$-block-encoding of the operator $A \otimes B$.
+
+\begin{figure}[!h]
+    \centering
+    \begin{displaymath}
+\Qcircuit @C=1em @R=0.7em {
+\lstick{\ket{0^{a}}} & \multigate{3}{U_{A\otimes B}} & \qw & & & \multigate{1}{U_{A}} & \qw \\
+& \ghost{U_{A\otimes B}} & \qw & \push{\rule{.3em}{0em}=\rule{.3em}{0em}} & & \ghost{U_{A}} & \qw \\
+\lstick{\ket{0^{b}}} & \ghost{U_{A\otimes B}} & \qw & & & \multigate{1}{U_{B}} & \qw \\
+& \ghost{U_{A\otimes B}} & \qw & & & \ghost{U_{B}} & \qw
+}
+    \end{displaymath}
+    \caption{Implementing the block-encoding $U_{A \otimes B}$ of $A \otimes B$ that acts on $2s$ qubits. The cost is $a+b$ ancilla qubits, and 1 call to each of $U_A$, $U_B$.}
+    \label{fig:BlockEncodeTensorProduct}
+\end{figure}
+
+
+
+\paragraph{Linear combinations:}\label{prim:LCU}
+Linear combinations of block-encodings can be viewed as a generalization of the linear combination of unitaries (LCU) trick~\cite{childs2012HamSimLCU}. We wish to implement a block-encoding of $\sum_{i=0}^{L-1} c_i A_i$,
+where $c_i \in \mathbb{R}$ (the LCU trick can also be extended to complex coefficients) and define $\lambda := \sum_{i=0}^{L-1} |c_i|$. We consider $L$ block-encodings $U_i$ that are $(1, m, \epsilon_i)$-block-encodings of $A_i$. We note that in cases where the block-encodings have different $\alpha_i$ or $m_i$ values, the former can be absorbed into the $c_i$ values and the latter can be taken as $m = \max_i m_i$.
+
+We first define an operator $\mathrm{PREPARE}$ by the following action on $\ket{0^{\lceil \log_2(L)\rceil}}$
+\begin{equation}
+       \mathrm{PREPARE}  \ket{0^{\lceil \log_2(L)\rceil }} = \frac{1}{\sqrt{\lambda}} \sum_j \sqrt{|c_j|} \ket{j}
+\end{equation}
+that prepares a weighted superposition on an ancilla register, such that the amplitudes are proportional to the square roots of the absolute values of the desired coefficients. We also define\footnote{To be precise for $j\notin\{0,1,\ldots,L-1\}$ we define $\mathrm{sign}(c_j) U_j:=I$.}
+\begin{equation}
+    \mathrm{SELECT} = \sum_{j=0}^{L-1} \ketbra{j}{j} \otimes \mathrm{sign}(c_j) U_j.
+\end{equation}
+We then have the following result:
+\begin{align}\label{Eq:LCU}
+    \left(\bra{0^{\lceil \log_2(L)\rceil}} \otimes I \right)  \mathrm{PREPARE}^\dag \cdot  \mathrm{SELECT} \cdot \mathrm{PREPARE} \left( \ket{0^{\lceil \log_2(L)\rceil}} \otimes I \right) &= \frac{1}{\lambda} \sum_{i=0}^{L-1} c_i U_i
+\end{align}
+i.e. $U_{\mathrm{LC}} := \mathrm{PREPARE}^\dag \cdot  \mathrm{SELECT} \cdot \mathrm{PREPARE}$ is a $(\lambda, \lceil \log_2(L)\rceil, 0)$-block-encoding of the LCU $\sum_i c_i U_i$. This is the standard LCU trick~\cite{childs2012HamSimLCU}, and it does not require $U_i$ to be block-encodings (or we can view them as $(1, 0, 0)$-block-encodings of themselves). This technique can be used in \hyperref[prim:TaylorDyson]{Hamiltonian simulation}, or to instantiate a \hyperref[prim:BlockEncodings]{block-encoding}. 
+
+If, as specified above, $U_i$ are block-encodings of $\tilde{A}_i$ (which approximate $A_i$), we also have the following result:
+\begin{align}
+    \left\lVert\left( \sum_i c_i A_i \right) - \lambda \left(\bra{0^{m+\lceil \log_2(L)\rceil}} \otimes I \right) U_{\mathrm{LC}} \left(\ket{0^{m + \lceil \log_2(L)\rceil}} \otimes I \right) \right\rVert \leq \sum_i |c_i|\epsilon_i.
+\end{align}
+Hence, $U_{\mathrm{LC}}$ is a $(\lambda, \lceil \log_2(L)\rceil + m, \lambda \max_i \epsilon_i)$ block-encoding of $\sum_i c_i A_i$.
+
+
+\begin{figure}[!h]
+    \centering
+    \begin{displaymath}
+\Qcircuit @C=1em @R=0.7em {
+\lstick{\ket{0^{\lceil \log_2(L)\rceil}}} & \multigate{2}{U_{\mathrm{LC}}} & \qw & & & \gate{\mathrm{PREPARE}} & \multigate{2}{\mathrm{SELECT}} & \gate{\mathrm{PREPARE}^\dag} & \qw \\
+\lstick{\ket{0^{m}}} & \ghost{U_{\mathrm{LC}}} & \qw & \push{\rule{.3em}{0em}=\rule{.3em}{0em}} & & \qw & \ghost{\mathrm{SELECT}} & \qw & \qw \\
+& \ghost{U_{\mathrm{LC}}} & \qw & & & \qw & \ghost{\mathrm{SELECT}} & \qw & \qw \\
+}
+    \end{displaymath}
+    \caption{Implementing the block-encoding $U_{\mathrm{LC}}$ of $\sum_i c_i A_i$ that acts on $s$ qubits. We require $\lceil \log_2(L)\rceil + m$ ancilla qubits. The regular LCU circuit is obtained by omitting the register $\ket{0^m}$ and the requirement that $U_i$ are block-encodings.
+    The complexity of $\mathrm{PREPARE}$ depends on the coefficients $c_i$ but is $\Theta(L)$ in the worst case (using no additional ancilla qubits) \cite{plesch2011statePrepUniversal}. We can also define $\mathrm{PREPARE}$ that leads to entanglement with a garbage register $\mathrm{PREPARE} \ket{0^{\lceil \log_2(L)\rceil}} \ket{0^g} = \lambda^{-0.5} \sum_i \sqrt{|c_i|} \ket{i} \ket{G_i}$, which can be seen to satisfy the relations required to implement the linear combination, Eq.~(\ref{Eq:LCU}). It can sometimes (e.g., \cite{babbush2018EncodingElectronicSpectraLinearT}) be cheaper to implement this garbage-entangled $\mathrm{PREPARE}$, see \hyperref[prim:StatePrepData]{preparing states from classical data}.
+    The cost of $\mathrm{SELECT}$ depends on the form of $U_i$, but in the worst case requires $\Theta(L)$ primitive gates and $\Theta(L)$ calls to $\ketbra{0}{0} \otimes I + \ketbra{1}{1} \otimes U_i$ \cite{childs2018towardsFirstQSimSpeedup,babbush2018EncodingElectronicSpectraLinearT}, although this can be improved in some relevant special cases (e.g.,~\cite{Wan2021exponentiallyfaster}).}
+    \label{fig:BlockEncodeLCU}
+\end{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Caveats}
+Performing linear algebraic manipulations of block-encodings using these primitives can quickly increase the ancilla count of the algorithm and worsen the normalization factor of the block-encoding. Amplifying a subnormalized block-encoding is possible, but costly, requiring an amount of time scaling roughly linearly in the amplification factor, see~\cite{low2017HamSimUnifAmp,gilyen2018QSingValTransf}. Given a single block-encoded operator $A$, the above primitives can be used to implement a block-encoding of a polynomial in $A$. However, this can be achieved with much lower overhead using \hyperref[prim:QSVT]{quantum singular value transformation}.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Example use cases}
+
+\begin{itemize}
+    \item Linear combination of block-encodings are used to obtain mixed-parity functions in \hyperref[prim:QSVT]{QSVT} required for \hyperref[prim:QSPqubitization]{Hamiltonian simulation}.
+    \item \hyperref[prim:LCU]{LCU trick} used for: \hyperref[prim:TaylorDyson]{Hamiltonian simulation}, or to instantiate \hyperref[prim:BlockEncodings]{block-encodings} of \hyperref[appl:ElectronicStructure]{chemistry} or \hyperref[appl:CondensedMatter]{condensed matter physics} Hamiltonians (see, e.g., \cite{babbush2018EncodingElectronicSpectraLinearT,Wan2021exponentiallyfaster}). 
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Further reading}
+
+\begin{itemize}
+    \item References~\cite[Section 3.3]{gilyen2018QSingValTransfThesis} and \cite[Section 7.3]{lin2022LectureNotes} contain a comprehensive discussion of manipulating block-encodings, including proofs of many of the results stated above.
+\end{itemize}
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+
+\end{refsection}
+
+\newpage
+
+
+
+\begin{refsection}
+
+\subsection{Quantum signal processing}\label{prim:QSP}
+
+\subsubsection*{Rough overview (in words)}
+Quantum signal processing (QSP)~\cite{low2016CompositeQuantGates} describes a method for nonlinear transformations of a signal parameter encoded in a single-qubit gate, using a structured sequence that interleaves the ``signal gate'' with fixed parametrized ``modulation'' gates. The technique was originally motivated by the desire to characterize pulse sequences used in nuclear magnetic resonance \cite{low2016CompositeQuantGates}. Remarkably, it has been shown~\cite{low2016CompositeQuantGates,haah2018ProdDecPerFuncQSignPRoc} that there is a rich family of polynomial transformations that are in one-to-one correspondence with appropriate modulation sequences, moreover given such a polynomial one can efficiently compute the corresponding modulation parameters. 
+
+Even more remarkably, this analysis holds not just for single-qubit ``signal gates'' but can be extended for multiqubit operators that \textit{act} like single-qubit rotations when restricted to appropriate two-dimensional subspaces~\cite{low2016HamSimQSignProc}. This insight enables the implementation of \hyperref[prim:BlockEncodings]{block-encodings} of polynomials of Hermitian/normal matrices when used in conjunction with \hyperref[prim:Qubitization]{qubitization}. The two-step process of qubitization + QSP can be unified and generalized through \hyperref[prim:QSVT]{quantum singular value transformation} (QSVT).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Rough overview (in math)}
+We follow the ``Wx convention'' of QSP~\cite{gilyen2018QSingValTransf,martyn2021GrandUnificationQAlgs}. We define the single-qubit signal operator
+\begin{equation}
+    W(x) := \begin{pmatrix} x & i \sqrt{1-x^2} \\ i \sqrt{1-x^2} & x \end{pmatrix} = e^{i \arccos(x) X}
+\end{equation}
+which is a single-qubit $X$ rotation. We can verify that
+\begin{align}
+    W(x)^2 &= \begin{pmatrix} 2x^2 - 1 & \cdot \\ \cdot & \cdot \end{pmatrix}, \\
+    W(x)^3 &= \begin{pmatrix} 4x^3 - 3x & \cdot \\ \cdot & \cdot \end{pmatrix}, \\
+    &\vdots \\
+    W(x)^n &= \begin{pmatrix} T_n(x) & \cdot \\ \cdot & \cdot \end{pmatrix}, \\
+\end{align}
+where $T_n(x)$ is the $n$-th Chebyshev polynomial of the first kind, showcasing that even a simple sequence of the signal unitaries can implement a rich family of polynomials of the signal $x$.
+
+More complex behavior is obtained by interleaving $W(x)$ with parametrized single-qubit $Z$ rotations $e^{i \phi_j Z}$. We define a QSP sequence
+\begin{equation}
+    U_{\mathrm{QSP}}(\Phi) := e^{i \phi_0 Z} \prod_{j=1}^d W(x) e^{i \phi_j Z}.
+\end{equation}
+where $\Phi$ denotes the vector of angles $(\phi_0,\phi_1,\ldots,\phi_d)$. 
+The QSP sequence implements the following unitary
+\begin{equation}\label{eq:UQSP(Phi)}
+    U_{\mathrm{QSP}}(\Phi) = \begin{pmatrix} P(x) & i Q(x) \sqrt{1-x^2} \\ i Q^*(x) \sqrt{1-x^2} & P^*(x) \end{pmatrix}
+\end{equation}
+where $P(x), Q(x)$ are complex polynomials obeying a number of constraints (see below), and $P^*(x)$, $Q^*(x)$ denote their complex conjugates. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Dominant resource cost (gates/qubits)}
+A QSP circuit that implements a degree $d$ polynomial in the signal parameter requires $d$ uses of $W(x)$ and $d+1$ fixed angle $Z$ rotations. There are efficient classical algorithms to determine the angles for a given target polynomial, either using high-precision arithmetic with $\sim d\log(d)$ bits of precision~\cite{haah2018ProdDecPerFuncQSignPRoc} (or more~\cite{gilyen2018QSingValTransf}---though this can be mitigated using heuristic techniques~\cite{chao2020FindingAngleSequences}) or in some regimes using more efficient optimization-based algorithms~\cite{dong2020efficientPhaseFindingInQSP}. Although these procedures are efficient in theory, in practice it may still be nontrivial to find the angles. Nevertheless, researchers reportedly computed angle sequences corresponding to various degree $d = \bigO{10^4}$ polynomials.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Caveats}
+As discussed above, not all polynomials can be implemented by a QSP sequence. Implementable polynomials must obey a number of constraints, which can be somewhat restrictive. For the standard QSP circuit $U_{\mathrm{QSP}}(\Phi)$ given above, the achievable polynomials pairs $P(x), Q(x) \in \mathbb{C}$ can be characterized by the following three conditions:
+\begin{itemize}
+    \item $\mathrm{Deg}(P) \leq d$, \;\; $\mathrm{Deg}(Q) \leq d-1$.
+    \item $\mathrm{Parity}(P) = \mathrm{Parity}(d)$, \;\; $\mathrm{Parity}(Q) = \mathrm{Parity}(d-1)$.
+    \item $\forall~x \in [-1, 1]: |P(x)|^2 + (1-x^2) |Q(x)|^2 = 1$ (required for Eq.~\eqref{eq:UQSP(Phi)} to be unitary).\end{itemize}
+This last requirement can be particularly limiting. A useful way to circumvent this for real functions is to encode the polynomial in the matrix element $\bra{+} U_{\mathrm{QSP}}(\Phi) \ket{+} $ rather than in $\bra{0} U_{\mathrm{QSP}}(\Phi) \ket{0}$, where $\ket{+} = \smash{(\ket{0}+\ket{1})/\sqrt{2}}$. This matrix element evaluates to 
+\begin{equation}
+\bra{+} U_{\mathrm{QSP}}(\Phi) \ket{+} = \operatorname{Re}[P(x)] + i\sqrt{1-\smash{x^2}} \operatorname{Re}[Q(x)]\,.
+\end{equation}
+Given a real target polynomial $f(x)$ with parity equal to $\mathrm{Parity}(d)$, we can guarantee that the matrix element evaluates to $f(x)$ by choosing $\operatorname{Re}[P(x)] = f(x)$ and $\operatorname{Re}[Q(x)] = 0$. The third condition above then reduces to $1-f(x)^2 = \lvert \operatorname{Im}[P(x)]\rvert^2 + (1-x^2)\lvert \operatorname{Im}[Q(x)]\rvert^2$. By \cite[Lemma 6]{gilyen2018QSingValTransf}, there exist choices for $\operatorname{Im}[P(x)]$ and $\operatorname{Im}[Q(x)]$ that satisfy this identity as well as the first two conditions above, provided $|f(x)| \leq 1~\forall~x \in [-1, 1]$. In summary, we may implement any real polynomial $f(x)$ satisfying the requirements~\cite[Corollary 10]{gilyen2018QSingValTransf}:
+\begin{itemize}
+    \item $\mathrm{Deg}(f) = d$.
+    \item $\mathrm{Parity}(f) = \mathrm{Parity}(d)$.
+    \item $\forall~x \in [-1, 1]: |f(x)| \leq 1$.
+\end{itemize}
+
+
+There are several related conventions considered in the literature for the explicit form of the single qubit operators used in QSP; a thorough discussion is given in \cite[Appendix A]{martyn2021GrandUnificationQAlgs}. One common form that links closely to \hyperref[prim:Qubitization]{qubitization} and \hyperref[prim:QSVT]{QSVT} is the reflection convention, which replaces $W(x)$ by the reflection 
+\begin{equation}\label{eq:QSPR}
+    R(x) = \begin{pmatrix} x &  \sqrt{1-x^2} \\ \sqrt{1-x^2} & -x \end{pmatrix} \,,
+\end{equation}
+and adjusts the parameters $\{ \phi_j \}$ accordingly~\cite{gilyen2018QSingValTransf}.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Example use cases}
+
+\begin{itemize}
+    \item Functions of Hermitian/normal matrices, in conjunction with \hyperref[prim:Qubitization]{qubitization}, including for \hyperref[prim:QSPqubitization]{Hamiltonian simulation}.
+    \item Functions of general matrices via \hyperref[prim:QSVT]{quantum singular value transformation} (QSVT).
+    \item Reference~\cite{dong2022BeyondMetrologyQSP} applied QSP to beyond-Heisenberg-limit calibration of two-qubit gates in a superconducting system.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Further reading}
+
+\begin{itemize}
+    \item A pedagogical discussion of QSP~\cite{martyn2021GrandUnificationQAlgs}.
+    \item Detailed proofs of the key results of QSP~\cite{low2016CompositeQuantGates,gilyen2018QSingValTransf}.
+    \item Lecture notes on QSP~\cite[Sec. 7.6]{lin2022LectureNotes}.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+
+\end{refsection}
+
+
+\newpage
+
+
+
+\begin{refsection}
+
+\subsection{Qubitization}\label{prim:Qubitization}
+
+\subsubsection*{Rough overview (in words)}
+Qubitization has the following motivation: we are given a \hyperref[prim:BlockEncodings]{block-encoding} $U_A$ of a Hermitian operator $A$, and we wish to manipulate $A$---e.g., implement $A^2$, or more generally some function $f(A)$~\cite{low2016HamSimQubitization}. However, the eigenvalues of $U_A$ are typically unrelated to those of $A$, and plain repeated applications of $U_A$ do not in general produce the desired behavior. Qubitization converts the block-encoding $U_A$ into a unitary operator $W$ (sometimes called a qubiterate or a qubitized quantum walk operator) having the following guaranteed advantageous properties: 
+\begin{enumerate}
+    \item $W$ is a block-encoding of the operator $A$.
+    \item The spectrum of $W$ has a nice relation to the spectrum of $A$.
+    \item Repeated applications of $W$ leads to structured behavior that can be cleanly analyzed.
+\end{enumerate}
+This combination of features means that qubitization can be used for applying polynomial transformations to the spectrum of $A$. For example, repeated application of $W$ implements Chebyshev polynomials of $A$, while other polynomials can also be implemented by using \hyperref[prim:QSP]{quantum signal processing}~\cite{low2016HamSimQSignProc,low2016HamSimQubitization,gilyen2018QSingValTransf}.
+
+The key observation is that a qubitization unitary $W$ has eigenvalues and eigenvectors that relate in a nice way to those of $A$. Thus one can also perform \hyperref[prim:QPE]{quantum phase estimation} on $W$ to learn these quantities~\cite{poulin2018SpectralQubitization, berry2018ImprovedEigenstatesFermionic}, providing a potentially cheaper alternative to such tasks compared to approaches based on explicit \hyperref[prim:HamiltonianSimulation]{Hamiltonian simulation} for implementing $U=e^{iAt}$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Rough overview (in math)}
+We are given a $(1, m, 0)$-\hyperref[prim:BlockEncodings]{block-encoding} $U_A$ of Hermitian $A$ such that
+\begin{equation*}
+    A= \left(\bra{0^m} \otimes I \right) U_A \left(\ket{0^m} \otimes I \right)\Longleftrightarrow U_A = \left(\begin{array}{cc} A & \cdot \\ \cdot & \cdot    \end{array}\right)\,,
+\end{equation*}
+where $\ket{0^m}$ denotes $\ket{0}^{\otimes m}$. 
+First we will assume $U_A$ is also Hermitian (implying $U_A^2 = I$, where $I$ is the identity matrix).
+Let $A$ have spectral decomposition $A = \sum_\lambda \lambda \ketbra{\lambda}{\lambda}$. An application of $U_A$ to an eigenstate $\ket{\lambda}$ of $A$ gives
+\begin{equation}
+    U_A \ket{0^m} \ket{\lambda} = \lambda \ket{0^m} \ket{\lambda} + \sqrt{1-\lambda^2} \ket{\perp_{0^m, \lambda}},
+\end{equation}
+where $\ket{\perp_{0^m, \lambda}}$ is a state perpendicular to $\ket{0^m}$.\footnote{If $\lambda=\pm 1$, then there is no need for $\ket{\perp_{0^m, \lambda}}$, and the subspace $S_\lambda$ becomes one dimensional.} Noting $U_A^2=I$ reveals that the 2D subspace $S_\lambda$ spanned by $\{  \ket{0^m}\ket{\lambda}, \ket{\perp_{0^m, \lambda}} \}$ is invariant under the action of $U_A$. $U_A$ restricted onto $S_\lambda$ can be described by the matrix
+\begin{align*}
+\begin{blockarray}{ccc}
+& \ket{0^m}\ket{\lambda}  &  \ket{\perp_{0^m, \lambda}} \\
+\begin{block}{c(cc)}
+  \ket{0^m}\ket{\lambda} & \lambda & \sqrt{1-\lambda^2} \\
+   \ket{\perp_{0^m, \lambda}} & \sqrt{1-\lambda^2} & -\lambda \\
+\end{block}
+\end{blockarray}\,,
+\end{align*}
+which is a 2D reflection with eigenvalues $\pm 1$. Clearly, repeated application of (self-inverse) $U_A$ can have limited effect on any input state. Qubitization uses a reflection $Z_{\ket{0^m}} = (2\ketbra{0^m}{0^m} - I)$ to transform $U_A$ into a Grover-like operator $W = Z_{\ket{0^m}} U_A$ which has the following matrix when restricted onto the invariant subspace $S_\lambda$ in the $\{  \ket{0^m}\ket{\lambda}, \ket{\perp_{0^m, \lambda}} \}$ basis
+\begin{equation}
+    [W]_{ \{  \ket{0^m}\ket{\lambda}, \ket{\perp_{0^m, \lambda}} \} } = \left(\begin{array}{cc} 1 & 0 \\ 0 & -1    \end{array}\right) \left(\begin{array}{cc} \lambda & \sqrt{1-\lambda^2} \\ \sqrt{1-\lambda^2} & -\lambda    \end{array}\right) = \left(\begin{array}{cc} \lambda & \sqrt{1-\lambda^2} \\ - \sqrt{1-\lambda^2} & \lambda    \end{array}\right),
+\end{equation}
+showing that $W$ is still a $(1, m, 0)$-block-encoding of $A$.
+This has the form of a $Y$-axis rotation
+\begin{equation}
+    [W]_{ \{  \ket{0^m}\ket{\lambda}, \ket{\perp_{0^m, \lambda}} \} }=\left(\begin{array}{cc} \cos(\theta_\lambda) & \sin(\theta_\lambda) \\ -\sin(\theta_\lambda) & \cos(\theta_\lambda)    \end{array}\right),
+\end{equation}
+where $\theta_\lambda = \arccos(\lambda)$. 
+Therefore, $W$ has eigenvalues $e^{\pm i \arccos(\lambda)}$ with respective eigenvectors $\left(\ket{0^m} \ket{\lambda} \pm i  \ket{\perp_{0^m, \lambda}} \right)/\sqrt{2}$, which can be accessed using \hyperref[prim:QPE]{quantum phase estimation}.
+
+Furthermore, we can see that on the span of the subspaces $S_\lambda$ repeated application of $W$ acts as
+\begin{align}
+    W^d &= \bigoplus_\lambda \left(\begin{array}{cc} \cos(d\theta_\lambda) & \sin(d\theta_\lambda) \\ -\sin(d\theta_\lambda) & \cos(d\theta_\lambda)    \end{array}\right) \\
+    &= \bigoplus_\lambda\left(\begin{array}{cc} T_d(\lambda) & \sqrt{1-\lambda^2} U_{d-1}(\lambda) \\ -\sqrt{1-\lambda^2} U_{d-1}(\lambda) & T_d(\lambda)    \end{array}\right) \\
+    &= \left(\begin{array}{cc} T_d(A) & \cdot \\ \cdot & \cdot    \end{array}\right),
+\end{align}
+where $T_d(\cdot)$ and $U_d(\cdot)$ are degree-$d$ Chebyshev polynomials of the first and second kind, respectively. Therefore, $W^d$ applies the polynomial transformation $T_d$ to each eigenvalue of $A$ thereby implementing $T_d(A)$.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Dominant resource cost (gates/qubits)}
+The resource cost of qubitization is inherited from the cost of the block-encoding. Given a Hermitian $(\alpha, m, 0)$-block-encoding $U_A$, the qubitization operator $W$ is a (non-Hermitian) $(\alpha, m, 0)$-block-encoding, and it uses no additional qubits. The operation $Z_{\ket{0^m}} = (2\ketbra{0^m}{0^m} - I)$ can be implemented (up to global phase) with an $m$-qubit controlled $Z$ gate, equivalent to an $m$-qubit Toffoli up to single-qubit gates. An example qubitization circuit is shown below in Fig.~\ref{fig:QubitizationCircuit} for $m=3$. Implementing a block-encoding of a degree-$d$ Chebyshev polynomial applied to $A$ requires $d$ calls to $U_A$ and $Z_{\ket{0^m}}$.  
+
+
+\begin{figure}[!h]
+    \centering
+    \begin{displaymath}
+\Qcircuit @C=1em @R=0.7em {
+& \multigate{3}{U_A} & \gate{-Z} & \qw \\
+& \ghost{U_A} & \ctrlo{-1} & \qw \\
+& \ghost{U_A} & \ctrlo{-1} & \qw \\                 
+& \ghost{U_A} & \qw & \qw \\
+}
+    \end{displaymath}
+    \caption{An example qubitization circuit using the Hermitian $(1,3,0)$-block-encoding $U_A$.}
+    \label{fig:QubitizationCircuit}
+\end{figure}
+
+
+If the block-encoding $U_A$ is not Hermitian, qubitization can be achieved using the construction of \cite[Lemma 10]{low2016HamSimQubitization} that uses one additional qubit and one call to controlled $U_A$ and controlled $U_A^\dag$ to implement the Hermitian block-encoding 
+\begin{align}\label{eq:genQubitiz}
+	U'_A:=((HX)\otimes I)(\ketbra{0}{0}\otimes U_A+\ketbra{1}{1}\otimes U_A^\dagger)(H\otimes I).
+\end{align}
+
+An alternative to qubitization is based on \hyperref[prim:QSVT]{quantum singular value transformation} that uses the sequence $Z_{\ket{0^m}} U_A^\dag Z_{\ket{0^m}} U_A $, analogous to the earlier $W^2$, acting as 
+\begin{equation}
+    \nonumber \left(\begin{array}{cc} \lambda & \sqrt{1-\lambda^2} \\ -\sqrt{1-\lambda^2} & \lambda    \end{array}\right)^{\!\!2}
+\end{equation} 
+on a 2D subspace analogous to $S_\lambda$. The approach can be extended to odd-degree polynomials with a single additional application of $Z_{\ket{0^m}} U_A$~\cite{gilyen2018QSingValTransf}. The advantage of this approach is that it does not require $U_A$ to be Hermitian, thus there is no need for an additional qubit or calls to controlled $U_A^{\pm 1}$. This approach may be referred to as ``quantum eigenvalue transformation''~\cite{lin2022LectureNotes,mcardle2022StatePreparation} as this is a special case of \hyperref[prim:QSVT]{quantum singular value transformation} just applied to Hermitian $A$.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Caveats}
+The original formulation of qubitization~\cite{low2016HamSimQubitization} discussed above requires a Hermitian or normal block-encoded matrix $A$. The concept can be extended to general (non-square) matrices via \hyperref[prim:QSVT]{quantum singular value transformation}, providing a significant generalization, however in some cases quantum signal processing and its generalized versions~\cite{haah2018ProdDecPerFuncQSignPRoc,chao2020FindingAngleSequences} can exploit additional structure that comes for example from the extra symmetries of Hermitian block-encodings, leading to potential constant factor savings.\footnote{Consider for example Hamiltonian simulation, where QSVT separately implements $\sin(t H)$ and $\cos(t H)$ using a block-encoding $U_H$ of the Hamiltonian $H$, and applies a 3-step oblivious amplification procedure on top of linear combination of unitaries to implement $\exp( i t H)$~\cite{gilyen2018QSingValTransf}. Meanwhile, quantum signal processing implements $\exp( i t H)$ directly but requires an additional ancilla qubit and controlled access to a Hermitian block-encoding $U'_H$, which, when implemented via Eq.~\eqref{eq:genQubitiz}, uses both controlled $U_H$ and $U_H^\dagger$ resulting in a factor of $\sim 4$ overhead. Altogether these considerations suggest that the QSVT-based approach might have a slightly better constant factor overhead, particularly when controlled $U_H$ is significantly more costly to implement than $U_H$. If $U_H$ is already Hermitian then quantum signal processing can have an improved complexity.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Example use cases}
+
+\begin{itemize}
+    \item Some quantum algorithms in \hyperref[appl:ElectronicStructure]{quantum chemistry} that compute energies perform phase estimation on a qubitization operator $W$ implemented via calls to a block-encoding of the electronic structure Hamiltonian. This avoids the approximation error incurred when performing phase estimation on $e^{iHt}$, implemented via \hyperref[prim:HamiltonianSimulation]{Hamiltonian simulation}~\cite{poulin2018SpectralQubitization,berry2018ImprovedEigenstatesFermionic}.
+    \item Qubitization acts as a precursor to \hyperref[prim:QSVT]{quantum singular value transformation}, which extends the concept to general matrices and unifies it with quantum signal processing.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Further reading}
+
+\begin{itemize}
+    \item Original introduction of qubitization~\cite{low2016HamSimQubitization} and quantum singular value transformation~\cite{gilyen2018QSingValTransf}.
+    \item A pedagogical overview of quantum signal processing, its lifting to quantum singular value transformation, and their applications~\cite{martyn2021GrandUnificationQAlgs}.
+    \item Reference~\cite[Chapters 7 \& 8]{lin2022LectureNotes} provides an accessible derivation of qubitization and quantum singular value transformation.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+
+\end{refsection}
+
+\newpage
+
+
+
+
+
+
+
+
+\begin{refsection}
+
+\subsection{Quantum singular value transformation}\label{prim:QSVT}
+
+\subsubsection*{Rough overview (in words)}
+Quantum singular value transformation (QSVT) can be viewed as both a unification and generalization of \hyperref[prim:Qubitization]{qubitization} and \hyperref[prim:QSP]{quantum signal processing}. Given a \hyperref[prim:BlockEncodings]{block-encoding} $U_A$ of a general matrix $A$, QSVT enables the transformation of the singular values of $A$ by a polynomial $f(\cdot)$.
+In QSVT there is one-to-one correspondence between the desired polynomial transformation and its quantum circuit implementation whose parameters can be found by efficient classical algorithms.
+
+It transpires that a number of existing quantum algorithms have simple and (near-)optimal implementations via the QSVT framework, including but not limited to: \hyperref[prim:QSPqubitization]{Hamiltonian simulation}~\cite{low2016HamSimQSignProc,low2016HamSimQubitization,gilyen2018QSingValTransf}, \hyperref[prim:AA]{amplitude amplification and estimation}~\cite{gilyen2018QSingValTransf,rall2022amplitude}, \hyperref[prim:QuantumLinearSystemSolvers]{quantum linear systems solving}~\cite{gilyen2018QSingValTransf,martyn2021GrandUnificationQAlgs}, \hyperref[prim:GibbsSampling]{Gibbs sampling} \cite{gilyen2018QSingValTransf}, \hyperref[appl:TDA]{algorithms for topological data analysis}~\cite{hayakawa2021persistentBetti,mcardle2022streamlinedTDA, berry2022quantifyingTDA}, and \hyperref[prim:QPE]{quantum phase estimation}~\cite{martyn2021GrandUnificationQAlgs,Rall2021fastercoherent}.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Rough overview (in math)}
+We are given a $(1, m, 0)$-block-encoding $U_A$ of operator $A$ (for simplicity we will restrict our presentation to square matrices $A$, noting there is a straightforward generalization to non-square $A$~\cite{gilyen2018QSingValTransf}) such that
+\begin{equation*}
+    A= \left(\bra{0^m} \otimes I \right) U_A \left( \ket{0^m} \otimes I \right)
+\end{equation*}
+where $\ket{0^m}$ denotes $\ket{0}^{\otimes m}$. The matrix $A$ has a singular value decomposition (SVD) 
+\begin{equation}
+    A = \sum_i \sigma_i \ketbra{w_i}{v_i}.
+\end{equation}
+QSVT provides a method for implementing
+\begin{equation}
+		f^{(SV)}(A):=\left\{\begin{array}{rcl} \sum_i f(\sigma_i) \ketbra{w_i}{v_i} & &\text{if \textit{f} is odd, and}\\
+		\sum_i f(\sigma_i) \ketbra{v_i}{v_i}& & \text{if \textit{f} is even,}\end{array}\right.
+\end{equation}
+for certain definite-parity polynomials $f\colon [-1,1] \rightarrow \mathbb{C}$ such that $|f(x)| \leq 1~\forall~x \in [-1,1]$.
+Crucially, QSVT does not require us to know the SVD in advance; the transformation is carried out automatically by following an SVD-agnostic procedure outlined below.
+Note that $f^{(SV)}(A)$ only coincides with the matrix function $f(A)$ for Hermitian $A$ (see Caveats). In the Hermitian case, we can also obtain block-encodings of mixed-parity or complex functions by taking \hyperref[prim:ManipulatingBlockEncodings]{linear combinations of block-encodings}---see \cite{dong2020efficientPhaseFindingInQSP} for examples.
+
+
+By considering $U_A \ket{0^m} \ket{v_i}$ and $U_A^\dagger \ket{0^m}\ket{w_i}$ one can show that (see \cite{lin2022LectureNotes} for a step-by-step derivation) $U_A$ and $U_A^\dagger$ act as linear maps between the 2D subspaces $S_i:=\mathrm{Span}\{\ket{0^m}\ket{v_i},\ket{\perp_i}\} \rightarrow S_i':=\mathrm{Span}\{\ket{0^m}\ket{w_i},\ket{\perp_i'}\}$, and $U_A$'s transition matrix between these bases is
+\begin{align}\label{eq:SVD2D}
+\begin{blockarray}{ccc}
+& \ket{0^m} \ket{v_i} & \ket{\perp_i} \\
+\begin{block}{c(cc)}
+  \ket{0^m} \ket{w_i} & \sigma_i & \sqrt{1-\sigma_i^2} \\
+  \ket{\perp_i'} & \sqrt{1-\sigma_i^2}& -\sigma_i \\
+\end{block}
+\end{blockarray}\,,
+\end{align}
+where both $\ket{\perp_i}, \ket{\perp_i'}$ are orthogonal to $\ket{0^m}$ (but not necessarily to each other).\footnote{If $\sigma_i=1$, then there is no need for $\ket{\perp_i}, \ket{\perp_i'}$, and the subspaces $S_i$, $S_i'$ become one dimensional.} One can show that $S_i$ is invariant under the operation $W := Z_{\ket{0^m}} U_A^\dag Z_{\ket{0^m}} U_A $ (with $Z_{\ket{0^m}} = (2\ketbra{0^m}{0^m} - I)$) having matrix
+\begin{equation*}
+\left(\begin{array}{cc} \sigma_i & \sqrt{1-\sigma_i^2} \\ - \sqrt{1-\sigma_i^2} & \sigma_i \end{array}\right)^{\!\!2}
+\end{equation*}
+when restricted onto the 2D subspace $S_i$. An additional application of $ Z_{\ket{0^m}} U_A$ maps back into the $S_i'$ subspace. By analogy with \hyperref[prim:Qubitization]{qubitization}, repeated applications of $W$ applies a Chebyshev polynomial to each of the singular values of $A$. In analogy with \hyperref[prim:QSP]{quantum signal processing}, by lifting the $Z_{\ket{0^m}}$ reflection operation to a (controlled) rotation $e^{i\phi_j Z_{\ket{0^m}}}$ we can impose polynomial transformations of the singular values of $A$, which then induces the claimed polynomial transformation of $A$. It is typically convenient to use an additional ancilla qubit to implement $e^{i\phi_j Z_{\ket{0^m}}}$.
+
+We define a QSVT circuit as the unitary sequence
+\begin{equation}
+		U_\Phi:=\left\{\begin{array}{rcl} \underset{\phantom{\sum}}{ e^{i\phi_1 Z_{\ket{0^m}}}U_A}
+		\prod_{j=1}^{(d-1)/2}\left(e^{i\phi_{2j} Z_{\ket{0^m}}} U_A^\dagger e^{i\phi_{2j+1} Z_{\ket{0^m}}} U_A\right) & &\text{if }d\text{ is odd, and}\\
+		\prod_{j=1}^{d/2}\left(e^{i\phi_{2j-1} Z_{\ket{0^m}}} U_A^\dagger e^{i\phi_{2j} Z_{\ket{0^m}}} U_A \right)& & \text{if }d\text{ is even,}\end{array}\right.
+\end{equation}
+where $\Phi = (\phi_1,\phi_2,\ldots,\phi_d)$.
+We have that
+\begin{align}
+    (\bra{0^m} \otimes I) U_\Phi (\ket{0^m} \otimes I) =P^{(SV)}(A) = \left\{\begin{array}{rl} &\sum_i P(\sigma_i) \ketbra{w_i}{v_i}, \text{ for odd $d$, and} \\
+ &\sum_i P(\sigma_i) \ketbra{v_i}{v_i}, \text{ for even $d$,} \end{array}\right. 
+\end{align}
+i.e., the unitary $U_\Phi$ is a block-encoding of $P^{(SV)}(A)$, were $P$ is the same polynomial that appears in \hyperref[prim:QSP]{quantum signal processing} because the 2D matrix of \eqref{eq:SVD2D} has the same form as the analogous 2D matrix in \eqref{eq:QSPR}.
+We note that the constraints on the polynomials typically preclude direct implementation of the desired function as outlined above. By exploiting that $-\Phi$ implements $P^*$, we can use the circuit shown in Fig.~\ref{fig:QSVT} to implement a block-encoding of
+\begin{equation}
+    P_\Re(A) = (\bra{+} \otimes \bra{0^m} \otimes I) (\ketbra{0}{0} \otimes U_\Phi + \ketbra{1}{1} \otimes U_{-\Phi}) (\ket{+} \otimes \ket{0^m} \otimes I) 
+\end{equation}
+for any definite-parity polynomial $P_\Re\colon [-1,1]\rightarrow [-1,1]$ by appropriately choosing $\Phi$ to implement a complex polynomial that fulfills the QSP conditions and then taking linear combinations of $U_{\Phi}, U_{-\Phi}$ to give a block-encoding of $P_\Re(A)$~\cite{gilyen2018QSingValTransf,martyn2021GrandUnificationQAlgs,dong2020efficientPhaseFindingInQSP}.
+
+
+\vskip-0mm
+\begin{figure}[h!]
+    \centering
+\begin{displaymath}
+\Qcircuit @C=2.47mm @R=3mm {	
+& \gate{H}
+& \targ
+& \gate{\!e^{i\phi_{d} Z}\!}	
+& \targ					
+& \qw	
+& \targ
+& \gate{\!e^{i{\phi_{d-1}} Z}\!}	
+& \targ				
+& \qw & \,\,\cdots\,\, &		
+& \targ
+& \gate{\!e^{i{\phi_1} Z}\!}
+& \targ				
+& \gate{H} 
+& \qw \\
+& \multigate{4}{{U_A}} 
+& \ctrlo{-1}	
+& \qw
+& \ctrlo{-1}								
+& \multigate{4}{\!{U_A^{\dagger}}\!\!}					
+& \ctrlo{-1}	
+& \qw
+& \ctrlo{-1}
+& \qw & \,\,\cdots\,\, &		
+& \ctrlo{-1}	
+& \qw
+& \ctrlo{-1}	
+& \qw 	
+& \qw \\
+& \ghost{U_A} & \ctrlo{-1} & \qw	& \ctrlo{-1} & \ghost{\!U_A^{\dagger}\!\!} & \ctrlo{-1} & \qw	& \ctrlo{-1} & \qw & \,\,\cdots\,\, & & \ctrlo{-1} & \qw & \ctrlo{-1} & \qw & \qw \\
+& \ghost{U_A} & \qw & \qw	& \qw & \ghost{\!U_A^{\dagger}\!\!} & \qw & \qw & \qw  & \qw & \,\,\cdots\,\, & & \qw & \qw & \qw & \qw & \qw \\	
+& \ghost{U_A} & \qw & \qw	& \qw & \ghost{\!U_A^{\dagger}\!\!} & \qw & \qw & \qw & \qw & \,\,\cdots\,\, & & \qw & \qw & \qw & \qw & \qw \\	
+& \ghost{U_A} & \qw & \qw	& \qw & \ghost{\!U_A^{\dagger}\!\!} & \qw & \qw & \qw & \qw & \,\,\cdots\,\, & & \qw & \qw & \qw & \qw & \qw 	
+{\inputgroupv{2}{3}{3mm}{3mm}{\ket{0}^{\otimes m}}}
+}		
+\end{displaymath} 
+    \caption{The QSVT circuit $U_\Phi$ which transforms a block-encoding $U_A$ of $A$ into a block-encoding of $f(A)$ for definite-parity $f: [-1,1]\rightarrow [-1,1]$ polynomial of degree $d$. As discussed in the main text, the angles $\{\phi_i\}$ can be calculated using efficient classical algorithms.}
+    \label{fig:QSVT}
+\end{figure}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Dominant resource cost (gates/qubits)}
+
+Given a degree-$d$ even-parity polynomial $f\colon [-1,1]\rightarrow [-1,1]$ and a $(1,m,0)$-\hyperref[prim:BlockEncodings]{block-encoding} $U_A$ of $A$, one can implement a block-encoding of $f(A)$ using $d/2$ calls to $U_A$, $d/2$ calls to $U_A^\dagger$, $2d$ $m$-controlled Toffoli gates, and $d$ single-qubit $Z$ rotations (as shown in Fig.~\ref{fig:QSVT}). Implementing a degree $d+1$ odd polynomial additionally requires another call to $U_A$, another two $m$-controlled Toffoli gate, and another single-qubit $Z$ rotation. The QSVT circuit implements a $(1, m+1, 0)$-block-encoding of $f(A)$.
+
+If $U_A$ is imperfect (i.e., it is a $(1, m, \epsilon)$-block-encoding of $A$), then \cite[Lemma 22]{gilyen2018QSingValTransf} shows that the error in $f(A)$ is bounded by $4d\sqrt{\epsilon}$; that is, QSVT implements a $(1, m+1, 4d\sqrt{\epsilon})$-block-encoding of $f(A)$. Moreover, if the norm of $A$ is bounded away from $1$, e.g., $\nrm{A}\leq 1/2$, then the perturbation bound can be improved to $\bigO{d\epsilon}$~\cite[Lemma 23]{gilyen2018QSingValTransf}. 
+
+Given an initial state $\ket{\psi}$, the success probability of implementing $f(A) \ket{\psi}$ is given by $|\bra{\psi} f(A)^\dag f(A) \ket{\psi}|^2$. 
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Caveats}
+Since the output must be subnormalized to ensure the existence of a unitary block-encoding of $f(A)$, $f$ must satisfy $|f(x)| \leq 1~\forall~x \in [-1,1]$ 
+
+As noted above, $f^{(SV)}(A)$ is only guaranteed to coincide with the matrix function $f(A)$ for Hermitian $A$. As an example, choosing $f(x) = x^2$ we have $f^{(SV)}(A) = \sum_i \sigma_i^2 \ketbra{v_i}	{v_i}=A^\dagger A$ whereas $A^2 = \sum_{i,j} \sigma_i \sigma_j \ket{w_i}\braket{v_i}{ w_j}\bra{v_j}$. As discussed above, for the Hermitian case we can implement a block-encoding of a mixed-parity function $f$ by taking linear combinations of block-encodings of its even/odd parts. However, in the general case when $\ket{w_i}$ and $\ket{v_i}$ do not coincide, it does not seem to be possible to remove the parity constraint, as the odd $\sum_i f_{\mathrm{odd}}(\sigma_i) \ketbra{w_i}{v_i}$ and even $\sum_i f_{\mathrm{even}}(\sigma_i) \ketbra{v_i}{v_i}$ singular value transforms potentially map to different subspaces.
+ 
+As discussed for \hyperref[prim:QSP]{quantum signal processing}, while formally efficient classical algorithms have been developed for computing the angle sequence $\Phi$, these either require very high accuracy arithmetics ~\cite{gilyen2018QSingValTransf,haah2018ProdDecPerFuncQSignPRoc}, or use alternative methods with only partially proven guarantees~\cite{dong2020efficientPhaseFindingInQSP,chao2020FindingAngleSequences}. Nevertheless, these approaches have enabled the computation of angle sequences for polynomials of degree up to $\sim10^4$.
+
+As noted above, if $f(A)$ has small singular values, then preparing the a quantum sate $f(A)\ket{\psi}$ might require many repeated uses of its block-encoding, thus the normalization factor of $f$ plays a crucial role in efficiency.
+
+In many applications, one seeks to apply a function that is not a polynomial (e.g., $e^x$, $e^{ix}$, $\mathrm{erf}(x)$). In such cases, one needs to first approximate the desired function by a polynomial (incurring an approximation error $\epsilon$) in order to apply QSVT. 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Example use cases}
+\begin{itemize}
+    \item \hyperref[prim:QuantumLinearSystemSolvers]{Linear equation solving}: apply a polynomial approximation of $\frac{1}{x}$ to a block-encoding of $A^\dagger$ to get an approximate block-encoding of the pseudoinverse $A^+$.
+    \item \hyperref[prim:QSPqubitization]{Hamiltonian simulation}: apply polynomial approximations of $\sin(x)$ and $\cos(x)$ to a block-encoding of a Hamiltonian $H$ and combine them with \hyperref[prim:LCU]{linear combination of unitaries} and \hyperref[prim:AmpAmp]{amplitude amplification} to obtain a block-encoding of $e^{iHt}$.
+    \item \hyperref[prim:AA]{Fixed-point amplitude amplification} \cite{yoder2014FixedPointSearch}: construct a polynomial that maps values in the domain $[a_{\min},1]$ to the range $[1-\delta,1]$, and apply this polynomial to a state-preparation unitary that prepares the desired state with amplitude $a$. The result is amplification of the amplitude to at least $1-\delta$ as long as $a > a_{\min}$.
+    \item For additional applications see \cite{gilyen2018QSingValTransf,Rall2021fastercoherent,martyn2021GrandUnificationQAlgs,lin2019OptimalQEigenstateFiltering,lin2020NearOptimalGroundState}.
+\end{itemize}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Further reading}
+
+
+\begin{itemize}
+    \item The QSVT framework was introduced in \cite{gilyen2018QSingValTransf} and is also discussed in detail in \cite{gilyen2018QSingValTransfThesis}.
+    \item A pedagogical tutorial of the QSVT framework is given in \cite{martyn2021GrandUnificationQAlgs,lin2022LectureNotes}.
+    \item A streamlined derivation of QSVT is presented in \cite{tang2023CSguideQSVT}.
+\end{itemize}
+
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+
+\end{refsection}

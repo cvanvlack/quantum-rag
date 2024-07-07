@@ -1,0 +1,600 @@
+\documentclass[a4paper,11pt,notitlepage]{report}
+%For improving arXiv submission:
+\pdfoutput=1
+%\usepackage[active,tightpage]{preview}
+
+\usepackage[utf8]{inputenc}
+\usepackage[all]{nowidow}
+
+\emergencystretch 3em
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% BIBLIOGRAPHY SETUP  %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage[
+    style=wikibibstyle, % custom bib style, requires wikibibstyle.bbx & .cbx
+    sorting=none,
+    backref=true,
+    minnames=3,
+    maxnames=12,
+    giveninits=true,
+    defernumbers=true
+    ]{biblatex}
+\usepackage{xurl}
+\renewcommand*{\bibfont}{\footnotesize} % controls size of font for bib
+\addbibresource{consolidated_bibliography.bib}
+
+\usepackage[affil-it]{authblk} % affil-it affiliations italic
+\makeatletter
+\renewcommand\AB@authnote[1]{\rlap{\textsuperscript{\normalfont#1}}} % allows footnotemark to appear above comma
+\renewcommand\Authsep{,\hskip 20.5pt\relax} % adjusts space between names
+\renewcommand\Authands{,\hskip 15.5pt\relax and }
+% \renewcommand\Authands{,\hskip 20.5pt\relax}
+\makeatother
+
+\newcommand\CoAuthorMark{\footnotemark[\arabic{footnote}]} % get the current value
+\renewcommand\Affilfont{\itshape\small}
+
+
+\defbibheading{secbib}[\bibname]{%
+  \subsubsection*{#1}%
+  }
+  \defbibheading{subsecbib}[\bibname]{%
+  \subsection*{#1}%
+  \markboth{#1}{#1}}
+  
+
+
+%%% BEGIN BACKREF AND GLOBAL BIB HACK %%%
+% from
+% https://tex.stackexchange.com/questions/458819/bibliography-per-chapter-and-a-global-bibliography-in-alphabetic-order
+
+\DeclareBibliographyCategory{cited}
+\AtEveryCitekey{\addtocategory{cited}{\thefield{entrykey}}}
+
+\makeatletter
+\newcount\c@globalpageref
+
+\defbibenvironment{globalbibliography}
+  {\list
+     {}
+     {\setlength{\leftmargin}{\bibhang}%
+      \setlength{\itemindent}{-\leftmargin}%
+      \setlength{\itemsep}{\bibitemsep}%
+      \setlength{\parsep}{\bibparsep}}}
+  {\endlist}
+  {\item
+   \iflistundef{globalpageref}
+     {}
+     {\savelist{globalpageref}{\tmpblx@pageref}%
+      \c@pageref\c@globalpageref
+      \restorelist{pageref}{\tmpblx@pageref}}}
+
+
+\protected\def\blx@aux@backref#1#2#3#4#5{%
+  \ifcsundef{blx@pref@#3@\detokenize{#2}}
+    {\global\cslet{blx@pref@#3@\detokenize{#2}}\@empty
+     \expandafter\blx@onlypreamble\csname blx@pref@#3@\detokenize{#2}\endcsname}
+    {}%
+  \ifinlistcs{#4}{blx@pref@#3@\detokenize{#2}}
+    {}
+    {\listcsgadd{blx@pref@#3@\detokenize{#2}}{#4}}%
+  \ifcsundef{blx@pref@global@\detokenize{#2}}
+    {\global\cslet{blx@pref@global@\detokenize{#2}}\@empty}
+    {}%
+  \ifinlistcs{#4}{blx@pref@global@\detokenize{#2}}
+    {}
+    {\listcsgadd{blx@pref@global@\detokenize{#2}}{#4}}%
+  \blx@addpagesum{#1}{#5}}
+\let\abx@aux@backref\blx@aux@backref
+
+
+\AtDataInput{%
+  \ifcsundef{blx@pref@global@\abx@field@entrykey}
+    {}
+    {\blx@addpagerefglobal{\abx@field@entrykey}}}
+
+\def\blx@addpagerefglobal#1{%
+  \begingroup
+  \blx@tempcnta\z@
+  \let\blx@tempa\@empty
+  \def\do##1{%
+    \appto\blx@tempa{{##1}}%
+    \advance\blx@tempcnta\@ne}%
+  \dolistcsloop{blx@pref@global@#1}%
+  \edef\blx@tempa{\endgroup\noexpand\blx@bbl@listdef
+    {globalpageref}{\the\blx@tempcnta}{\blx@tempa}}%
+  \blx@tempa
+}
+\makeatother
+
+%%%%% END BACKREF AND GLOBAL BIB HACK %%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\usepackage{amsmath,mathtools,amsthm,amsfonts,amssymb}
+\usepackage{mleftright}\mleftright
+\usepackage{qcircuit}
+\usepackage{fullpage}
+\usepackage{tablefootnote}
+\usepackage{footnote}
+\usepackage{makecell}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[group-separator={,}]{siunitx}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{ragged2e}
+\usepackage{setspace}
+\usepackage{subfig}
+\usepackage{etoc}
+\usepackage{blindtext}
+\usepackage{adjustbox}
+\usepackage{blkarray}
+% \usepackage{hyperref}
+\hypersetup{
+    final=true,
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    breaklinks=true
+}
+\usepackage[capitalise]{cleveref}
+
+\usepackage[
+includehead,
+nomarginpar,% We don't want any margin paragraphs
+left=2.5cm,
+right=2.5cm,
+top=2.5cm,
+bottom=2.5cm,
+headheight=0.5cm,
+headsep=0.5cm
+]{geometry}
+
+\renewcommand{\chaptername}{Part} % Chapters are called "Parts" in the pdf
+
+\usepackage{ifdraft}
+\ifdraft{\newcommand{\authnote}[3]{{\color{#3}({\bf  #1:} #2)}}}{\newcommand{\authnote}[3]{}}
+\ifdraft{\newcommand{\barenote}[2]{{\color{#2}#1}}}{\newcommand{\barenote}[2]{}}
+\newcommand{\note}[1]{{\barenote{\footnotesize #1}{brown}}}
+\newcommand{\anote}[1]{\authnote{András}{#1}{red}}
+\newcommand{\ACnote}[1]{\authnote{Anthony}{#1}{red}}
+\newcommand{\alexnote}[1]{\authnote{Alex}{#1}{teal}}
+\newcommand{\mjknote}[1]{\authnote{Michael}{#1}{orange}}
+\newcommand{\marionote}[1]{\authnote{Mario}{#1}{blue}}
+\newcommand{\samnote}[1]{\authnote{Sam}{#1}{Periwinkle}}
+\newcommand{\pbnote}[1]{\authnote{Pshemek}{#1}{brown}}
+\newcommand{\gsnote}[1]{\authnote{Grant}{#1}{red!60!black}}
+\newcommand{\samsonnote}[1]{\authnote{Samson}{#1}{JungleGreen}}
+\newcommand{\aknote}[1]{\authnote{Aleksander}{#1}{red!60!black}}
+\newcommand{\emilnote}[1]{\authnote{Emil}{#1}{LimeGreen}}
+
+
+
+\newcommand{\shiftright}[2]{\makebox[#1][r]{\makebox[0pt][l]{#2}}}
+\newcommand{\shiftleft}[2]{\makebox[0pt][r]{\makebox[#1][l]{#2}}}
+
+\newcommand{\alert}[1]{{\color{red}#1}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\tr}{\text{tr}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\bigO}[1]{\mathcal{O}\left( #1 \right)}
+\newcommand{\bigOt}[1]{\widetilde{\mathcal{O}}\left( #1 \right)}
+\newcommand{\OnesVec}{\mathbf{1}}
+\DeclareMathOperator*{\argmin}{argmin} 
+\DeclareMathOperator*{\argmax}{argmax} 
+
+\DeclarePairedDelimiter\bra{\langle}{\rvert}
+\DeclarePairedDelimiter\ket{\lvert}{\rangle}
+\DeclarePairedDelimiterX\braket[2]{\langle}{\rangle}{#1 \delimsize\vert #2}
+\DeclarePairedDelimiterX\ketbra[2]{\lvert}{\rvert}{#1 \delimsize\rangle\!\langle #2}
+\DeclarePairedDelimiter\nrm{\lVert}{\rVert}
+
+\usepackage{fancyhdr}
+\usepackage{extramarks}
+\usepackage{etoolbox}
+
+\makeatletter
+% the following three lines only if the class is report or book
+\patchcmd{\@chapter}{#1}{#2}{}{} % #1 is the optional argument
+\patchcmd{\@chapter}{#1}{#2}{}{} % #2 is the mandatory argument
+\patchcmd{\@chapter}{#1}{#2}{}{}
+%%%
+\patchcmd{\@sect}{\fi#7}{\fi#8}{}{} % #7 is the optional argument
+\patchcmd{\@sect}{\fi#7}{\fi#8}{}{} % #8 is the mandatory argument
+\makeatother
+
+%%% uncomment below to yield continuous scroll pages
+% \usepackage{everyshi,lipsum}
+% \pagestyle{empty}
+% \textheight500cm
+% \EveryShipout{%
+%   \pdfpageheight=\pagetotal
+%   \advance\pdfpageheight by 2in
+%   \advance\pdfpageheight by 2\topmargin
+%   \advance\pdfpageheight by \textheight
+%   \advance\pdfpageheight by -\pagegoal}
+
+
+%%%%%%%%%%%%%%%%%%%%%
+%%%% HEADER SETUP
+%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\refchapter}[1]{\hyperref[toc]{#1}} % need to redefine this command with each new chapter so the headers on the chapter pages direct to the chapter 
+
+\newcommand{\rightdowncurvedarrow}{\rhd}
+
+\newcommand{\originalheadheight}{0.5cm}
+\newcommand{\originaltextheight}{22.7cm} %23.7
+
+\renewcommand{\chaptermark}[1]{%
+\markboth{#1}{#1}
+\extramarks{}{}
+}
+\renewcommand{\sectionmark}[1]{%
+\markright{#1}
+\extramarks{}{}
+}
+\renewcommand{\subsectionmark}[1]{%
+\extramarks{}{#1}
+}
+
+\makeatletter
+\def\currentsection{0}% initialise
+\pretocmd\@startsection{\def\currentsection{#2}}{}{}
+\makeatother
+
+% \fancypagestyle{chapterpage}[fancy] { % single-level header
+% \fancyhf{}
+% \fancyhead[L]{
+%     \hyperref[toc]{Quantum algorithms}
+%     $\; \rhd$ \refchapter{\nouppercase{\leftmark}}
+%     }
+% \renewcommand{\headrulewidth}{1pt}
+% \renewcommand{\footrulewidth}{0pt}
+% \fancyfoot[C]{\thepage}
+% }
+
+\fancypagestyle{chapterpage}[fancy]{ % two-level header
+\fancyhf{}
+\fancyhead[L]{
+    \hyperref[toc]{Quantum algorithms: A survey of applications and end-to-end complexities} \\
+    \;\; \refchapter{$\rhd$ \nouppercase{\leftmark}}
+    }
+\setlength{\headheight}{\originalheadheight+\baselineskip}
+\setlength{\textheight}{\originaltextheight-\baselineskip}
+\renewcommand{\headrulewidth}{1pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancyfoot[C]{\thepage}
+}
+
+
+% \fancypagestyle{wikiheader}[fancy]{ %% single line header
+% \fancyhf{}
+% \fancyhead[L]{
+%     \hyperref[toc]{ Quantum algorithms}
+%     $\; \rhd$ \refchapter{\nouppercase{\leftmark}}
+%     \ifthenelse{\currentsection > 0}{$\; \rhd$ \refchapter{\nouppercase{\rightmark}}}{} %added 0 because chapter numbers have been suppressed later
+%     \ifthenelse{\currentsection > 1}{$\; \rhd$ \hyperlink{subsection.0.\thesubsection}{\nouppercase{\lastrightxmark}}}{}
+%     }
+% % \fancyhead[L]{
+% %     \hyperref[toc]{ Quantum algorithms: A survey of applications and end-to-end complexities} \\
+% %     $\;\; \rhd$ \hyperlink{section.0.\thesection}{\nouppercase{\rightmark}} %added 0 because chapter numbers have been suppressed later
+% %     }
+%     % \fancyhead[R]{\hyperlink{subsection.0.\thesubsection}{\nouppercase{\lastrightxmark}}}
+% % \setlength{\headheight}{\originalheadheight+2\baselineskip}
+% % \setlength{\textheight}{\originaltextheight-2\baselineskip}
+% \renewcommand{\headrulewidth}{1pt}
+% \renewcommand{\footrulewidth}{0pt}
+% \fancyfoot[C]{\thepage}
+% }
+
+\fancypagestyle{wikiheader}[fancy]{ % two-level header
+\fancyhf{}
+\fancyhead[L]{
+    \hyperref[toc]{ Quantum algorithms: A survey of applications and end-to-end complexities} \\
+    \;\; \hyperlink{section.0.\thesection}{$\rhd$ \nouppercase{\rightmark}} %added 0 because chapter numbers have been suppressed later
+    }
+    \fancyhead[R]{\hyperlink{subsection.0.\thesubsection}{\nouppercase{\lastrightxmark}}}
+\setlength{\headheight}{\originalheadheight+\baselineskip}
+\setlength{\textheight}{\originaltextheight-\baselineskip}
+\renewcommand{\headrulewidth}{1pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancyfoot[C]{\thepage}
+}
+
+% \fancypagestyle{wikiheader}[fancy]{ % two-level header with all info
+% \fancyhf{}
+% \fancyhead[L]{
+%     \hyperref[toc]{ Quantum algorithms: A survey of applications and end-to-end complexities} \\
+%     $\;\;$ \refchapter{$\rhd$ \nouppercase{\leftmark}} $\;$\hyperlink{section.0.\thesection}{$\rhd$ \nouppercase{\rightmark}} %added 0 because chapter numbers have been suppressed later
+%     \ifthenelse{\equal{\lastrightmark}{}}{}{$\;$\hyperlink{subsection.0.\thesubsection}{$\rhd$ \nouppercase{\lastrightxmark}}}
+%     }
+%     % \fancyhead[R]{\hyperlink{subsection.0.\thesubsection}{\nouppercase{\lastrightxmark}}}
+% \setlength{\headheight}{\originalheadheight+\baselineskip}
+% \setlength{\textheight}{\originaltextheight-\baselineskip}
+% \renewcommand{\headrulewidth}{1pt}
+% \renewcommand{\footrulewidth}{0pt}
+% \fancyfoot[C]{\thepage}
+% }
+
+% \fancypagestyle{wikiheader}[fancy]{ % three-level header
+% \fancyhf{}
+% \fancyhead[L]{
+%     \hyperref[toc]{ Quantum algorithms: A survey of applications and end-to-end complexities} \\
+%     $\;\;\; \rhd$ \refchapter{\nouppercase{\leftmark}}\\
+%     $\;\;\;\;\;\;\;\;\;\; \rhd$ \hyperlink{section.0.\thesection}{\nouppercase{\rightmark}} %added 0 because chapter numbers have been suppressed later
+%     }
+%     \fancyhead[R]{\hyperlink{subsection.0.\thesubsection}{\nouppercase{\lastrightxmark}}}
+% \setlength{\headheight}{\originalheadheight+2\baselineskip}
+% \setlength{\textheight}{\originaltextheight-2\baselineskip}
+% \renewcommand{\headrulewidth}{1pt}
+% \renewcommand{\footrulewidth}{0pt}
+% \fancyfoot[C]{\thepage}
+% }
+
+
+\fancypagestyle{plain}[fancy]{
+\ifthenelse{\value{page}<\getpagerefnumber{toc}} % don't put any header/footer on title page
+{
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+}
+{ % otherwise, same as chapterpage
+\fancyhf{}
+\fancyhead[L]{
+    \hyperref[toc]{ Quantum algorithms: A survey of applications and end-to-end complexities} \\
+    \;\; \refchapter{$\rhd$ \nouppercase{\leftmark}}
+    }
+\setlength{\headheight}{\originalheadheight+\baselineskip}
+\setlength{\textheight}{\originaltextheight-\baselineskip}
+\renewcommand{\headrulewidth}{1pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancyfoot[C]{\thepage}
+}
+}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%End-to-end quantum algorithms and applications\\
+\title{\vspace{-36pt}\line(1,0){450} \vspace{16 pt}\\ {\Huge \textbf{Quantum algorithms:}}\\[2mm]A survey of applications and end-to-end complexities \\ \line(1,0){450}}
+
+\author[1]{Alexander~M.~Dalzell\footnote{These authors contributed equally. Corresponding emails: \href{mailto:dalzel@amazon.com}{dalzel@amazon.com}, \href{mailto:sammcard@amazon.com}{sammcard@amazon.com}}}
+\author[1]{Sam~McArdle\protect\CoAuthorMark}
+\author[1,2,3]{Mario~Berta}
+\author[1]{Przemyslaw~Bienias}
+\author[1,4]{Chi-Fang~Chen}
+\author[5]{Andr{\'a}s~Gily{\'e}n}
+\author[1]{Connor~T.~Hann}
+\author[1,6]{Michael~J.~Kastoryano}
+\author[1,7]{Emil~T.~Khabiboulline}
+\author[1]{Aleksander~Kubica}
+\author[1,4,8]{Grant~Salton}
+\author[1,3]{Samson~Wang}
+\author[1,4]{Fernando~G.~S.~L.~Brand{\~a}o}
+
+
+\affil[1]{AWS Center for Quantum Computing, Pasadena, CA, USA}
+\affil[2]{Institute for Quantum Information, RWTH Aachen University, Aachen, Germany}
+\affil[3]{Imperial College London, London, UK}
+\affil[4]{Institute for Quantum Information and Matter, Caltech, Pasadena, CA, USA}
+\affil[5]{Alfr{\'e}d R{\'e}nyi Institute of Mathematics, Budapest, Hungary}
+\affil[6]{IT University of Copenhagen, Copenhagen, Denmark}
+\affil[7]{Department of Physics, Harvard University, Cambridge, MA, USA}
+\affil[8]{Amazon Quantum Solutions Lab, Seattle, WA, USA}
+
+
+
+\date{}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\maketitle
+
+\vspace{-24 pt}
+
+\begin{abstract}\label{abstract}
+    The anticipated applications of quantum computers span across science and industry, ranging from quantum chemistry and many-body physics to optimization, finance, and machine learning. Proposed quantum solutions in these areas typically combine multiple quantum algorithmic primitives into an overall quantum algorithm, which must then incorporate the methods of quantum error correction and fault tolerance to be implemented correctly on quantum hardware. As such, it can be difficult to assess how much a particular application benefits from quantum computing, as the various approaches are often sensitive to intricate technical details about the underlying primitives and their complexities. Here we present a survey of several potential application areas of quantum algorithms and their underlying algorithmic primitives, carefully considering technical caveats and subtleties. We outline the challenges and opportunities in each area in an ``end-to-end'' fashion by clearly defining the problem being solved alongside the input-output model, instantiating all ``oracles,'' and spelling out all hidden costs. We also compare quantum solutions against state-of-the-art classical methods and complexity-theoretic limitations to evaluate possible quantum speedups. 
+    
+    The survey is written in a modular, wiki-like fashion to facilitate navigation of the content. Each primitive and application area is discussed in a standalone section, with its own bibliography of references and embedded hyperlinks that direct to other relevant sections. This structure mirrors that of complex quantum algorithms that involve several layers of abstraction, and it enables rapid evaluation of how end-to-end complexities are impacted when subroutines are altered. 
+\end{abstract}
+
+\sloppy 
+
+\pagestyle{chapterpage}
+\newpage
+\tableofcontents\label{toc}
+\markboth{Contents}{Contents}
+\renewcommand{\refchapter}[1]{\hyperref[toc]{#1}}
+\thispagestyle{chapterpage}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% \begin{refsection} 
+
+\counterwithout{section}{chapter} %causes sections numbers not to be prepended by chapter number
+
+\begingroup
+\renewbibmacro{pageref}{} % Turn off backrefs for the bibliographies in the main text
+
+\pagestyle{chapterpage}
+\chapter*{Introduction\markboth{Introduction}{Introduction}}\label{ch:introduction}
+\addcontentsline{toc}{chapter}{Introduction}
+\renewcommand{\refchapter}[1]{\hyperref[ch:introduction]{#1}}
+\thispagestyle{chapterpage}
+
+
+
+
+In 1985, Deutsch gave what was essentially the first quantum algorithm---a simple procedure that, with just one black-box query, could accomplish a task that classically requires two queries. Over the next decade, larger black-box separations were discovered, such as the Deutsch--Jozsa, Bernstein--Vazirani, and Simon’s algorithms.  Then, in 1994, the first truly \emph{end-to-end} quantum algorithm was developed: Shor’s algorithm for factoring integers and computing discrete logarithms, bringing extensive ramifications for cryptography. This breakthrough demonstrated that quantum computers could not only speed up the solution of contrived black-box problems but, at least in theory, could provide faster solutions to important real-world problems. The discovery of Shor's algorithm transformed the field of quantum algorithms from a relatively niche topic into a major research area. 
+
+During the past three decades since Shor's seminal discovery, the field of quantum algorithms matured significantly. For example, our knowledge of upper and lower bounds on the quantum query complexity of black-box problems---often deduced through sophisticated, nonconstructive mathematical arguments---has been greatly expanded. Moreover, many additional quantum algorithms and subroutines---for example, primitives for quantum simulation and linear algebra---have been discovered, optimized, and subsequently generalized multiple times. Meanwhile, advances in hardware and the theory of fault-tolerant quantum computation have reached the point where it is conceivable that (some of) these algorithms might soon become implementable at scales large enough to surpass what can be done classically. 
+
+Nevertheless, the magnitude of available quantum speedups for real-world applications is often hard to assess and can be obscured by technical caveats, assumptions, and limitations in the underlying quantum algorithmic primitives. Despite being one of the oldest, Shor’s algorithm for factoring arguably remains the cleanest example of a substantial quantum speedup with minimal caveats that targets a problem of significant real-world relevance.
+This survey aims to elucidate the true resource requirements of end-to-end quantum computing applications and thereby aid in identifying the most likely applications for fault-tolerant quantum computers. Through this distinct perspective, the survey is intended to complement the wealth of existing quantum algorithms resources, including a number of review articles, lecture notes, textbooks, and the \href{https://quantumalgorithmzoo.org/}{quantum algorithms zoo}. 
+
+We highlight both the opportunities and challenges of currently known quantum algorithms.
+To truly understand the potential advantage of a quantum algorithm, it is necessary to consider its resource requirements in an ``end-to-end'' fashion. By this, we mean the cost of solving the full problem of interest to the user, not only the cost of running a given quantum circuit that is a subroutine of the full solution. One must consider all quantum and classical overheads: keeping track of classical precomputation and postprocessing, explicitly instantiating quantum oracles and data access structures, and ideally computing the constant factors of all quantum subroutines (including those overheads associated with fault-tolerant protocols and quantum error correction). We note, however, that this task is a major undertaking for complex quantum algorithms, and so has only been achieved for a minority of quantum algorithms in the literature. In addition to studying end-to-end quantum complexities, it is also necessary to compare any quantum results to the state-of-the-art classical solutions of the same problem, as well as known complexity-theoretic limitations.
+
+
+We summarize the end-to-end complexities of a number of leading quantum application proposals (by which we mean quantum algorithms applied to a well-defined real-world problem). The complexities of these applications are deduced from the complexities of their underlying primitives, which we review in detail. 
+The modular structure of the survey aids the high-level understanding of the costs and tradeoffs coming from the various choices one makes when designing and compiling a quantum algorithm, as well as identifying the bottlenecks for a given application. On the technical front, this survey does not attempt to advance the state of the art; rather, it aims to collect, synthesize, and contextualize key results in the literature.
+We consider algorithms in the quantum circuit model, which is arguably the best-studied model for quantum computation, and renders the presented complexities hardware agnostic. In order to obtain concrete bounds we require oracles to be explicitly instantiated. We generally assume that quantum error correction of some form will be necessary, due to unavoidable imperfections inherent to all known quantum hardware modalities. As such, we typically consider the non-Clifford cost of quantum algorithms as the dominant cost, in keeping with leading quantum fault-tolerance schemes. Due to the general lack of application-scale experimental data, we focus on elucidating provable speedups, and only mention noisy, intermediate scale quantum (NISQ) algorithms in passing, where appropriate, since they are typically heuristic.
+
+Throughout this survey, we attempt to be thorough, but not exhaustive in presentation; 
+we only aim to give a representative collection of references, rather than providing a complete list. Generally, we try to explain how asymptotic complexity statements arise from their underlying primitives, but technical results are typically presented without explicit derivation or proofs, for which we refer the reader to the cited references. Additionally, we often quote resource estimates from the literature without covering all of the application-specific optimizations to the underlying primitives that are required to arrive at the reported constant factors. We survey a number of quantum applications, primitives, and fault-tolerance schemes, however the omission of other approaches does not indicate that they are unimportant. Also, the scope of this work excludes substantial topics, such as: quantum sensing or communications, measurement-based quantum computing, adiabatic quantum computing and quantum annealing, analog quantum simulators, quantum-inspired (``dequantization'') methods, and tensor network algorithms. 
+
+An overarching takeaway of this survey is that the current literature generally lacks fully end-to-end analyses for concrete quantum applications. Consequently, in several parts of this survey, a fully satisfactory end-to-end accounting is not achieved. In part, this is due to certain technical aspects of the relevant quantum algorithms being underexplored, and in some cases also due to a lack of specific details on how the output of the quantum algorithm will integrate into concrete computational workflows for future quantum computing users. Quantum algorithms research often works upward from algorithmic primitives to identify computational tasks with maximal quantum speedups, but these may not align with the tasks most relevant to the user. On the other hand, potential users themselves may not yet know exactly how they would use a new capability to advance their high-level goals. 
+Yet, we find ourselves at a point in the history of quantum computing at which it behooves us to fill in these details and adopt this end-to-end lens. As more end-to-end applications are found and with small fault-tolerant quantum computers now on the horizon, we expect the story to continue to evolve---this survey provides a snapshot of the state of play in 2023. 
+While improved quantum algorithms and approaches to quantum error correction and fault tolerance are likely to be discovered, classical computers continue to grow in scale and speed, and classical algorithms are also constantly refined and developed, thereby moving the goalposts for end-to-end quantum speedups. We hope the reader will find this survey a valuable guide for navigating this complex and dynamic landscape. 
+
+\subsubsection*{How to use this survey}
+
+This survey does not need to be read from cover to cover. Instead, it has a modular, wiki-like structure, which enables readers to directly explore the applications and primitives relevant for their use case. To the extent possible, each individual subsection has been written in a self-contained fashion and can be read independently from the rest of the document. Rather than scrolling through the survey to locate a certain section, readers are encouraged to utilize the hyperlinks embedded throughout the document as well as those in the header of every page, which direct back to the tables of contents. To facilitate usage of the survey in this fashion, we include an independent bibliography for each subsection of the document. A consolidated bibliography in alphabetical order appears at the end of the survey, along with back references to the pages in which each reference is cited. 
+
+\subsubsection*{Acknowledgments}
+We thank Joao Basso, J.~Kyle Brubaker, Christopher Chamberland, Andrew Childs, Isabel Franco Garrido, Helmut G.~Katzgraber, Eric M.~Kessler, P\'eter Kutas, Pavel Lougovski, Nicola Pancotti, John Preskill, Simone Severini, Sophia Simon, Yuan Su, James D.~Whitfield, and Xiaodi Wu for helpful comments and conversations on various aspects of this survey. We are also grateful to the AWS Center for Quantum Computing and the Institute for Quantum Information and Matter, which is an NSF Physics Frontiers Center, for creating an environment that supported this work.
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% PART 1: Areas of Application
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\pagestyle{chapterpage}
+\chapter*{Areas of application\markboth{Areas of application}{Areas of application}}\label{applications}
+\renewcommand{\refchapter}[1]{\hyperref[applications]{#1}}
+\thispagestyle{chapterpage}
+\addcontentsline{toc}{chapter}{Areas of application}
+
+
+To provide benefit, quantum computers must solve computational problems where the solutions are simultaneously valuable to the user and also difficult to obtain classically. Simply developing a quantum algorithm with a theoretical quantum speedup is not sufficient to meet these criteria: we must directly compare the performance of classical and quantum algorithms for concrete problems of interest.
+
+In this part, we survey a number of specific computational problems where quantum algorithms have been proposed, organized by application area. We present an overview of these algorithms through an end-to-end lens, noting clearly the actual end-to-end problem that is being solved and the dominant resource cost/complexity (derived from the \hyperref[chapter:primitives]{algorithmic primitives} that are being used), and emphasizing noteworthy caveats. We list known resource estimates for implementing these algorithms on \hyperref[prim:FTQC]{fault-tolerant quantum computers} (we also comment in passing on NISQ implementations), and we compare to classical complexities for the same problem, both in a practical and asymptotic sense. The list of applications presented is not exhaustive, but represents a broad spectrum of the most well studied applications proposed in the literature.
+
+ 
+
+
+\etocsettocstyle{\subsection*{This part contains:}}{\noindent}
+
+\localtableofcontents
+
+\newpage
+\pagestyle{wikiheader}
+
+\etocsettocstyle{\subsection*{This application area contains:}}{\noindent}
+
+\include{Applications/CondensedMatter}
+\include{Applications/QuantumChemistry}
+\include{Applications/NuclearParticlePhysics}
+\include{Applications/CombinatorialOptimization}
+\include{Applications/ContinuousOptimization}
+\include{Applications/QuantumCryptanalysis}
+\include{Applications/DifferentialEquations}
+\include{Applications/Finance}
+\include{Applications/ClassicalML}
+
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% PART 2: Algorithmic Primitives
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\pagestyle{chapterpage}
+\chapter*{Quantum algorithmic primitives\markboth{Quantum algorithmic primitives}{Quantum algorithmic primitives}}\label{chapter:primitives}
+\renewcommand{\refchapter}[1]{\hyperref[chapter:primitives]{#1}}
+\thispagestyle{chapterpage}
+\addcontentsline{toc}{chapter}{Quantum algorithmic primitives}
+
+To deliver an advantage over classical approaches, end-to-end quantum solutions must exploit known quantum phenomena capable of providing a quantum speedup. The disparate collection of known \hyperref[applications]{quantum applications} is built from a common group of \emph{quantum algorithmic primitives}, which are the source of quantum advantage. Algorithmic primitives are typically not suited for directly solving an end-to-end problem, due to their reliance on unspecified oracles or because their input and/or output does not exactly match that of the end-to-end problem (e.g., some primitives output a quantum state rather than classical data, and thus they have no direct classical analogue). Nevertheless, it can be very fruitful to think of algorithms as compositions of different algorithmic primitives, both for higher-level intuitive overview and for independently studying and optimizing the primitives themselves.
+
+This part surveys a variety of quantum algorithmic primitives. For each, we sketch the basic idea of what they do and how they work, as well as discussing example use cases and important caveats. We generally assume that these primitives will need to be implemented in \hyperref[prim:FTQC]{fault-tolerant} fashion when they are used within an end-to-end solution for a given \hyperref[applications]{application}, but we comment on NISQ implementations in passing. 
+
+\etocsettocstyle{\subsection*{This part contains:}}{\noindent}
+
+\localtableofcontents
+
+\etocsettocstyle{\subsection*{This primitive area contains:}}{\noindent}
+
+\newpage
+\pagestyle{wikiheader}
+
+\include{Primitives/QuantumLinearAlgebraFramework}
+\include{Primitives/HamiltonianSimulation}
+\include{Primitives/QuantumFourierTransform}
+\include{Primitives/QuantumPhaseEstimation}
+\include{Primitives/AmplitudeAmplificationAmplitudeEstimation}
+\include{Primitives/GibbsSampling}
+\include{Primitives/QuantumAdiabaticAlgorithm}
+\include{Primitives/LoadingClassicalData}
+\include{Primitives/QuantumLinearSystemSolvers}
+\include{Primitives/QuantumGradientEstimation}
+\include{Primitives/VariationalQuantumAlgorithms}
+\include{Primitives/Tomography}
+\include{Primitives/QuantumInteriorPointMethods}
+\include{Primitives/MultiplicativeWeightsUpdateMethod}
+\include{Primitives/ApproximateContractionTensorNetworks}
+
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% PART 3: FAULT-TOLERANT QUANTUM COMPUTING
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\pagestyle{chapterpage}
+\chapter*{Fault-tolerant quantum computation\markboth{Fault-tolerant quantum computation}{Fault-tolerant quantum computation}}\label{prim:FTQC}
+\renewcommand{\refchapter}[1]{\hyperref[prim:FTQC]{#1}}
+\thispagestyle{chapterpage}
+\addcontentsline{toc}{chapter}{Fault-tolerant quantum computation}
+
+Throughout this survey, we predominantly restrict our attention to the circuit model of quantum computation.
+Within this paradigm, any quantum algorithm can be expressed as a sequence of basic operations, such as product state preparation, unitary single- and two-qubit gates, and single-qubit Pauli measurements.
+In order to accurately determine complete end-to-end resource estimates for quantum algorithms it is essential to understand the costs of: (i) decomposing quantum algorithms into basic operations and (ii) realizing these basic operations reliably with the physical hardware.
+In other parts of this survey we assume noiseless logical qubits and operations (unless otherwise noted) and focus on item (i). In this section, we take into account that physical qubits and operations are noisy and discuss item (ii).
+We first review the fundamental ideas behind the theory of fault tolerance.
+We then illustrate them with concrete realizations in the paradigm of the surface code and lattice surgery.
+
+\etocsettocstyle{\subsection*{This part contains:}}{\noindent}
+\localtableofcontents
+
+\newpage
+
+\pagestyle{wikiheader}
+\include{Primitives/FaultToleranceQEC}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \ifdraft{
+% \appendix
+% \chapter{Conventions}
+% \include{conventions}
+% }
+% {}
+
+\endgroup  % End group where backref is turned off (i.e. backref is now back on)
+
+
+%% Consolidated bibliography with backrefs
+\begingroup
+\newpage
+\pagestyle{chapterpage}
+\nocite{*}
+\printbibliography[env=globalbibliography, title={Consolidated bibliography}, category=cited, heading=bibintoc]\label{ch:globalbib}
+\endgroup
+
+
+\end{document}

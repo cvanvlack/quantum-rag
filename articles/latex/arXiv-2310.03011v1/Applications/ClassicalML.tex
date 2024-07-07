@@ -1,0 +1,627 @@
+%!TEX root = ../main.tex
+
+
+
+\section{Machine learning with classical data }\label{appl:ClassicalML}
+\begin{refsection}
+
+
+
+There has been significant recent interest in exploring the interplay between quantum computing and machine learning.
+Quantum resources and quantum algorithms have been studied in all major parts of the traditional machine learning pipeline: (1) the data set; (2) data processing and analysis; 
+(3) the machine learning model leading to a hypothesis family; and (4) the learning algorithm (see~\cite{biamonte2016QuantumMachineLearning, cerezo2022challenges, ciliberto2018QMLReview} for reviews). 
+In this section we predominantly focus on quantum approaches for the latter three categories---that is, here we mostly consider quantum algorithms applied to classical data. These approaches include algorithms hinging on the \hyperref[prim:QuantumLinearSystemSolvers]{quantum linear system solver} (or \hyperref[prim:LinearAlgebra]{quantum linear algebra} more generally) as the source for possible quantum speedup over classical learning algorithms. These also include \textit{quantum neural networks} (using the framework of \hyperref[prim:VQA]{variational quantum algorithms}) and \textit{quantum kernels}, where the classical machine learning model is replaced with a quantum model. Additionally, in this section we  discuss quantum algorithms that aim to speed up data analysis tasks, namely \textit{tensor principal component analysis (TPCA)} and \textit{topological data analysis}. 
+
+Quantum machine learning is an active area of research. As such, we expect the conclusions made in this section to evolve over time, as new results are discovered. 
+At present, our evaluation suggests that few of the considered quantum machine learning algorithms show any promise of quantum advantage in the intermediate future. This conclusion stems from a number of factors, including issues of \hyperref[prim:LoadingClassicalData]{loading classical data} into the quantum device and extracting classical data via \hyperref[prim:Tomography]{tomography}, and the success of classical ``dequantized" algorithms~\cite{tang2018QuantumInspiredRecommSys}. 
+More specialized tasks, such as \hyperref[appl:TPCA]{tensor PCA} and \hyperref[appl:TDA]{topological data analysis} may provide larger polynomial speedups (i.e., better than quadratic) in some regimes, but their application scope is less broad. Finally, other techniques such as \hyperref[appl:NearTermML]{quantum neural networks and quantum kernel methods} contain heuristic elements which make it challenging to perform concrete analytic end-to-end resource estimates~\cite{schuld2022IsQuantumAdvatnage}. 
+
+
+
+
+\localtableofcontents
+
+\printbibliography[heading=secbib,segment=\therefsegment]
+\end{refsection}
+
+\newpage
+
+\begin{refsection}
+
+\subsection{Quantum machine learning via quantum linear algebra}
+\extramarks{}{Quantum ML via quantum linear algebra}\label{appl:QMLfromLinAlg}
+
+
+
+\subsubsection*{Overview}
+Linear algebra in high dimensional spaces with tensor product structure is the workhorse of quantum computation as well as of much of machine learning (ML).
+It is therefore unsurprising that efforts have been made to find quantum algorithms for various learning tasks, including but not restricted to: cluster-finding \cite{lloyd2013quantum}, principal component analysis \cite{lloyd2013QPrincipalCompAnal}, least-squares fitting \cite{schuld2016prediction,kerenidis2017QGradDesc}, recommendation systems \cite{kerenidis2016QRecSys}, binary classification \cite{rebentrost2014QSVM}, and Gaussian process regression \cite{zhao2015QAssisstedGaussProcRegr}. One of the main computational bottlenecks in all of these tasks is the manipulation of large matrices. Significant speedup for this class of problems has been argued for via \hyperref[prim:LinearAlgebra]{quantum linear algebra}, as exemplified by the \hyperref[prim:QuantumLinearSystemSolvers]{quantum linear system solver} (QLSS). The main question marks for viability are: (i) can quantum linear algebra be fully dequantized \cite{tang2018QInspiredClassAlgPCA} for ML tasks, (ii) can the classical training data be loaded efficiently into a \hyperref[prim:QRAM]{quantum random access memory} (QRAM), and (iii) do the  quantum ML algorithms that avoid the above mentioned pitfalls address relevant machine learning problems? Our current understanding suggests that significant quantum advantage would require an exceptional confluence of (i)-(iii) that has not yet been found in the specific applications analyzed to date, though modest speedups are plausible. 
+
+\subsubsection*{ML applications}
+
+The structure of this section differs from other sections in this survey, due to the one-off nature of many of the quantum machine learning proposals and the fact that they are often heuristic. Rather than cover every proposal, we explore three specific applications. Each example explains which end-to-end problem is being solved and roughly how the proposed quantum algorithm solves that problem, arriving at its dominant complexity. In each case, the quantum algorithm assumes access to fast coherent \hyperref[prim:LoadingClassicalData]{data access} (log-depth \hyperref[prim:QRAM]{QRAM}) and leverages quantum primitives for \hyperref[prim:QuantumLinearSystemSolvers]{solving linear systems} (and \hyperref[prim:LinearAlgebra]{linear algebra more generally}). Under certain conditions, these primitives can be exponentially faster than classical methods that manipulate all the entries of vectors in the exponentially large vector space. However, for these examples, it is crucial to carefully define the end-to-end problem, as exponential advantages can be lost at the readout step, where the answer to a machine learning question must be retrieved from the quantum state encoding the solution to the linear algebra problem. In the three examples below, this is accomplished with some form of \hyperref[prim:AmpEst]{amplitude or overlap estimation}. 
+
+Furthermore, we note that, even if these quantum algorithms are exponentially faster than classical algorithms that manipulate the full state vector, in some cases this speedup has been ``dequantized'' via algorithms that merely sample from the entries of the vector.  Specifically, for some end-to-end problems, there exist classical ``quantum-inspired'' algorithms \cite{tang2018QInspiredClassAlgPCA,chia2019SampdSubLinLowRankFramework,Shao2022FQILSS} that solve the problem in time only polynomially slower than the quantum algorithm. The assumption that the quantum algorithm has fast \hyperref[prim:QRAM]{QRAM} access to the classical data is analogous to the assumption that the classical algorithm has fast sample-and-query (SQ) access to the data. We do not cover these techniques in detail, but we note that most of the machine learning tasks based on linear algebra for which quantum algorithms have been proposed have also been dequantized in some capacity \cite{chia2019SampdSubLinLowRankFramework}. However, in some cases it remains possible that there could be an exponential quantum advantage if the quantum algorithm is able to exploit additional structure in the matrices involved, such as sparsity, that the classical algorithm is not. The three examples below roughly illustrate the spectrum of possibilities: some tasks are fully dequantized, whereas others, to the best of our current knowledge, could still support exponential advantages if certain conditions are met. 
+
+
+\subsubsection*{Example 1: Gaussian process regression}
+%
+
+\subparagraph{Actual end-to-end problem:}
+Gaussian process regression (GPR) is a nonparametric, Bayesian method for regression. GPR is closely related to \hyperref[appl:NearTermML]{kernel methods}~\cite{kanagawa2018gaussian}, as well as to other regression models, including linear regression~\cite{rasmussen2005GaussianProcessTextbook}. Our presentation of the problem follows that of~\cite[Chapter 2]{rasmussen2005GaussianProcessTextbook} and \cite{zhao2019TrainingGaussianProcess}. Given training data $\{x_j,y_j\}_{j=1}^M$, with inputs $x_j \in \mathbb{R}^N$ and noisy outputs $y_j\in\mathbb{R}$, the goal is to model the underlying function $f(x)$ generating the output $y$
+\begin{equation}
+    y=f(x)+\epsilon_{\rm noise},
+\end{equation}
+where $\epsilon_{\rm noise}$ is drawn from i.i.d.~Gaussian noise with variance $\sigma^2$. Modeling $f(x)$ as a Gaussian process means that for inputs $\{x_j\}_{j=1}^M$, the outputs $\{f(x_j)\}_{j=1}^M$ are treated as random variables with a joint multivariate Gaussian distribution, in such a way that any subset of these values are jointly normally distributed in a manner consistent with the global distribution. While this multivariate Gaussian distribution governing $\{f(x_j)\}_{j=1}^M$ will generally be correlated for different $j$, the additional additive error $\epsilon_{\rm noise}$ on our observations $y_j$ is independent from the choice of $f(x_j)$ and uncorrelated from point to point. The Gaussian process is specified by the distribution $\mathcal{N}\left( m, K \right)$ where $m$ is the length-$M$ vector obtained by evaluating a ``mean function" $m(x)$ at the points $\{x_j\}_{j=1}^M$, and $K$ is an $M \times M$ covariance kernel matrix obtained by evaluating a covariance kernel function $k(x,x')$ at $x,x' \in \{x_j\}_{j=1}^M$. The functional form of the mean and covariance kernel are specified by the user and determine the properties of the Gaussian process, such as its smoothness.\footnote{This can be visualized by sampling a function from the distribution, which means sampling a value of $f(x_j)$ from the distribution for each $x_j$, and plotting the values of $f(x_j)$ as a curve.} These functions typically contain a small number of hyperparameters which can be optimized using the training data. A commonly used covariance kernel function is the squared exponential covariance function $k(x,x') = \exp{\left(-\frac{1}{2\ell^2} (x-x')^2\right)}$ where $\ell$ is a hyperparameter controlling the length scale of the Gaussian process.    
+
+Given choices for $m(x)$ and $k(x,x')$ and the observed data $\{x_j,y_j\}_{j=1}^M$, our task is to predict the value $f(x_*)$ of a new test point $x_*$. Because the Gaussian process assumes that all $M+1$ values $\{f(x_1),\ldots,f(x_M), f(x_*)\}$ have a jointly Gaussian distribution, it is possible to condition upon the observed data to obtain the distribution for $f(x_*)$ which is $p(f_* | x_*, \{x_j,y_j\}) \sim \mathcal{N}\left(\bar{f}_* , \mathbb{V}[f_*] \right)$. Our goal is to compute $\bar{f}_*$, the mean (linear predictor) of the distribution for $f(x_*)$, as well as the variance $\mathbb{V}[f_*]$, which gives uncertainty on the prediction. Computing the underlying multivariate Gaussian distribution can be bypassed by exploiting the closure of Gaussians under linear operations, in particular, conditioning. 
+This re-expresses the problem as linear algebra with the kernel matrix. Assuming the common choice of $m(x) =0$, and defining the length-$M$ vector $k_* \in \mathbb{R}^M$ to have its $j$th entry given by $k(x_*, x_j)$, we obtain 
+\begin{align}
+    \bar{f}_* &= k_*^\intercal [K + \sigma^2 I]^{-1} y \\
+    \mathbb{V}[f_*] &= k(x_*, x_*) - k_*^\intercal [K + \sigma^2 I]^{-1} k_*
+\end{align} 
+which characterize the prediction for the test point.
+The advantages of GPR are a small number of hyperparameters, model interpretability, and that it naturally returns uncertainty estimates for the predictions. Its main disadvantage is the computational cost. 
+
+
+\subparagraph{Dominant resource cost:}
+In classical implementations, the cost is dominated by performing the inversion $[K+ \sigma^2 I]^{-1}$, typically via a Cholesky decomposition, resulting in a complexity of $\bigO{M^3}$ (see \cite[Chapter 8]{rasmussen2005GaussianProcessTextbook} and \cite{liu2020gaussian} for approximations used to reduce the classical cost). In \cite{zhao2015QAssisstedGaussProcRegr}, a quantum algorithm was proposed that leverages the \hyperref[prim:QuantumLinearSystemSolvers]{quantum linear system solver} (QLSS) to perform this inversion more efficiently. The quantum computer uses the classical data to infer the linear predictor and variance for a test point $x_*$, and this process must be repeated for the computation of each new test point output. We analyze the complexity of computing $\bar{f}_*$, with a simple extension for $\mathbb{V}[f_*]$. Given classically observed/precomputed values of $y$ and $k_*$, the quantum algorithm uses \hyperref[prim:StatePrepData]{state preparation from classical data} (based on \hyperref[prim:QRAM]{QRAM}) to prepare quantum states representing $\frac{1}{\nrm{y}} \ket{y}$ and $\frac{1}{\nrm{k_*}} \ket{k_*}$,\footnote{For any vector $v$, the notation $\ket{v}$ denotes the normalized quantum state whose amplitudes in the computational basis are proportional to the entries of $v$.} each with a gate depth of $\bigO{\log(M)}$ (though using $\bigO{M}$ gates overall). The algorithm also uses a \hyperref[prim:BlockEncodingsClassical]{block-encoding of classical data} (also using QRAM) for $A:=[K + \sigma^2 I]$, with a normalization factor of $\alpha = \nrm{K + \sigma^2 I}_F$ (Frobenius norm).\footnote{It may be more efficient to load in the $\{x_j\}$ values and then coherently evaluate the kernel entries using quantum arithmetic. Some ideas in this direction are explored in~\cite{chen2022GaussianProcessQuantum}. One might also consider block-encoding $K$ and $\sigma^2 I$ separately and combining them with \hyperref[prim:LCU]{linear combination of unitaries}.} The state-of-the-art \hyperref[prim:QuantumLinearSystemSolvers]{QLSS} has complexity $\bigO{\frac{\alpha \kappa}{\nrm{A}} \log(1/\epsilon)}$ calls to an $\alpha$-normalized block-encoding of matrix $A$ with condition number $\kappa$. In this case, the minimum singular value of $A$ is at least $\sigma^2$, so $\kappa/\nrm{A}\leq \sigma^{-2}$. The QLSS produces the normalized state $\ket{A^{-1}y}$, and a similar approach yields an estimate for the norm $\lVert A^{-1}y \rVert$ to relative error $\epsilon$ at cost $\bigOt{\alpha \kappa/\nrm{A}\epsilon}$. Given unitary circuits performing these tasks, we can estimate the quantity $\bar{f}_* = \braket{k_*}{A^{-1}y} \cdot \nrm{k^*}\nrm{A^{-1}y}$ to precision $\epsilon$ using \hyperref[prim:AmpEst]{overlap estimation} with gate depth upper bounded by
+\begin{equation}
+    \bigOt{\log(M) \cdot \nrm{K+\sigma^2 I}_F \sigma^{-2} \cdot \frac{\nrm{k_*} \left\lVert[K + \sigma^2 I]^{-1}y\right\rVert }{\epsilon}}\,,
+\end{equation}
+where the three factors come from QRAM, QLSS, and overlap estimation, respectively. 
+Using QRAM as described above would use $\bigO{M^2}$ ancilla qubits. Note that classical ``quantum-inspired'' methods for solving linear systems, based on sample-and-query (SQ) access, also have $\mathrm{poly}(\nrm{A}_F,\kappa,\epsilon^{-1},\log(M))$ complexity \cite{chia2019SampdSubLinLowRankFramework,gilyen2020ImprovedQInspiredAlgorithmForRegression,Shao2022FQILSS}, and thus the quantum algorithm as stated above offers at most a polynomial speedup in the case of dense matrices. 
+
+On the other hand, \cite{zhao2015QAssisstedGaussProcRegr} considers the case where the vectors and kernels are sparse\footnote{For the squared exponential covariance function mentioned above, the kernel matrix will not be sparse, but \cite{zhao2015QAssisstedGaussProcRegr} notes several applications of GPR where sparsity is well justified.} and uses this to reduce the cost of the quantum algorithm and of QRAM. In this case, using \hyperref[prim:BlockEncodings]{block-encodings} of sparse matrices, the factor $\nrm{A}_F$ in the complexity expression is replaced by a factor $s \nrm{A}_{\max}$, where $s$ is the sparsity of the matrix $A$ and $\nrm{A}_{\max}$ is the maximum magnitude of any entry of $A$---log-depth QRAM with $\Omega(M)$ ancilla qubits would still be necessary to implement the sparse-access oracle to the $sM$ arbitrary nonzero entries of $A$ in depth $\bigO{\log(M)}$. The upshot is that in the sparse case, because the algorithm assumes the kernel is not low rank, this algorithm is not dequantized by SQ access~\cite{chia2022sampling} and may still offer an exponential speedup over quantum-inspired methods. However, we note that the assumption of sparsity in $[K + \sigma^2 I]$ may also enable the use of more efficient classical algorithms for computing the inverse (see \hyperref[prim:QuantumLinearSystemSolvers]{QLSS}). Moreover, we must include the classical precomputation of evaluating the entries of this matrix. A related, and similarly efficient, quantum algorithm is proposed in~\cite{zhao2019TrainingGaussianProcess} for optimizing the hyperparameters of the GP kernel by maximizing the marginal
+likelihood of the observed data
+given the model.
+
+
+
+
+
+
+
+
+\subsubsection*{Example 2: Support vector machines}\label{sec:SVM}
+%
+\subparagraph{Actual end-to-end problem:}
+The task for the support vector machine (SVM) is to classify an $N$-dimensional vector $x_*$ into one of two classes ($y_* = \pm 1$), given $M$ labeled data points of the form $\{(x_j,y_j): x_j\in \mathbb{R}^N, y_j=\pm 1\}_{j=1,...,M}$ used for training. The training phase solves a \hyperref[appl:ContinuousOpt]{continuous optimization} problem to find a maximum-margin hyperplane, described by normal vector $w \in \mathbb{R}^M$ and offset $b \in \mathbb{R}$, which separates the training data. That is, data points with $y_j=1$ lie on one side of the plane, and data points with $y_j=-1$ lie on the other side. Once trained, the classification of $x_*$ is inferred via the formula
+\begin{equation}\label{eq:SVM_classify}
+    y_*={\rm sign}\left(b+\langle w, x_*\rangle\right)\,. 
+\end{equation}
+
+
+In the ``hard-margin'' version of the problem where all training points must be classified correctly (assuming it is possible to do so, i.e. the data is linearly separable), the solution $(w,b)$ is given by
+\begin{equation}\label{eq:SVM_hardmargin}
+    \argmin_{(w,b)} \; \nrm{w}^2, \qquad 
+    \text{subject to:} \qquad  y_j \cdot (\langle w,x_j \rangle + b) \geq 1 \qquad \forall j
+\end{equation}
+where $\nrm{\cdot}$ denotes the standard Euclidean vector norm. 
+
+
+In the ``soft-margin'' version of the problem, the hyperplane need not correctly classify all training points. The relation $y_j \cdot (\langle w, x_j\rangle+b) \geq 1$ is relaxed to $y_j \cdot (\langle w, x_j \rangle +b) \geq 1-\xi_j$, with $\xi_j \geq 0$. Now, $(w,b)$ are determined by
+\begin{equation}\label{eq:SVM_softmargin}
+    \argmin_{(w,b, \xi)} \; \nrm{w}^2 + \gamma \nrm{\xi}_1, \qquad 
+    \text{subject to:} \qquad  y_j \cdot (\langle w,x_j \rangle + b) \geq 1-\xi_j \qquad \forall j\,,
+\end{equation}
+where $\nrm{\cdot}_1$ denotes the vector 1-norm, and $\gamma$ is a user-specified parameter related to how much to penalize points that lie within the margin. Both Eqs.~\eqref{eq:SVM_hardmargin} and \eqref{eq:SVM_softmargin} are \hyperref[appl:ConicProgramming]{convex programs}, in particular, quadratic programs, which can also be rewritten as second-order cone programs \cite{kerenidis2019QAlgsSecondOrderConeSVM}. Another feature of these formulations is that the solution vectors $w$ and $\xi$ are usually sparse; the $j$th entry is only nonzero for values of $j$ where $x_j$ lies on or within the margin near the hyperplane---these $x_j$ are called the ``support vectors.''
+
+In \cite{suykens1999leastSquaresSVM}, a ``least-squares'' version of the SVM problem was proposed, which has no inequality constraints:\footnote{Our  definition of the least-squares SVM is equivalent to the normal presentation found in \cite{suykens1999leastSquaresSVM,rebentrost2014QSVM}; however, we choose slightly different conventions for normalization of certain parameters, such as $\gamma$, with respect to $M$. The goal of our choices is to make the final complexity expression free of any explicit $M$ dependence.}
+\begin{equation}\label{eq:SVM_LS}
+    \argmin_{(w,b,\xi)} \; \nrm{w}^2 + \frac{\gamma}{M} \nrm{\xi}^2, \qquad 
+    \text{subject to:} \qquad  y_j \cdot (\langle w,x_j \rangle + b) = 1-\xi_j \qquad \forall j\,.
+\end{equation}
+This is an equality-constrained least-squares problem, which is simpler than a quadratic program and can be solved using Lagrange multipliers and inverting a linear system. Specifically, one introduces vector $\beta \in \mathbb{R}^M$ and solves the $(M+1) \times (M+1)$ linear system $Au = v$, where
+\begin{equation}
+    A=\begin{pmatrix}
+       0 & \OnesVec^\intercal/\sqrt{M}\\
+       \OnesVec/\sqrt{M} & K/M + \gamma^{-1}I 
+    \end{pmatrix}, \qquad 
+    u = \begin{pmatrix}
+        b \\
+        \beta
+    \end{pmatrix}, \qquad 
+    v =\frac{1}{\sqrt{M}}\begin{pmatrix}
+        0 \\
+        y
+    \end{pmatrix}
+\end{equation}
+with $K$ the kernel matrix for which $K_{ij} = \langle x_i, x_j \rangle$, $\OnesVec$ the all-ones vector, and $I$ the identity matrix. The vector $w$ is inferred from $\beta$ via the formula $w = \sum_j \beta_j x_j/\sqrt{M}$.
+
+However, unlike the first two formulations, the least-squares formulation does not generally have sparse solution vectors $(w,b)$ (see \cite{suykens2002SVMsparse}). Additionally, its solution can be qualitatively different, due to the fact that correctly classified data points can lead to negative $\xi_j$ that apply penalties to the objective function through the appearance of $\nrm{\xi}^2$.  
+
+
+\subparagraph{Dominant resource cost:} 
+The hard-margin and soft-margin formulations of SVM are quadratic programs, which can be mapped to \hyperref[appl:ConicProgramming]{second-order cone programs} and solved with \hyperref[prim:QIPM]{quantum interior point methods} (QIPMs). This solution was proposed in \cite{kerenidis2019QAlgsSecondOrderConeSVM}, and, assuming access to log-depth \hyperref[prim:QRAM]{QRAM} it can find $\epsilon$-accurate estimates for the solution $(w,b)$ in time scaling as $\bigOt{M^{0.5}(M+N)\kappa_{\rm IPM}\zeta\log(1/\epsilon)/\xi'}$, where $\kappa_{\rm IPM}$, $\zeta$, and $\xi'$ are instance-specific parameters related to the QIPM. This compares to $\bigO{M^{0.5}(M+N)^{3}\log(1/\epsilon)}$ for naively implemented classical interior point methods. In \cite{kerenidis2019QAlgsSecondOrderConeSVM}, numerical simulations on random SVM instances were performed to compute these instance-specific parameters, and the results were consistent with a small polynomial speedup. However, the resource estimate of \cite{dalzell2022socp} for a related problem suggests a practical advantage may be difficult to realize with this approach.
+
+The least-squares formulation can be solved directly with the \hyperref[prim:QuantumLinearSystemSolvers]{quantum linear system solver} (QLSS), as pursued in \cite{rebentrost2014QSVM}. This can be compared to classically solving the linear system via Gaussian elimination, with cost $\bigO{M^3}$. The QLSS requires the ability to prepare the state $\ket{v}$, which can be accomplished in $\bigO{\log(M)}$ depth through methods for \hyperref[prim:StatePrepData]{preparation of states from classical data}, although requiring $\bigO{M}$ total gates and ancilla qubits. One also needs a block-encoding of the matrix $A$. One method is through \hyperref[prim:BlockEncodingsClassical]{block-encodings from classical data}, which requires classical precomputation of the $\bigO{M^2}$ entries of $K$ (incurring classical cost $\bigO{M^2N}$) and producing a block-encoding with normalization factor $\alpha = \nrm{A}_F$ (Frobenius norm). Henceforth we assume that $\nrm{x_j} \leq 1$ for all $j$, which can always be achieved by scaling down the training data (inducing a scaling up of $w$ and $\sqrt{\gamma}$ by an equal factor). This implies $\nrm{K/M}_F \leq 1$ and hence $\nrm{A}_F \leq \sqrt{2}+1+\sqrt{M}\gamma^{-1}$. A better block-encoding can be obtained by block-encoding $K/M$ via the method for Gram matrices\footnote{We sketch a possible instantiation of this method here. Define $\ket{x_i} = \nrm{x_i}^{-1} \sum_{k=1}^M x_{ik}\ket{k}$ where $x_{ik}$ is the $k$th entry of $x_i$. Suppose $M=2^m$ is a power of 2. Following the setup in \hyperref[prim:BlockEncodings]{block-encodings} and \cite[Lemma 47]{gilyen2018QSingValTransf}, we must define sets of $M$ orthonormal states $\{\ket{\psi_i}\}$ and $\{\ket{\phi_j}\}$. We choose $\ket{\psi_i} = (\nrm{x_i}\ket{x_i} + \sqrt{1-\nrm{x_i}^2}\ket{M+1})(H^{\otimes m} \ket{i})\ket{0^m}$, where $H$ denotes the Hadamard transform.  We choose $\ket{\phi_j} = (\nrm{x_j}\ket{x_j} + \sqrt{1-\nrm{x_j}^2}\ket{M+2})\ket{0^m}(H^{\otimes m}\ket{j})$. These states can be prepared in $\bigO{\log(M)}$ depth using $\bigO{M}$ total gates and ancilla qubits with methods for controlled \hyperref[prim:StatePrepData]{state preparation from classical data}. It can be verified that these sets are orthonormal, and that $\braket{\psi_i}{\phi_j} = \langle x_i, x_j \rangle/M$. Hence, the Gram matrix construction yields a block-encoding of $K/M$ with normalization factor 1.} and $\gamma^{-1}I$ via the trivial method, and then combining these with the rest of $A$ via \hyperref[prim:LCU]{linear combination of block-encodings}. This avoids the need to classically calculate the inner products $\langle x_i, x_j \rangle$, and has a better normalization $\alpha \leq \sqrt{2} + 1+\gamma^{-1}$.
+
+Given these constructions, the QLSS outputs the state $\ket{u} = (b\ket{0} + \sum_{j=1}^M \beta_j \ket{j})/\sqrt{b^2+\nrm{\beta}^2}$; the cost is $\smash{\bigOt{\alpha \kappa_A/ \nrm{A}}}$, where $\kappa_A$ is the condition number of $A$. We may assert that $\nrm{A} \geq 1$. This follows by noting that the lower right block of $A$ is positive semidefinite, and that 1 is an eigenvalue of $A$ when the lower-right block is set to zero. The condition number should be upper bounded by an $M$-independent function of $\gamma$ due to the appearance of the regularizing $\gamma^{-1}I$. 
+
+Reading out all $M+1$ entries of $\ket{u}$ via \hyperref[prim:Tomography]{tomography} would multiply the cost by $\Omega(M)$. However, in \cite{rebentrost2014QSVM}, it was observed that to classify a test point $x_*$ via Eq.~\eqref{eq:SVM_classify}, one can use \hyperref[prim:AmpEst]{overlap estimation} rather than classically learning the solution vector. In our notation and normalization, this can be carried out as follows. Let $\ket{x_j}:=\sum_{i=1}^M x_{ji} \ket{i}/\nrm{x_j}$, with $x_{ji}$ denoting the $i$th entry of the vector $x_j$. Starting with $\ket{u}$, we prepare $\ket{x_j}$ into an ancilla register, using methods for controlled \hyperref[prim:StatePrepData]{state preparation from classical data}, forming
+\begin{equation}
+    \ket{\tilde{u}} = \frac{b\ket{0}\ket{0} + \sum_{j=1}^M \beta_j \ket{j}\left(\nrm{x_j}\ket{x_j} + \sqrt{1-\nrm{x_j}^2}\ket{M+1}\right)}{\sqrt{b^2+\nrm{\beta}^2}}\,.
+\end{equation}
+One also creates a reference state $\ket{\tilde{x}_*}$ encoding $x_*$, defined as
+\begin{equation}
+\ket{\tilde{x}_*} = \frac{1}{\sqrt{2}}\ket{0}\ket{0} + \frac{1}{\sqrt{2M}}\sum_{j=1}^M \ket{j}\left(\nrm{x_*}\ket{x_*} + \sqrt{1-\nrm{x_*}^2 }\ket{M+2}\right)\,.
+\end{equation}
+The right-hand side of Eq.~\eqref{eq:SVM_classify} is then given by $\sqrt{2}\sqrt{b^2+\nrm{\beta}^2}\braket{\tilde{u}}{\tilde{x}_*}$. Thus, the overlap $\braket{\tilde{u}}{\tilde{x}_*}$ must be estimated to precision $\epsilon = 1/\sqrt{2(b^2+\nrm{\beta}^2)}$ in order to distinguish $\pm 1$ and classify $x_*$. Additionally, the norm $\nrm{u} = \sqrt{b^2 + \nrm{\beta}^2}$ must be calculated; this can separately be done to relative error $\epsilon'$ at cost $\bigOt{\alpha \kappa_A/\epsilon'}$ (see \hyperref[prim:QuantumLinearSystemSolvers]{QLSS}). We may also note that as $u = A^{-1}v$ and $\nrm{v}=1$, we have $\nrm{u} \leq \kappa_A/\nrm{A}$. Thus, the overall circuit depth required to classify $x_*$ is 
+\begin{equation}
+    \bigOt{\frac{\alpha \kappa_A^2}{ \nrm{A}^2}} \,.
+\end{equation}
+There is no explicit $\mathrm{poly}(N,M)$ dependence. However, for certain data sets and parameter choices, such dependence could be hidden in $\kappa_A$ or $\alpha$, making an apples-to-apples comparison with Gaussian elimination less clear.
+
+Furthermore, this task has been dequantized under the assumption of SQ access \cite{ding2019QInsSVM,chia2019SampdSubLinLowRankFramework,Shao2022FQILSS}. In time scaling as $\mathrm{poly}(\nrm{A}_F, \epsilon^{-1}, \log(NM))$, one can classically sample from the solution vector $\ket{u}$ to error $\epsilon$, and furthermore, given sample access, one can estimate inner products $\braket{\tilde{u}}{\tilde{v}}$ in time $\bigO{1/\epsilon^2}$ \cite{tang2018QuantumInspiredRecommSys}. However, the cost can be reduced through a trick that is analogous to how the quantum algorithm can block-encode the $\gamma^{-1}I$ part of $A$ separately to avoid the dependence on a large $\nrm{A}_F$. In particular, \cite[Corollary 6.18]{chia2019SampdSubLinLowRankFramework} gives a classical complexity that would be polynomially related to the quantum complexity above under appropriate matching of parameters, but the power of this polynomial speedup could still be significant.
+ In any case, such a speedup crucially requires log-depth QRAM access to the training data, which requires total gate complexity $\Omega(NM)$ and $\bigO{NM}$ ancilla qubits. 
+
+
+
+
+\subsubsection*{Example 3: Supervised cluster assignment}
+
+
+\subparagraph{Actual end-to-end problem:}
+Suppose we are given access to a vector $x\in\mathbb{C}^N$ and a set of $M$ samples $\{y_j\in \mathbb{C}^N\}_{j=1,\ldots,M}$. We want to estimate the distance between $x$ and the centroid of the set $\{y_j\}$ to judge whether $x$ was drawn from the same set as $\{ y_j\}$. If we have multiple sets $\{y_j\}$, we can infer that $x$ belongs to the one for which the distance is shortest; as a result, this is also called the ``nearest-centroid problem.'' Specifically, the computational task is to estimate  $\lVert x-\frac{1}{M}Y \OnesVec \rVert$ to additive constant error $\epsilon$ with probability $1-\delta$, where $Y\in \mathbb{C}^{N\times M}$ is the matrix whose columns are $y_j$, and $\OnesVec$ is the vector of $M$ ones---the vector $Y\OnesVec/M$ is the centroid of the set. 
+
+
+\subparagraph{Dominant resource cost:} Naively computing the centroid incurs classical cost $\bigO{NM}$. In \cite{lloyd2013quantum}, a quantum solution to this problem was proposed. Let $\bar{x}=x/\lVert x\rVert$
+and let $\bar{Y}$ be normalized  so that all columns have unit norm. Define $N \times (M+1)$ matrix $R$ and length-$(M+1)$ vector $w$ as follows:
+\begin{align}
+    R=\begin{pmatrix}\bar{x} & \bar{Y}/\sqrt{M}\end{pmatrix}, \qquad
+    w = \begin{pmatrix} \lVert x \rVert \\
+    -1_Y/\sqrt{M}\end{pmatrix}\,,
+\end{align} 
+where $1_Y$ is the length-$M$ vector containing the norms of the columns of $Y$, defined such that $\bar{Y}1_Y=Y\OnesVec$. Then, $Rw=x-\frac{1}{M} Y\OnesVec$. Using methods for \hyperref[prim:BlockEncodingsClassical]{block-encoding} and \hyperref[prim:StatePrepData]{state preparation} from classical data, one constructs $\bigO{\log(NM)}$-depth circuits that block-encode $R$ (with normalization factor $\nrm{R}_F = 2$) and prepare the state $\ket{w}$. If we apply the block-encoding of $R$ to $\ket{w}$ and measure the block-encoding ancillas, the probability that we obtain $\ket{0}$ is precisely $(\nrm{Rw}/2\nrm{w})^2$. Thus, using \hyperref[prim:AmpEst]{amplitude estimation}, one learns $\nrm{Rw}$ to precision $\epsilon$ with probability at least $1-\delta$ at cost $\bigO{\nrm{w}\log(1-\delta)/\epsilon}$ calls to the log-depth block-encoding and state preparation routines. 
+
+The advantage over naive classical methods essentially boils down to the assumption of efficient \hyperref[prim:StatePrepData]{classical data loading} for a specific data set. Subsequently, this quantum algorithm was dequantized, and it was understood that a similar feat is possible classically in the SQ access model \cite{tang2018QInspiredClassAlgPCA}. Specifically, the classical algorithm runs in time $\bigOt{\nrm{w}^2\log(1-\delta)/\epsilon^2}$, reducing the exponential speedup to merely quadratic.  
+
+
+
+\subsubsection*{Caveats}
+
+The overwhelming caveat in these and other proposals is access to the classical data in quantum superposition. These quantum machine learning algorithms assume that we can load a vector of $N$ entries or a matrix of $N^2$ entries in $\mathrm{polylog}(N)$ time. While efficient quantum data structures, i.e.~\hyperref[prim:QRAM]{QRAM}, have been proposed for this task, they introduce a number of caveats. In order to coherently load $N$ pieces of data in $\log(N)$ time, QRAM uses a number of ancilla qubits, arranged in a tree structure. To load data of size $N$, the QRAM data structure requires $\bigO{N}$ qubits, which is exponentially larger than the $\bigO{\log(N)}$ data qubits used in the algorithms above. This spatial complexity does not yet include the overheads of \hyperref[prim:FTQC]{quantum error correction and fault-tolerant computation}, in particular the large spatial resources required to \hyperref[prim:LatticeSurgery]{distill magic states} in parallel. As such, we do not yet know if it is possible to build a QRAM that can load the data sufficiently quickly, while maintaining moderate spatial resources.
+
+In addition, achieving speedups by efficiently representing the data as a quantum state may suggest that methods based on tensor networks could achieve similar performance, in some settings.
+Taking this line of reasoning to the extreme, a number of efficient classical algorithms have been developed by ``dequantizing" the quantum algorithms. That is, by assuming an analogous access model (the SQ access model) to the training data, as well as some assumptions on sparsity and/or rank of the inputs, there exist approximate classical sampling algorithms with polynomial overhead as compared to the quantum algorithms \cite{tang2018QInspiredClassAlgPCA,tang2018QuantumInspiredRecommSys}. This means that any apparent exponential speedup must be an artifact of the data loading/data access assumptions. 
+
+
+A further caveat is inherited from the \hyperref[prim:QuantumLinearSystemSolvers]{QLSS} subroutine, which is that the complexity is large when the matrices involved are ill conditioned. This caveat is somewhat mitigated in the Gaussian process regression and support vector machine examples above, where the matrix to be inverted is regularized by adding the identity matrix.
+
+\subsubsection*{End-to-end resource analysis}
+To the best of our knowledge, full end-to-end resource estimation has not been performed for any specific quantum machine learning tasks. 
+
+\subsubsection*{Outlook}
+
+Much of the promise of quantum speedup for classical machine learning based on linear algebra hinges on the extent to which quantum algorithms can be dequantized. 
+At present, the results of  \cite{tang2018QInspiredClassAlgPCA} seem to prohibit an exponential speedup for many of the problems proposed, but there is still the possibility of a large polynomial speedup. The most recent asymptotic scaling analysis \cite{chia2022sampling} for dequantization methods still allows for a power $4$ speedup  in the Frobenius norm of the ``data matrix'' and a power 9 speedup  in the polynomial approximation degree (see~\cite{bakshi2023improved} for more details). However, the classical algorithms are steadily improving, and their scaling might be further reduced.
+
+It is also worth noting that the classical probabilistic algorithms based on the SQ access model are not currently used in practice. This could be due to a number of reasons, including the poor polynomial scaling, the fact that the access model might not be well suited to many practical scenarios, or simply because the method is new and has not been tested in practice (see \cite{arrazola2019QInspiredInPractice,chepurko2022quantumInspiredRandomized} for some work in this direction).
+
+On the other hand, some machine learning tasks based on quantum linear algebra are not known to be dequantized, such as Gaussian process regression under the assumption that the kernel matrix is sparse. In particular, avoiding dequantization and achieving an exponential quantum speedup appears to require that the matrices involved are simultaneously sparse, well conditioned, and have a large Frobenius norm. In this situation, quantum algorithm can leverage \hyperref[prim:BlockEncodings]{block-encodings} for which the normalization factor is equal to the sparsity, rather than \hyperref[prim:BlockEncodingsClassical]{general block-encodings of classical data} for which the normalization factor is the Frobenius norm. Quantum-inspired classical algorithms based on SQ access will still scale polynomially with the Frobenius norm, although other classical algorithms may be able to exploit the sparsity more directly. Perhaps unsurprisingly, the prototypical matrices that satisfy these criteria are sparse unitary matrices (such as those naturally implemented by a local quantum gate). For unitary matrices, the condition number is 1,  and the Frobenius norm is equal to the square root of the Hilbert space dimension---exponentially large in the system size. A central question is whether situations like this occur in interesting end-to-end machine learning problems. Even if they do, an exponential speedup is not guaranteed. An additional hurdle arises in the quantum readout step, which incurs a cost scaling as the inverse in the precision target. To avoid exponential overhead, the end-to-end problem must not require exponentially small precision. 
+
+
+
+\subsubsection{Further reading}
+For further reading, we recommend the following review articles and references therein: Machine learning with quantum computers \cite{schuld2021machineLearning}, Quantum machine learning  \cite{biamonte2016QuantumMachineLearning}.
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+\end{refsection}
+
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{refsection}
+
+\subsection{Quantum machine learning via energy-based models}
+\extramarks{}{Quantum ML via energy-based models}\label{appl:EnergyBasedML}
+
+
+\subsubsection*{Overview}
+An important class of models in machine learning are \textit{energy-based models}, which are heavily inspired by statistical mechanics. The goal of energy-based models is to train a physical model (i.e., tune the interaction strengths between a set of particles) such that the model closely matches the training set when the model is in thermal equilibrium (made more precise below). Energy-based models are an example of \textit{generative} models since, once they are trained, they can then be used to form new examples that are similar to the training set by sampling from the model's thermal distribution. 
+
+Due to their deep connection to physics, energy-based models are prime candidates for various forms of quantization. However, one challenge faced by quantum approaches is that the statistical mechanical nature of the learning problem also often lends itself to efficient, approximate classical methods. As a result, the best quantum algorithms may also be heuristic in nature, which prevents an end-to-end complexity analysis.
+While energy-based models are less widely used than deep neural networks today, they were an important conceptual development in machine learning \cite{salakhutdinov2010efficient} and continue to foster interest due to their sound theoretical basis, and their connection to statistical mechanics. 
+
+
+There are a number of proposals for generalizing energy-based models to quantum machine learning. The starting point is a graph where the vertices are divided into \textit{visible} $\{v\}$ and \textit{hidden} $\{h\}$ nodes. When each node is assigned a value in some discrete or continuous set, this constitutes a ``configuration'' $(h,v)$ of the model. A training set $\mathcal{D}$ is provided as input, containing a list of configurations of the visible vertices. The hidden nodes are not part of the training set, but including them is essential for the model to be able to capture latent variables in the data.
+
+A graphical model is then built on the vertices---each vertex is a physical system (such as a spin-$1/2$ particle) and edges between vertices represent physical interactions. The model is described by an energy functional $H(h,v)$, which assigns an energy value to each possible configuration $(h,v)$ of the vertices.  For example, in Boltzmann machines (BMs), the vertices are assigned binary variables, and the interactions are Ising interactions. The model can be used to generate samples (e.g., via Markov chain Monte Carlo methods) from the thermal distribution (also known as the Boltzmann distribution or the Gibbs distribution) at unit temperature, that is, the distribution where each configuration $(h,v)$ is sampled with probability proportional to $e^{-H(h,v)}$. In unsupervised learning tasks, provided a set of training samples of configurations of the visible units $v$, the goal is to tune the interaction weights of the model such that the model's thermal distribution best matches the distribution that generated the training set. 
+
+Quantum algorithms can potentially be helpful for training classical graphical models. One can also generalize the model itself by allowing the physical systems on each vertex to be quantum, and interactions between systems to be noncommuting. 
+
+\subsubsection*{Actual end-to-end problem(s) solved}
+
+
+\subparagraph{Classical graphical models.} Let $G = (V,E)$ denote a graph with vertices $V$ and edges $E$. For classical models, each vertex $j$ is assigned a binary variable $z_j = \pm 1$. The variables are split into visible and hidden nodes,  $z \in \{v\} \cup \{h\}$. For classical BMs, the energy functional is often taken to be quadratic\footnote{This quadratic energy functional is related to the Sherrington--Kirkpatrick (SK) model \cite{sherrington1975solvable} with an external field, which is a model for spin glasses in the statistical mechanics literature. For the SK model, the couplings $w_{ij}$ are chosen randomly for each pair of nodes, and it is typically computationally hard to find configurations with optimal energy (see the section on \hyperref[appl:BeyondGrover]{beyond quadratic speedups} in combinatorial optimization for some additional information).} with weights $\{b_i,w_{ij}\}$:
+\begin{equation}\label{eq:EBM_energy}
+    H(z)= \sum_{i\in V} b_i z_i+\sum_{(i,j)\in E}w_{ij} z_iz_j. 
+\end{equation}
+Note that interactions can occur between any pair of nodes (hidden or visible). 
+In the special case of a restricted Boltzmann machine (RBM), each edge must pair up a hidden node with a visible node (i.e.,~the graph is bipartite), which can cause simplifications to certain training approaches. 
+
+The thermal distribution corresponding to the energy functional (at unit temperature) associates each configuration $v$ of visible nodes with a probability $p(v)$ such that
+\begin{equation}
+    p(v) = \sum_h p(h,v), \qquad p(h,v) = \frac{e^{-H(h,v)}}{Z}, \qquad Z = \sum_{h,v} e^{-H(h,v)} 
+\end{equation}
+where $Z$, the partition function, is the normalization to ensure probabilities sum to 1. Even though hidden nodes are integrated out in the calculation of $p(v)$, they impact the distribution of $p(v)$ through their interactions with the visible nodes. 
+
+Given a training set $\mathcal{D} = \{v_1,v_2,\ldots,v_{\lvert \mathcal{D} \rvert}\}$ of sample configurations of the visible nodes, the goal of the training phase is to modify the weights $\theta \in \{b_i\} \cup \{w_{ij}\}$ 
+ such that samples from the thermal distribution of the model most closely match the training samples. Ideally, this is done by finding the set of weights that maximizes the likelihood of observing the samples, i.e.~$\prod_{v\in \mathcal{D}} p(v)$, or, equivalently, minimizing the (normalized) log-likelihood loss function, defined as
+\begin{equation} L(b,w)=-\frac{1}{\lvert \mathcal{D} \rvert }\sum_{v\in\mathcal{D}} \log(p(v)) \,.
+\end{equation} 
+The loss function can be minimized using some variant of gradient descent, which requires the evaluation of the derivatives $\partial_{\theta}L$ for $\theta \in \{b_i\} \cup \{w_{ij}\}$. For the energy functional above, these derivatives can be readily calculated from ensemble averages (see, e.g., \cite{wiebe2014quantum}). For example, 
+\begin{equation}\label{eq:EBM_gradient}
+    \frac{\partial L}{\partial w_{ij}} = \langle z_iz_j \rangle_{v \in \mathcal{D}} - \langle z_iz_j \rangle
+\end{equation}
+where $\langle \cdot \rangle$ denotes an average over samples from the thermal distribution $p(h,v)$, while $\langle \cdot \rangle_{v \in \mathcal{D}}$ denotes an average where $v$ is drawn at random from the training set $\mathcal{D}$, and $h$ is sampled from the thermal distribution conditioned on that choice of $v$. 
+Without any further restrictions, the gradients will typically be difficult to evaluate, or estimate accurately. An exact computation requires computing a sum over the exponential number of configurations of the vertices. 
+
+
+In some cases, good estimates of the gradients can be obtained by repeatedly drawing samples from the thermal distribution and computing averages. Samples can be generated with Markov chain Monte Carlo (MCMC) methods such as Metropolis sampling or simulated annealing; however, the time required to sample from a distribution close to the thermal distribution depends on the mixing time of the Markov chain, which is generally unknown and can also be exponential in the graph size. Additionally, many samples need to be generated to produce a robust average, with precision $\epsilon$ requiring $\bigO{1/\epsilon^2}$ samples. Approximate classical methods, such as contrastive divergence \cite{hinton2002contrastiveDivergence}, avoid this issue by initializing the Markov chain at one of the training samples and deliberately taking a small number of steps---this does not exactly correspond to optimizing the log-likelihood but in some cases has empirical success \cite{schuld2021machineLearning}.  
+Once the model has been trained, new samples can also be generated via the same MCMC methods. The end-to-end tasks are (i) training the model, and then, (ii)  generating samples from the trained model to accomplish some larger machine learning goal.
+
+\subparagraph{Quantum graphical models.} A separate end-to-end problem is found by generalizing the model itself to be quantum. For example, one can start with a classical BM and promote the binary variables to qubits. The energy functional is promoted to a quantum Hamiltonian and augmented with a transverse field, which does not commute with the Ising interactions.
+The result is a quantum Boltzmann machine (QBM), described by a transverse-field Ising (TFI) Hamiltonian \cite{amin2016QBoltzMachine}: 
+\begin{equation}\label{eq:QBM_energy}
+    H_{\rm QBM}= -\sum_{i\in V}(\kappa_i X_i +b_i Z_i) -\sum_{(i,j)\in E} w_{ij} Z_i Z_j,
+\end{equation}
+where $X_i$ and $Z_i$ are the Pauli-$X$ and Pauli-$Z$ operators on qubit $i$, and $b_i, \kappa_i, w_{ij}$ are real variational parameters of the model. 
+The ground or Gibbs state of $H_{\rm QBM}$ can be prepared in a variety of ways, including: \hyperref[prim:QuantumAdiabaticAlgorithm]{the adiabatic algorithm}, \hyperref[prim:HamiltonianSimulation]{Hamiltonian simulation}, \hyperref[prim:GibbsSampling]{Gibbs sampling} or as a \hyperref[prim:VQA]{variational quantum algorithm}. These states can be measured (in the $Z$ basis or in the $X$ basis), yielding samples of the variables $v,h$ drawn from different distributions than the thermal distribution for the classical BM. 
+As in the classical case, the training phase for a QBM consists of varying the weights via gradient descent to maximize a likelihood function. However, the noncommutativity of the Hamiltonian leads to complications: the gradients of the loss function are no longer directly given by sample expectation values, although workarounds have been proposed \cite{amin2016QBoltzMachine,kieferova2016tomographyTrainQBoltzMachine,wiebe2019generativeQBM,anschuetz2019realizing,zoufal2021variationalQBM}. The end-to-end problem is to train these models and generate samples. 
+
+
+
+\subsubsection*{Dominant resource cost/complexity}
+ 
+\subparagraph{Complexity of classical graphical models.}
+Recall that for classical BMs, one wishes to produce samples from the thermal distribution corresponding to the energy functional in Eq.~\eqref{eq:EBM_energy}, i.e.~\hyperref[prim:GibbsSampling]{Gibbs sampling} (of diagonal Hamiltonians), either to assist in training the model or,  if it has already been trained, to make inferences or generate new data. Specifically, given $H(h,v)$, one wishes to draw samples of $(h,v)$ with probability proportional to $e^{-H(h,v)}$, either with $v$ free or with $v$ fixed (sometimes referred to as ``clamped'') to a particular value from the training set $\mathcal{D}$. Classically, one approach is simulated annealing or other MCMC algorithms. Quantumly, one can take one of several analogous approaches, including ``quantum simulated annealing'' \cite{somma2007QuantumSimulatedAnnealing} and quantum annealing, discussed as follows. 
+
+For quantum simulated annealing, one prepares the coherent Gibbs state $\sum_{v,h} \sqrt{p(h,v)}\ket{v,h}$, and a quadratic speedup is obtained over classical simulated annealing. The method is to construct a Hamiltonian whose ground state is the coherent Gibbs state at temperature $T$ (for which probabilities are proportional to $e^{-H(h,v)/T}$, and follow an \hyperref[prim:QuantumAdiabaticAlgorithm]{adiabatic path} from $T=\infty$ to $T=1$. Following the path is accomplished by repeatedly performing \hyperref[prim:QPE]{quantum phase estimation} (QPE) to project onto the ground state of the Hamiltonian at a given temperature. As is typical for the \hyperref[prim:QuantumAdiabaticAlgorithm]{adiabatic algorithm}, the cost of this procedure is dominated by the inverse of the spectral gap---this is the precision required for QPE to succeed. Specifically, for a graphical model with $|V|$ vertices, the runtime will be $\mathrm{poly}(|V|)/\Delta$, where $\Delta$ is the minimum spectral gap. Importantly, $\Delta$ can be related to the maximum mixing time $t_{\rm mix}$ of the simulated annealing Markov chain, as $1/\Delta = \bigO{\sqrt{t_{\rm mix}}}$, which leads to the quadratic speedup, although it is possible that $\Delta$ is exponentially small in $|V|$. 
+
+An alternative method for preparing (and sampling from) the coherent Gibbs state was proposed in \cite{wiebe2014quantum}. There, one begins in an easy-to-prepare coherent mean-field state approximating the coherent Gibbs state. Then, one performs rejection sampling with \hyperref[prim:AmpAmp]{amplitude amplification} to gain a quadratic speedup over the analogous classical method. Additionally, it was proposed to use \hyperref[prim:AmpEst]{amplitude estimation} to gain a quadratic improvement in the number of samples needed to achieve precision $\epsilon$, from $\bigO{1/\epsilon^2}$ to $\bigO{1/\epsilon}$, mirroring later analyses that work for general Monte Carlo methods \cite{montanaro2015QMonteCarlo}. If these $\bigO{1/\epsilon}$ quantum samples are each for the same training sample $v \in \mathcal{D}$, this is straightforward; however, if the samples are drawn randomly from $v \in \mathcal{D}$, achieving the quadratic speedup from amplitude estimation requires accessing the data in $\mathcal{D}$ coherently and quickly. Such data access is provided by the \hyperref[prim:QRAM]{quantum random access memory} (QRAM) primitive, for which the circuit \textit{depth} can be logarithmic in the size of the training data, at the expense of a number of ancilla qubits (and total gates) that is linear in the size of the training data.
+
+For quantum annealing, the idea is to add a uniform transverse field, as in the QBM of Eq.~\eqref{eq:QBM_energy} with $\kappa_i=\kappa_j$ for all $i,j$. The transverse field is initially strong, and slowly turned off. This is similar to the \hyperref[prim:QuantumAdiabaticAlgorithm]{adiabatic algorithm}, but differs in that it is specifically carried out at finite ambient temperature. Thus, the system-bath interaction of the device naturally drives the state to the Gibbs state, which coincides with the classical thermal distribution once the transverse field is turned off. This is a heuristic method; it is efficient but there are few success guarantees. The hope is that the inclusion of an initial transverse field induces nonclassical fluctuations that help the system avoid becoming trapped in local minima as the transverse field is turned off.
+
+Overall, computing the gradient of the loss function with respect to one parameter, up to precision $\epsilon$, will require complexity $\bigO{ S/\epsilon}$,
+where $S$ is the complexity of sampling from the Gibbs state. The above assumes log-depth QRAM to be able to estimate the $\langle z_i z_j \rangle_{v \in \mathcal{D}}$ term of Eq.~\eqref{eq:EBM_gradient}. The complexity of $S$ will be $\mathrm{poly}(|V|)\sqrt{t_{\rm mix}}$ if a quantum simulated annealing approach is used, or some hard-to-analyze quantity if the quantum annealing approach is used. If the number of training samples is small, one can also sequentially compute the sum over $v \in \mathcal{D}$ and avoid the assumption of log-depth QRAM, leading to complexity $\bigO{S\lvert \mathcal{D} \rvert/\epsilon'}$ (where $\epsilon' \geq \epsilon$ may be order-1). This must be carried out for all $|E|+|V|$ weights in the model, although these could be simultaneously estimated to precision $\epsilon$ at cost $\tilde{\mathcal{O}}(\sqrt{|E|+|V|}/\epsilon)$ samples, using methods from \cite{huggins2022ExpectationValue}, which leverage the \hyperref[prim:GradientEstimation]{quantum gradient estimation} primitive. 
+It is not clear what value of $\epsilon$ is required in practice. Reference \cite{wiebe2014quantum} takes $\epsilon \sim 1/\sqrt{\lvert \mathcal{D} \rvert}$, to match the natural uncertainty coming from a finite number of training samples. In this case, the overall complexity is dominated by
+\begin{equation}
+    \bigOt{S \cdot \sqrt{|V|+|E|} \cdot \sqrt{|\mathcal{D}|} }
+\end{equation}
+assuming log-depth QRAM, and 
+\begin{equation}
+    \bigOt{S \cdot \sqrt{|V|+|E|} \cdot |\mathcal{D}| }
+\end{equation}
+without log-depth QRAM (the precision for each training sample can be taken $\epsilon' = \bigO{1}$).
+
+\subparagraph{Complexity of quantum graphical models.}
+For QBMs, the dominant cost is producing samples from the quantum Gibbs state  of Eq.~\eqref{eq:QBM_energy}, i.e.~the state $\rho \propto e^{-H_{\rm QBM}}$, which can be accomplished through methods for \hyperref[prim:GibbsSampling]{Gibbs sampling}. Rigorous methods for Gibbs sampling may scale exponentially in the size of the graph, without further assumptions. Such scaling would likely not be tolerable in practice. However, Monte Carlo--style methods for Gibbs sampling, which follow a similar approach as MCMC, but in an inherently quantum way, may be more effective in this case. These could have $\mathrm{poly}(|V|)$ scaling for some parameter settings, but must also have exponential scaling in the worst case, as sampling low-energy Ising-model configurations is known to be NP-hard. 
+
+One can also heuristically apply quantum annealing, beginning from a large transverse field and reducing its strength slowly to some final nonzero value. However, some hardware platforms may only admit global control over the transverse field, preventing one from tuning the transverse field strengths $\kappa_i$ individually. In any of these approaches, it is difficult to make any rigorous statements about the Gibbs sampling complexity.
+
+
+\subsubsection*{Existing error corrected resource estimates}
+There are no error-corrected estimates for annealing. However, \cite{adachi2015application, benedetti2017quantum} discuss in detail how to embed the fully connected architecture of a RBM into the 2D lattice architecture available on planar quantum annealers.  Reference~\cite{benedetti2017quantum} reports an embedding ratio scaling which is roughly quadratic---that is, a graphical model with $|V|$ vertices requires $\bigO{|V|^2}$ qubits to accommodate the architectural limitations of the device.
+A proper fault-tolerant resource estimation has not been performed for the fault-tolerant algorithm of  \cite{wiebe2014quantum}.
+
+\subsubsection*{Caveats}
+There are two main caveats to quantum approaches to training classical models, which apply to both the annealing and to the fault-tolerant setting. (i) Classical heuristic algorithms, such as greedy methods or contrastive divergence, often perform well in practice and are the method of choice for existing classical analyses. These methods are also often highly parallelizable.  If the quantum algorithm offers a speedup over a slower, exact classical method, this may not be relevant if the faster approximate classical methods are already sufficient. (ii) The situations where one might hope for the heuristic quantum annealing approach to perform better might not be relevant problems, for instance in highly regular lattice based problems. 
+
+A caveat of the QBM is that the gradients of the loss function are not exactly related to sample averages, and imperfect workarounds, such as those proposed in \cite{amin2016QBoltzMachine}, must be pursued. Like many other situations in machine learning, the resulting end-to-end solution is heuristic and evidence of its efficacy requires empirical demonstration. 
+
+\subsubsection*{Comparable classical complexity and challenging instance sizes}
+
+For classical models, an exact computation of the gradients would scale exponentially in the size of the graph, as $\bigO{|\mathcal{D}|2^{|V|}}$ for the gradient of a single parameter. Approximate methods based on simulated annealing or other MCMC methods would scale as $\bigO{S_c/\epsilon^2}$, where $S_c$ is the classical sample time, scaling as $S_c = \mathrm{poly}(|V|)t_{\rm mix}$. On the other hand, these methods can also be implemented heuristically at reduced cost (e.g., contrastive divergence, where one does not wait for the chain to mix), and they can also be implemented on parallel architectures. For instance, in \cite{kim2010largeScaleRBM}, an architecture was proposed to train deep BMs efficiently. Experiments demonstrated that heuristic training methods could be carried out for graphs of size 1 million in 100 seconds on field-programmable gate arrays available in 2010. Much larger sizes would be accessible to a scaled-up version of the same architecture on modern hardware. It is unlikely that any exact method, quantum or classical, could match this efficiency. 
+
+For the quantum models, the classical complexity of sampling from the Gibbs state of the model would be exponential in the graph size $|V|$. Thus, training these models would likely not be pursued classically. 
+
+
+\subsubsection*{Speedup}
+
+For the classical models, the speedup can be quadratic in most of the parameters: producing a sample can in some cases be sped up quadratically, and the number of samples required to achieve a certain precision also enjoys a quadratic speedup (e.g., $t_{\rm mix}$ to $\sqrt{t_{\rm mix}}$  and $\bigO{1/\epsilon^2}$ to $\bigO{1/\epsilon}$). The methods that give these provable quadratic speedups are based on primitives such as \hyperref[prim:AmpAmp]{amplitude amplification}, where superquadratic speedups are not possible without exploiting additional structure. Larger superpolynomial speedups are only possible under optimistic assumptions about the success of heuristic quantum annealing approaches at producing samples faster than classical approaches. 
+
+For the quantum models, the speedup is technically exponential, assuming that for the models considered, quantum algorithms for Gibbs sampling scale efficiently while approximate classical methods (e.g., tensor networks) scale exponentially. Nevertheless, it has yet to be demonstrated that there are specific tasks where these models are superior to classical machine learning models that can be trained and operated more efficiently classically. 
+
+\subsubsection*{Outlook}
+While energy-based models are naturally in a form that can readily be extended to the quantum domain, there still lacks decisive evidence of quantum advantage for a specific end-to-end classical machine learning problem. There remains some uncertainty on the outlook of these approaches due to the centrality of heuristic quantum approaches. One may hold out hope that these heuristics could outperform classical heuristics in some specific settings, but the success of classical heuristics and effectiveness of approximate classical approaches presents a formidable barrier to achieving any quantum advantage in this area.
+
+\subsubsection*{Further reading}
+
+We refer the reader to \cite{schuld2021machineLearning} for more information on quantum approaches to energy-based models. 
+
+\printbibliography[heading=secbib,segment=\therefsegment]
+\end{refsection}
+
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{refsection}
+
+\subsection{Tensor PCA}\label{appl:TPCA}
+
+
+
+\subsubsection*{Overview}
+Inference problems play an important role in machine learning. One of the most widespread methods is principal component analysis (PCA), a technique that extracts the most significant information from a stream of potentially noisy data. In the special case where the data is generated from a rank-$1$ vector plus Gaussian noise---the spiked matrix model---it is known that there is a phase transition in the signal-to-noise ratio in the large sparse vector limit \cite{hoyle2003pca}. Above the transition point, the principal component can be recovered efficiently, while below the transition point, the principal component cannot be recovered at all. In the tensor extension of the problem, there are two transitions. One information theoretical, below which the principal component cannot be recovered, and another computational, below which the principal component can be recovered, but only inefficiently, and above which it can be recovered efficiently. Thus, the tensor PCA problem offers a much richer mathematical setting, which has connections to optimization and spin glass theory; however, it is yet unclear if the tensor PCA framework has natural practical applications. A quantum algorithm \cite{hastings2020classical} for tensor PCA was proposed which has provable runtime guarantees for the spiked tensor model; it offers a potentially \emph{quartic} speedup over its classical counterpart and also efficiently recovers the signal from the noise at a  smaller signal-to-noise ratio than other classical methods.
+
+
+\subsubsection*{Actual end-to-end problem(s) solved}
+Consider the spiked tensor problem. Let $v\in \mathbb{R}^N$ (or $\in \mathbb{C}^N$)\footnote{Reference \cite{hastings2020classical} provides reductions between real and complex cases.} be an unknown signal vector, and let $p \in \mathbb{N}$ be a positive integer. Construct the tensor 
+\begin{equation}
+T= \lambda v^{\otimes p} + V,
+\end{equation}
+where $V$ is a random tensor in $\mathbb{R}^{p^N}$ (or $\mathbb{C}^{p^N}$), with each entry drawn from a normal distribution with mean zero and variance $1$. The vector $v$ is assumed to have norm $\sum_j v_j^* v_j=\sqrt{N}$, and can be identified with a quantum state. The quantity $\lambda$ is the signal-to-noise ratio. 
+
+The main question we are interested in is for what values of $\lambda$  can we detect or reconstruct  $v$ from (full) access to $T$, and how efficiently can this be done? 
+In~\cite{richard2014statistical}, it was shown that  the maximum likelihood solution $w^{\rm ML}$ to the objective function
+\begin{equation}
+    w^{\rm ML} = \argmax_{w\in \mathbb{C}^n} \langle T, w^{\otimes p}\rangle\,,
+\end{equation}
+will have high correlation with $v$ as long as $\lambda\gg N^{(1-p)/2}$, where $\langle \cdot, \cdot \rangle$ denotes the standard dot product after writing the $N^p$ entries of the tensor as a vector. However, the best known \emph{efficient} classical algorithm \cite{wein2019kikuchi} requires $\lambda\gg N^{-p/4}$ to recover an approximation of $v$. Using the spectral method, i.e., mapping the tensor $T$ to a $N^{p/2} \times N^{p/2}$ matrix and extracting the maximal eigenvalue, recovery can be done in time complexity $\bigO{N^p}$, ignoring logarithmic prefactors. 
+
+
+
+
+
+
+Hastings \cite{hastings2020classical} proposes classical and quantum algorithms to solve the spiked tensor model by first mapping $T$ to a bosonic quantum Hamiltonian with $N$ modes, $n_{\rm bos}$ bosons, and $p$-body interactions, where $n_{\rm{bos}}$ is a tunable integer parameter satisfying $n_{\rm bos} > p/2$
+\begin{equation}
+    H_{\rm PCA}(T) = \frac{1}{2}\left(\sum_{\mu_1,...,\mu_p =1}^{N} T_{\mu_1,...,\mu_p} \left(\prod_{i=1}^{p/2}a^\dag_{\mu_i}\right)\left(\prod_{j=1+p/2}^{p}a_{\mu_j}\right)+ \mathrm{h.c.}\right)\label{eq:hamPCA}.
+\end{equation}
+The operators $a_\mu$ and $a^\dag_\mu$ are annihilation and creation operators of a boson in mode $\mu$, and we restrict to the sector for which $\sum_\mu a^\dag_\mu a_\mu = n_{\rm bos}$.
+
+Hastings shows that the vector $v$ can be efficiently recovered from a vector in the large energy subspace of $H_{\rm PCA}(T)$ when the largest eigenvalue of $H_{\rm PCA}(T)$ 
+is at least a constant factor larger than $E_{\max}$, where $E_{\max}$ corresponds to the case where there is no signal. It is shown that, roughly,  
+\begin{eqnarray}
+E_{\max} &\sim& n_{\rm bos}^{p/4+1/2}N^{p/4}\\
+E_0 &\approx& \lambda (p/2)!\left(\begin{matrix}n_{\rm bos}\\ p/2\end{matrix} \right) N^{p/2} \approx \lambda n_{\rm bos}^{p/2}N^{p/2},
+\end{eqnarray}
+where $E_0$ is the maximum eigenvalue of $H_{\rm PCA}(T)$. Thus, if $\lambda \gg N^{-p/4}$, there will be a gap between $E_0$ and $E_{\max}$, and this gap grows as $n_{\rm bos}$ increases. Compared to other approaches, this method allows for constant-factor improvements on the value of $\lambda$ above which recovery is possible.  
+For a fixed value of $p$, independent of $N$, the new bounds constitute an improvement, when $n_{\rm bos}\gg p/2$. 
+
+Hastings considers the case where $p$ is constant and $N$ grows, and assumes that $n_{\rm bos} = \bigO{N^\theta}$ for some $p$-dependent constant $\theta > 0$ chosen sufficiently small. In fact, ultimately, it is determined that in the recovery regime $\lambda \gg N^{-p/4}$, the parameter $n_{\rm bos}$ need only scale as $\mathrm{polylog}(N)$.  In any case, terms in the complexity $\bigO{N^p}$ are dominated by terms $\bigO{N^{n_{\rm bos}}}$.
+
+
+
+
+\subsubsection*{Dominant resource cost/complexity}
+Hastings shows that the dominant eigenvector can be classically extracted in $\bigOt{N^{n_{\rm bos}}}$ time via the power method, where the tilde indicates that we ignore polylogarithmic factors.
+
+He proposes three quantum algorithms for the same problem. The first runs \hyperref[prim:QPE]{phase estimation} on a random state. Since the random state will have overlap $\Omega(N^{-n_{\rm bos}})$ with the high energy subspace, the expected runtime is $\bigO{N^{n_{\rm bos}}}$. The second algorithm proposes to further use \hyperref[prim:AmpAmp]{amplitude amplification}, reducing the runtime to $\bigO{N^{n_{\rm bos}/2}}$. The third algorithm further improves the runtime by choosing a specific initial high energy state, and showing that the overlap with the state scales as $\Omega(N^{-n_{\rm bos}/2})$, which combined with amplitude amplification, leads to a $\bigO{N^{n_{\rm bos}/4}}$ runtime. As discussed above, the estimates assume that factors of $\bigO{N^p}$ can be ignored, since they are negligible with respect to the query complexity of $N^{\bigO{n_{\rm bos}}}$.
+
+This constitutes a quartic speedup over the classical spectral algorithm acting on $H_{\rm PCA}$ for the same choice of $n_{\rm bos}$ that is also presented in~\cite{hastings2020classical}. Since the ansatz state is a product state, it can be prepared efficiently.
+
+Hastings further argues that the Hamiltonian simulation in the phase estimation subroutine can be done within the sparse access model. In the second-quantized Hamiltonian (Eq.~\eqref{eq:hamPCA}) the occupancy of each mode is limited by $n_{\rm bos}$, defining a cutoff for each register. We need $N \log(n_{\rm bos})$ qubits, leading to a sparse Hamiltonian, since $n_{\rm bos}^N\gg N^{n_{\rm bos}}/n_{\rm bos}!$ for $N\gg n_{\rm bos}$. The tensor $T$ only has dimension $N^p\ll N^{n_{\rm bos}}$. Thus we can use \hyperref[prim:HamiltonianSimulation]{sparse Hamiltonian simulation} or a \hyperref[prim:BlockEncodings]{sparse block-encoding} to perform quantum phase estimation. 
+
+
+
+%
+
+
+
+
+
+\subsubsection*{Caveats}
+The spiked tensor model does not immediately appear to be related to any practical problems. Additionally, efficient recovery requires that the signal-to-noise ratio be rather high, which may not occur in real-world settings (and when it does, it is not clear that formulating the problem as a tensor PCA problem will be the most efficient path forward).  
+
+\subsubsection*{Comparable classical complexity and challenging instance sizes}
+
+The algorithms proposed in \cite{hastings2020classical} improve on other spectral methods for the spiked tensor model, whenever $n_{\rm bos}>p/2$ for sufficiently large $p$. The threshold for which the new algorithms beat the older ones decreases as $n_{\rm bos}$ increases, although the complexity of the algorithm increases with $n_{\rm bos}$. 
+
+
+\subsubsection*{Speedup}
+The quartic speedup over the classical power method is achieved by combining a quadratic speedup from amplitude amplification with a quadratic speedup related to choosing a clever initial state for phase estimation. 
+As discussed above, there is no readout issue, as the vector $v$ can be efficiently recovered from the single particle density matrix obtained from the eigenvector of $H_{\rm PCA}(T)$. The quantum algorithm has $\bigO{N\log(n_{\rm bos})}$ space complexity, which is an exponential improvement over the classical spectral algorithm presented in~\cite{hastings2020classical} for the same problem.
+
+
+\subsubsection*{Outlook}
+The quartic speedup is very compelling. At present, it is not known whether there exist other large-scale inference problems with characteristics similarly leading to a speedup. 
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+\end{refsection}
+
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
+
+
+
+
+
+
+\begin{refsection}
+
+\subsection{Topological data analysis}\label{appl:TDA}
+
+\subsubsection*{Overview}
+In topological data analysis, we aim to compute the dominant topological features (connected components, and $k$-dimensional holes) of data points sampled from an underlying topological manifold (given a length scale at which to view the data) or of a graph. These features may be of independent interest (e.g., the number of connected components in the matter distribution in the universe) or can be used as generic features to compare datasets. Quantum algorithms for this problem leverage the ability of a register of qubits to efficiently store a state representing the system. This leads to quantum algorithms that are more efficient than known classical algorithms, in some regimes.
+
+
+
+
+
+\subsubsection*{Actual end-to-end problem(s) solved}
+We compute to accuracy $\epsilon$ the Betti numbers $\beta_k^i$ (the number of $k$-dimensional holes at a given length scale $i$) or the
+persistent Betti numbers $\beta_k^{i,j}$ (the number of $k$-dimensional holes that survive from scale $i$ to scale $j$) of a simplicial complex built from datapoints sampled from an underlying manifold. The simplicial complex is a higher dimensional generalization of a graph, constructed by connecting datapoints within a given length scale of each other. A simplicial complex constructed in this way is known as a clique complex or a Vietoris-Rips complex.
+
+The persistent Betti number $\beta_k^{i,j}$ is the quantity of primary interest for point cloud data, as it is unclear \textit{a priori} what the `true' length scale of the manifold is, and noise present in the data may lead to a large number of short-lived holes. The longest-lived features are considered to be the dominant topological features. The births and deaths of features are typically plotted on a ``persistence diagram.'' Different datasets can be compared by using stable distance measures between their diagrams, or vectorising the diagrams and using kernel methods or neural networks. For graphs, the length scale is not required, and so $\beta_k^i$ can be of interest. For statements common to both $\beta_k^{i,j}$ and $\beta_k^i$, we will use the notation $\beta_k^*$. Practical applications typically consider low values of $k$, motivated both by computational cost, and interpretability. 
+
+
+
+
+
+\subsubsection*{Dominant resource cost/complexity}
+The quantum algorithms~\cite{lloyd2016quantumTDA,gunn2019reviewbetti,hayakawa2021persistentBetti, mcardle2022streamlinedTDA, berry2022quantifyingTDA} for computing $\beta_k^*$ actually return these quantities normalized by the number of $k$-simplices present in the complex at the given length scale, $|S_k^i|$. For a complex with $N$ datapoints, we can either use $N$ qubits to store the simplicial complex, or $\bigO{k\log(N)}$ when $k \ll N$. Quantum algorithms have two subroutines:
+\begin{enumerate}
+    \item Finding $k$-simplices present in the complex at the given length scale (using either classical rejection sampling or Grover's algorithm), which in the best case scales as $\sqrt{\binom{N}{k+1}/|S_k^i|}$. 
+    \item Projecting onto the eigenspace of an operator that encodes the topology (using either \hyperref[prim:QPE]{quantum phase estimation} or \hyperref[prim:QSVT]{quantum singular value transformation}). This introduces a dependence on the gap(s) $\Lambda$ of the operator(s) used to encode the topology.  
+\end{enumerate}
+The most efficient approaches use \hyperref[prim:AmpEst]{amplitude estimation} to compute $\sqrt{\beta_k^*/|S_k^i|}$ to additive error $\delta$ with complexity $\bigO{\delta^{-1}}$. The most expensive subroutines within the quantum algorithms are the membership oracles that determine if a given simplex is present in the complex, the cost of which we denote by $m_k$. The overall cost of the most efficient known approaches to compute $\beta_k^*$ to constant additive error $\Delta$ is approximately
+\begin{equation}
+    \frac{m_k \sqrt{\beta_k^*}}{\Delta} \left( \sqrt{\binom{N}{k+1}} + \frac{\sqrt{|S_k^i|} \mathrm{poly}(N,k)}{\Lambda} \right) .
+\end{equation}
+The quantum algorithm must be repeated at all pairs of length scales to compute the persistence diagram. 
+
+
+
+\subsubsection*{Existing error corrected resource estimates}
+In~\cite{mcardle2022streamlinedTDA} the gate depth (and non-Clifford gate depth) of all subroutines (including explicit implementations of the membership oracles) was established for computing $\beta_k^{i,j}$ and $\beta_k^i$. However that reference did not consider a final compilation to $T$/Toffoli gates for concrete problems of interest.
+
+In~\cite{berry2022quantifyingTDA} the Toffoli complexity of estimating $\beta_k^i$ was determined. The Toffoli complexity for estimating $\beta_k^i$ to relative error (rather than constant error), for a family of graphs with large $\beta_k^i$, was determined for $k=4,8,16,32$ and $N \leq 10^4$. The resulting Toffoli counts ranged from $10^8$ ($N=100, k=4$) to $10^{17}$ ($N=10^4, k=32$), using $N$ logical qubits. 
+
+
+
+
+\subsubsection*{Caveats}
+Quantum algorithms are unable to achieve exponential speedups for estimating $\beta_k^*$ to constant additive error. This is because they must efficiently find simplices in the complex (thus $|S_k^i|$ must be large), but they return $\beta_k^*/|S_k^i|$, which means the error must be rescaled by $|S_k^i|$ to achieve constant error. More rigorously,~\cite{crichigno2022clique} showed that determining if the Betti number of a (clique-dense) clique complex
+is nonzero is QMA$_1$-hard. Thus, quantum algorithms should not be expected to provide exponential speedups for (persistent) Betti number estimation. In~\cite{cade2021complexity} it was shown that estimating normalized quasi-Betti numbers (which accounts for miscounting low-lying but nonzero singular values) of general cohomology groups is DQC1-hard\footnote{DQC1 is a complexity class that is physically motivated by the ``one clean qubit model"~\cite{knill1998DQC1}. This model has a single pure state qubit which can be initialized, manipulated and measured freely, as well as $N-1$ maximally mixed qubits.}. The hardness of estimating normalized (persistent) Betti numbers of a clique complex, subject to a gap assumption of $\Lambda = \Omega(1/\mathrm{poly}(N))$---which is the problem solved by existing quantum algorithms---has not been established (see~\cite[Sec.~1.1]{cade2021complexity}).
+
+
+Quantum algorithms also depend on the eigenvalue gap(s) $\Lambda$ of the operator(s) that encode the topology. The scaling of these gaps has not been studied for typical applications. 
+
+Finally, typical applications consider dimension $k \leq 3$. It is unclear whether this is because larger values of $k$ are uninteresting, or because they are too expensive to compute classically. 
+
+
+
+
+
+\subsubsection*{Comparable classical complexity and challenging instance sizes}
+While classical algorithms are technically efficient for constant dimension $k$, they are limited in practice. For a number of benchmark calculations on systems with up to $\bigO{10^9}$ simplices we refer to~\cite{otter2017roadmap}.
+
+The `textbook' classical algorithm for $\beta_k^*$ scales as $\bigO{|S_{k+1}^j|^\omega}$ where $\omega \approx 2.4$ is the cost of matrix multiplication~\cite{milosavljevic2011zigzagTDA}. In practice the cost is considered closer to $\bigO{|S_{k+1}^j|}$ due to sparsity in the complex~\cite{milosavljevic2011zigzagTDA} (well studied classical heuristics that sparsify the complex can also be used to achieve this scaling~\cite{mischaikow2013morsetheoryTDA}). The textbook algorithm only needs to be run once to compute the persistence diagram.
+
+Classical algorithms based on the power method~\cite{friedman1998computingbetti} scale approximately as
+\begin{equation}
+    \bigOt{\frac{|S_k^i| (k^2 \beta_k^i + k (\beta_k^i)^2)}{\Lambda} \log\left(\frac{1}{\Delta}\right)  }
+\end{equation}
+to compute $\beta_k^i$ to additive error $\Delta$. This is only quadratically worse than the quantum algorithm for $|S_k^i| = \bigO{\binom{N}{k+1} }$. The power method has recently been extended to compute persistent Betti numbers, with a similar complexity~\cite{mcardle2022streamlinedTDA}. The power method is more efficient than the rigorous textbook classical algorithm described above, but it must be repeated for each pair of length scales to compute the persistence diagram, which is a disadvantage in practice. 
+
+Recently, randomized classical algorithms have been proposed for estimating $\beta_k^i/|S_k^i|$ to additive error~\cite{berry2022quantifyingTDA,apers2022SimpleBetti}. The algorithm of~\cite{apers2022SimpleBetti} runs in polynomial time for clique complexes for constant gap $\Lambda$ and error $\Delta = 1/\mathrm{poly}(N)$ (or $\Delta$ constant and $\Lambda = \bigO{1/\log(N)}$).
+
+
+
+\subsubsection*{Speedup}
+For the task of computing $\beta_k^{i,j}$ to constant additive error, quantum algorithms can achieve an almost quintic speedup over the \textit{rigorous} scaling of the textbook classical algorithm for large $k$ (subject to the dependence of the gap parameters on $N$). For a dimension sufficiently low to be studied classically, $k=3$, the speedup would be approximately cubic, subject to the gap dependence. However, when compared against the aforementioned \textit{observed} scaling of the textbook classical algorithm of $\bigO{|S_{k+1}^j|}$ (or against classical heuristics that achieve this scaling) the quantum speedup is reduced to (sub)-quadratic for all $k$, even before considering the gap dependence. Moreover, the quantum algorithm has large constant factor overheads from the precision $\Delta$ and the number of repetitions to compute the persistence diagram.
+
+A more apples-to-apples comparison between the quantum algorithm and the power method shows that the quantum algorithm is only quadratically better than rigorous classical algorithms~\cite{friedman1998computingbetti,mcardle2022streamlinedTDA}.
+
+For the task of computing $\beta_k^i$ to relative error, graphs have been found for which the quantum algorithm provides superpolynomial~\cite{berry2022quantifyingTDA} or quartic~\cite{berry2022quantifyingTDA,schmidhuber2022complexityTDA} speedups over both the power method and the heuristic/observed scaling of the textbook approach. As noted above, this task can also be addressed with recent randomized classical algorithms~\cite{berry2022quantifyingTDA,apers2022SimpleBetti}. The algorithm of~\cite{apers2022SimpleBetti} runs in polynomial time for clique complexes with constant gap $\Lambda$ and error $\Delta = 1/\mathrm{poly}(N)$ (or $\Delta$ constant and $\Lambda = \bigO{(1/\log(N)}$). These are more restrictive conditions than quantum algorithms (which can simultaneously have both $\Lambda, \Delta = \bigO{1/\mathrm{poly}(N)}$).
+
+
+
+
+\subsubsection*{NISQ implementations}
+In~\cite{akhalwaya2022exponential} a NISQ-friendly compilation of the quantum algorithm described above was proposed, trading deep quantum circuits for many repetitions of shallower circuits, which comes at the cost of worsening the asymptotic scaling of the algorithm (see the table in ~\cite{mcardle2022streamlinedTDA} for a quantitative comparison). A proof-of-principle experiment was performed~\cite{akhalwaya2022exponential}. In~\cite{cade2021complexity} it was shown that the TDA problem can be mapped to a fermionic Hamiltonian, and it was proposed to use the \hyperref[prim:VQA]{variational quantum eigensolver} to find the ground states of this Hamiltonian (the degeneracy of which gives $\beta_k^i$). It is unclear what ansatz circuits one should use to make this approach advantageous compared to classical algorithms, as naive (e.g., random) trial states would have exponentially small overlap with the target states.
+
+
+\subsubsection*{Outlook}
+Given the large overheads induced by error correction, it seems unlikely that the quantum algorithms for computing (persistent) Betti numbers to constant additive error will achieve practical advantage for current calculations of interest. This is because the quantum speedup over classical approaches is only quadratic for this task, and classical algorithms are efficient for the $ k \leq 3$ regime typically considered.
+
+If more datasets can be identified where the high-dimensional (persistent) Betti numbers are large and practically interesting to compute to relative error, then quantum algorithms may be of practical relevance. We refer to~\cite{hensel2021survey} for a recent survey of applications of TDA.
+
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+\end{refsection}
+
+
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{refsection}
+\subsection{Quantum neural networks and quantum kernel methods}\label{appl:NearTermML}
+\extramarks{}{Quantum NNs and quantum kernel methods}
+
+
+\subsubsection*{Overview}
+In this article we discuss two collections of proposals to use a quantum computer as a machine learning model, often known as \textit{quantum neural networks} and \textit{quantum kernel methods}. Many early ideas were motivated by the constraints of near-term, ``NISQ"~\cite{preskill2018QuantCompNISQEra} devices.
+Despite this, not all subsequent proposals are necessarily implementable on NISQ devices. Moreover, the proposals need not be restricted to running on NISQ devices, but could also be run on devices with explicit \hyperref[prim:QEC]{quantum error correction}. For simplicity, we present concrete examples based on supervised machine learning tasks. However, outside of these examples we keep our discussion more general, and note that the techniques are also applicable to other settings, such as unsupervised learning.
+
+Given access to some data, our goal is to obtain a function or distribution that emulates certain properties of the data, which we will call a \textit{model}. This is obtained by first defining a \textit{model family} or \textit{hypothesis set}, and using a learning algorithm to select a model from this set. For example, in supervised learning, we have data $x_i \in X$ that have respective labels $y_i \in Y$. The goal is then to find a model function $h: X \rightarrow Y$ which correctly labels previously unseen data with high probability. Note that we have left the exact descriptions of the sets $X$ and $Y$ ambiguous. They could, for instance, correspond to sets of numbers or vectors. More generally, this description encompasses the possibility of operating on quantum data such that each $x_i$ corresponds to a quantum state. 
+
+Quantum neural networks and quantum kernel methods use a quantum computer to assist in constructing the model, in place of a classical model such as a neural network. Specifically, here the model will be constructed by preparing some quantum state(s) encoding the data, and measuring some observable(s) to obtain model predictions. We first elaborate on both quantum neural networks, and quantum kernel methods.
+
+
+\subsubsection*{Quantum neural networks}
+
+\textit{Actual end-to-end problem(s) solved.} Given data $x$, we consider a model constructed from a parameterized quantum circuit:
+\begin{align}\label{eq:qnn}
+    h_{\boldsymbol{\theta}}(x) = \operatorname{Tr}\left[ \rho(x, \boldsymbol{\theta} ) O\right]\,,
+\end{align}
+where $\rho(x, \boldsymbol{\theta} )$ is a quantum state that encodes both the data $x$ as well as a set of adjustable parameters $\boldsymbol{\theta}$, and $O$ is some chosen measurement observable.
+For instance, if $x$ corresponds to a classical vector, $\rho(x, \boldsymbol{\theta} )$ could correspond to initializing in the $\ketbra{0}{0}$ state and applying some data-encoding gates $U(x)$ followed by parameterized gates $V(\boldsymbol{\theta})$. Alternatively, the data itself could be a quantum state, and a more general operation in the form of a parameterized channel $\mathcal{V}(\boldsymbol{\theta})$ could be applied. The model is optimized  via a learning algorithm which aims to find the optimal parameters $\boldsymbol{\theta}^*$ by minimizing a loss function, which assesses the quality of the model. For instance, in supervised learning, given some labelled training data set $T=\{(x_i, y_i)\}$, a suitable choice of loss should compare how close each $h_{\boldsymbol{\theta}}(x_i)$ is to the true label $y_i$ for all data in $T$. The quality of the model can then be assessed on a set of previously unseen data outside of $T$. 
+
+We remark that this setting has substantial overlap with the setting of \hyperref[prim:VQA]{variational quantum algorithms} (VQAs)---indeed, quantum neural networks can be thought of as a VQA that incorporates data---thus the same challenges and considerations that apply to VQAs also apply here. There will additionally also be extra considerations due to the role of the data.
+
+\textit{Dominant resource cost/complexity.} The encoding of data $x$ and parameters $\boldsymbol{\theta}$ in Eq.~\eqref{eq:qnn} should be sufficiently expressive that it (1) leads to good performance on data and (2) is (at minimum) not efficiently simulable classically, if one is to seek quantum advantage. These criteria can be used to derive lower bounds on the circuit depth, in some settings.
+
+The learning algorithm to find optimal parameters is usually performed by classical heuristics, such as gradient descent, and can have significant time overhead, requiring evaluation of Eq.~\eqref{eq:qnn} at many parameter values (see \hyperref[prim:VQA]{variational quantum algorithms} for more details).
+
+The size of the training dataset required can also have direct implications for runtime, with a larger amount of training data typically taking a longer time to process. 
+Reference~\cite{caro2022generalization} proves that good generalization can be achieved with the size of the training data $|T|$ growing in tandem with the number of adjustable parameters $M$. Specifically, it is shown that the deviation between training error (performance on training data set) and test error (performance on previously unseen data) with high probability scales as $\bigO{\sqrt{M\log(M) / |T|}}$. Thus, only a mild amount of data is required for good generalization. We stress that this alone does not say anything about the ability for quantum neural networks to obtain low training error.
+
+
+\textit{Scope for advantage.} Quantum neural networks could achieve advantage in a number of ways, including improved runtime, or needing less training data. In supervised learning settings, generalization performance is a separate consideration, and an additional domain for possible quantum advantage. Machine learning with quantum neural networks has yielded some promising performance empirically and encouraging theoretical guarantees exist for certain stages of the full pipeline in restricted settings \cite{schatzki2022GuaranteesEquivariantQNNs, caro2021encoding, caro2022generalization, liu2023AnalyticTheoryQNN, you2023analyzing}. Nevertheless, there are currently no practical use cases with full end-to-end performance guarantees.
+
+
+
+
+\subsubsection*{Quantum kernel methods}
+
+\textit{Actual end-to-end problem(s) solved.} Quantum kernel methods are a generalization of classical kernel methods, of which \hyperref[sec:SVM]{support vector machines} are a prominent example. Given a dataset $T=\{x_i\}\subset X$ the model can be written
+\begin{align}\label{eq:kernel}
+    h_{\boldsymbol{\alpha}}(x) = \sum_{i:\, x_i \in T} \alpha_i \kappa(x,x_i)\,,
+\end{align}
+where $\boldsymbol{\alpha}=(\alpha_1, \alpha_2, ...)$ is a vector of parameters to be optimized, and $\kappa(x,x'): X \times X \rightarrow \mathbb{R}$ is a measure of similarity known as the kernel function. 
+This model has several theoretical motivations:
+\begin{itemize}
+    \item If the matrix with entries $K_{ij}=\kappa(x_i,x_j)$ is symmetric positive semi-definite for any $\{x_1,...,x_m\}\subseteq X$, $\kappa(x_i,x_j)$ can be interpreted as an inner product of feature vectors $\phi(x_i), \phi(x_j)$ which embed the data $x_i$ and $x_j$ in a (potentially high dimensional) Hilbert space. Due to the so-called kernel trick, linear statistical methods can be used to learn a linear function in this high dimensional space, only using the information of the inner products $\kappa(x_i,x_j)$ and never having to explicitly evaluate $\phi(x_i)$ and $\phi(x_j)$. 
+    \item Concretely, the Representer Theorem \cite{scholkopf2001RepresenterThm} states that the optimal model over the dataset $T$ can be expressed as a linear combination of kernel values evaluated over $T$---that is, the optimal model exactly takes the form in Eq.~\eqref{eq:kernel}.
+    \item Further, if the loss function is convex, then the dual optimization program to find the optimal parameters $\boldsymbol{\alpha}^*$ is also convex \cite{schuld2021kernelmethods}.
+\end{itemize}
+A key question that remains is then how to choose a kernel function. Quantum kernel methods embed data in quantum states, and thus evaluate $\kappa(x_i,x_j)$ on a quantum computer. Similar to quantum neural networks or any other quantum model, the quantum kernel should be hard to simulate classically. As an example, we present two common choices of quantum kernel.
+\begin{itemize}
+    \item The fidelity quantum kernel
+    \begin{equation}\label{eq:fidelity-kernel}
+        \kappa_F(x,x') = \operatorname{Tr}[\rho(x)\rho(x')]\,,
+    \end{equation}
+    which can be evaluated either with a SWAP test or, given classical data with unitary embeddings, it can be evaluated with the overlap circuit $|\bra{0}U(x')^{\dag}U(x)\ket{0}|^2$.
+    \item The fidelity kernel can run into issues for high dimensional systems, as the inner product in Eq.~\eqref{eq:fidelity-kernel} can be very small for $x\neq x'$. This motivated the proposal of a family of projected quantum kernels \cite{huang2021power}, of which one example is the Gaussian projected quantum kernel 
+    \begin{equation}
+        \kappa_P(x,x') =\exp \left(-\gamma \sum_{k=1}^n\left\|\rho_k(x)-\rho_k\left(x'\right)\right\|_2^2\right)
+    \end{equation}
+    where $\rho_k(x)$ is the reduced state of the $n$-qubit state $\rho(x)$ on qubit $k$, and $\gamma$ is a hyperparameter.
+\end{itemize}
+
+\textit{Dominant resource cost/complexity.} During the optimization of the dual program to find the optimal parameters $\boldsymbol{\alpha}^*$, $\bigO{|T|^2}$ expectation values corresponding to the kernel values in Eq.~\eqref{eq:kernel} need to be accurately evaluated, as well as when computing $h_{\boldsymbol{\alpha}^*}(x)$ for a new data point $x$ with the optimized model. This can lead to a significant overhead in applications with large datasets. Alternatively, the primal optimization problem has reduced complexity in the data set size, but greatly exacerbated dependence on the error \cite{gentinetta2022complexityQSVM}. The gate complexity is wholly dependent on the choice of data encoding leading to the kernel function. As the kernel function should be classically non-simulable, this gives intuition that there should be some minimum requirements in terms of gate complexity. However, in the absence of standardized techniques for data encoding it is hard to make more precise statements. 
+
+\textit{Scope for advantage.} In Ref.~\cite{liu2021rigorous} the authors demonstrate that using a particular constructed dataset and data embedding, concrete quantum advantage can be obtained for a constructed machine learning problem based on the \hyperref[appl:BreakingCrypto]{discrete logarithm problem}. The original work was based on the fidelity kernel, but a similar advantage can also be more simply obtained for the projected quantum kernel \cite{huang2021power}.
+This can also be adapted beyond kernel methods to the reinforcement learning setting \cite{jerbi2021parametrized}. Whilst great strides have been made in understanding the complexity of quantum kernel methods \cite{banchi2021generalization, huang2021power}, at present there do not yet exist examples of end-to-end theoretical guarantees of advantage for more physically relevant classical data.
+
+
+
+
+\subsubsection*{Caveats}
+
+One consideration we have not discussed so far is how to encode classical data into a quantum circuit, which is a significant aspect of constructing the quantum model. There are many possibilities, such as amplitude encoding or encoding data into rotation angles of single-qubit rotations (e.g., see~\cite{lloyd2020quantumembeddings, havlivcek2019supervisedlearning, hubregtsen2021trainingKernels, laRose2020robustencodings}). While certain strategies are popular, in general it is unclear what is the best choice for a given problem at hand, and thus selecting the data-encoding strategy can itself be a heuristic process. The same question extends to the choice of quantum neural network or quantum kernel. While certain choices may perform well in specific problem instances, there is at present a lack of strong evidence why such approaches may be advantageous over their classical counterparts in general. 
+
+While optimization of parameterized quantum circuits is predominantly a concern for quantum neural networks, the search for good quantum kernels has also motivated proposals of trainable kernels \cite{hubregtsen2021trainingKernels, gentinetta2023KernelAlignmentSGD, glick2021CovariantKernels} where a parameterized quantum circuit is used to construct the quantum kernel (note, this is distinct from the ``classical'' optimization of $\boldsymbol{\alpha}$ in Eq.~\eqref{eq:kernel}). In the case that the parameter optimization process is performed using heuristics, it is subject to the same challenges and considerations that arise with VQAs (see \hyperref[prim:VQA]{variational quantum algorithms} for more details). 
+
+Finite statistics is an important consideration for both settings. Where there is optimization of parameterized quantum circuits, one must take care to avoid the barren plateau phenomenon \cite{mcclean2018barrenplateau, cerezo2020costfunctionbp, holmes2021connectingexpressibility, marrero2020entanglement, sharma2020trainability} (again see \hyperref[prim:VQA]{variational quantum algorithms} for more details). Analogous effects can also occur in the kernel setting \cite{kubler2021inductive}, which can arise even purely due to the data-encoding circuit \cite{huang2021power, thanasilp2022exponential}.
+
+\subsubsection*{Outlook}
+The use of classical machine learning models is often highly heuristic, and guided by empirical evidence or physical intuition. Despite this, they have found remarkable success in solving many computational problems. The quantum techniques outlined in this section also broadly follow this approach (though theoretical progress has also been substantial in certain areas), and there is no a priori reason why they cannot also be useful. Nevertheless, it is challenging to make concrete predictions for quantum advantage, particularly on classical data. This is exacerbated by our limited analytic understanding of end-to-end applications, even in the fully classical setting. Indeed, it may ultimately be challenging to have the same complete end-to-end theoretical analysis that other quantum algorithms enjoy, aside for a few select examples \cite{schuld2022IsQuantumAdvatnage}. Within the realm of quantum data, there appears to be ripe potential for concrete provable advantage \cite{huang2022quantumadvantage, chen2022exponentialseparations, caro2022OutOfDistGeneralization}, however this is beyond the scope of this article.
+
+\subsubsection*{Further reading}\label{sec:qmodel-reading}Refs.~\cite{schuld2021kernelmethods, hubregtsen2021trainingKernels} provide pedagogical expositions of quantum kernel methods, Refs.~\cite{benedetti2019PQCreview, cerezo2020variationalreview} are comprehensive reviews of quantum neural networks, and Ref.~\cite{cerezo2022challenges} is a review of quantum machine learning models at large, including an exposition of machine learning with quantum data.
+
+\printbibliography[heading=secbib,segment=\therefsegment]
+\end{refsection}

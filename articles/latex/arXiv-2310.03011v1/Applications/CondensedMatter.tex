@@ -1,0 +1,527 @@
+%!TEX root = ../main.tex
+
+
+
+\section{Condensed matter physics }\label{appl:CondensedMatter} 
+
+\begin{refsection}
+Condensed matter physics constructs and studies the behavior of simplified models designed to capture the universal physics of material systems. Phenomena of interest include: magnetism, phase transitions, superconductivity, frustrated systems, topological phases, and the interplay of thermalization and many-body localization in closed systems. While many seminal models can be studied analytically in certain limits (for example the 1D and 2D classical Ising model), a number of seemingly innocuous models have proven exceedingly difficult to solve. This has led to some models, such as the Fermi--Hubbard model, becoming a proving ground for classical numerical methods. While there has been significant progress in recent decades in understanding the physics of these models through numerical simulation, it is still a challenging problem for many models and parameter regimes. As observed by Feynman~\cite{feynman1982SimQPhysWithComputers}, quantum computers have a natural advantage over their classical counterparts for simulating the simple Hamiltonians studied in condensed matter physics. While Feynman's proposal was more focused on analog simulation, digital quantum simulation of condensed matter systems has evolved into a major research direction. In this section, we focus on models whose end-to-end complexities have been well studied in the literature: the Fermi--Hubbard model, the Sachdev--Ye--Kitaev (SYK) model, and spin models.
+
+\localtableofcontents
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+\end{refsection}
+
+\newpage
+
+
+
+
+
+
+\begin{refsection}
+\subsection{Fermi--Hubbard model}\label{appl:FermiHubbard} 
+
+
+\subsubsection*{Overview}
+
+
+The Fermi--Hubbard model was originally introduced as a simplified model of electrons in materials~\cite{hubbard1963Hubbard}, closely related to the tight-binding model. It displays a wide range of behaviors including metallic, insulating, and antiferromagnetic phases. The model has more recently found applicability in studying high-temperature superconductivity. The 2D Fermi--Hubbard model has a complex phase diagram that appears to reproduce universal (rather than chemical-specific) features of the phase diagram of cuprate high-temperature superconductors. 
+
+General analytic solutions are not known (beyond 1D chains or specific parameter regimes---see~\cite{Arovas2022HubbardModel} for a recent discussion), which has motivated the use of numerical methods to understand the physics of the Fermi--Hubbard model. More recently, there has been increased interest in understanding the nonequilibrium properties of the model, for example its behavior following a quench.
+
+
+Quantum simulation of Fermi--Hubbard models, based on the current estimates, requires considerably fewer resources than \hyperref[appl:QuantumChemistry]{simulations of molecules} or \hyperref[appl:CombOpt]{solving optimization problems}. This makes the Fermi--Hubbard model a promising candidate for early demonstrations of quantum advantage.
+
+
+
+
+
+
+
+\subsubsection*{Actual end-to-end problem(s) solved}
+The Fermi--Hubbard Hamiltonian on $M/2$ sites
+is given by 
+\begin{equation}\label{hamiltonianHubbard}
+H= -t \sum_{\sigma \in \{\uparrow,\downarrow\}}\sum_{\langle i,j\rangle}^{M/2} (c_{i\sigma}^\dagger c_{j\sigma}+c_{j\sigma}^\dagger c_{i\sigma})+U \sum_{i}^{M/2} n_{i\uparrow} n_{i\downarrow}\,,
+\end{equation}
+where $c_{i\sigma}$ are fermionic operators and $n_{i\sigma} \equiv c_{i\sigma}^\dagger c_{i\sigma}$ is the number operator,
+with $t$ denoting the strength of the kinetic term, $U$ the onsite interaction strength, and $\langle i,j\rangle$ a sum over nearest-neighbor lattice sites, given a lattice geometry. It is also possible to consider longer-range hopping terms, the inclusion of site-dependent chemical potentials, or additional ``orbitals'' per site.
+
+Quantum simulation provides insights into both equilibrium and nonequilibrium physics. With regards to equilibrium physics, the primary computational task is to resolve and probe the properties of the phase diagram of the Fermi--Hubbard model, as a function of: lattice geometry, parameter values $(t, U)$, doping (the expected number of fermions divided by the number of sites), and temperature. This is achieved by preparing the thermal state $\rho \propto e^{-\beta H}$ (or at zero temperature, the ground state $\ket{E_0}$) for the Fermi--Hubbard Hamiltonian instantiated by the given parameters, and measuring the expectation values of a set of physical observables to error $\epsilon$. A thorough discussion of this end-to-end problem (at zero temperature) is provided in~\cite{wecker2015StronglyCorrelated}, where it is shown how to
+\begin{itemize}
+    \item Prepare mean-field states in a given phase (for example a BCS superconducting ground state).
+    \item \hyperref[prim:QuantumAdiabaticAlgorithm]{Adiabatically evolve} from the mean-field Hamiltonian to the final Fermi--Hubbard Hamiltonian. The absence of a phase transition confirms the predicted phase.
+    \item Measure observables, including density correlation functions $(n_{i \uparrow} + n_{i \downarrow})(n_{j \uparrow} + n_{j \downarrow}) $, pair correlation functions $c_{i \sigma}^\dag c_{j \sigma'}^\dag c_{k \sigma'} c_{l \sigma}$, and dynamical correlation functions $\bra{E_0} e^{iHt} A e^{-iHt}B \ket{E_0}$ (for operators $A,B$ and ground state $\ket{E_0}$).
+\end{itemize}
+The difficulty of this problem depends on the parameter regime under consideration. The ground state in the weak coupling regime of $U < 4t$ is well understood, but questions remain in the intermediate ($4t \leq U \leq 6t$) and strong ($U > 6t$) regimes~\cite{Qin2022HubbardComputational}. Challenges include precisely determining the phase boundaries and understanding the nature of the superconducting phase~\cite{fradkin2015ColloquiumHighTcSC}. Progress has been made on this latter question in recent years, for example showing the absence of a superconducting phase at the physically relevant parameters of $U \sim 8t$ and $1/8$th doping (see~\cite{Qin2022HubbardComputational} for a more detailed discussion). Calculations are made challenging by small energy differences between competing phases, as well as the need to extrapolate from finite simulations to the thermodynamic limit.
+
+
+
+The simulation of nonequilibrium quantum dynamics is of interest for modeling materials driven by an external field (for example an ultrafast laser pulse or an applied voltage), or following a quench in the Hamiltonian. Classically simulating nonequilibrium quantum dynamics has so far proven challenging and is a less-well-studied problem than probing the equilibrium physics of the model. Example applications include as a model for ultrafast spintronics, whereby lasers are used to manipulate spin degrees of freedom to control and store information~\cite{zutic2004Spintronics} to better understand photo-induced phase transitions~\cite{oka2019FermiHubbardDynamics}, or to clarify the nature of thermalization in isolated quantum systems following a quench~\cite{polkovnikov2011NonEquilibriumDynamics}.
+
+
+
+
+
+
+
+
+
+
+
+\subsubsection*{Dominant resource cost/complexity}
+
+\subparagraph{Mapping the problem to qubits:} 
+Simulation of the Fermi--Hubbard model is most naturally performed in the second-quantized representation, as the regime of interest is usually close to half-filling (c.f.~\hyperref[appl:QuantumChemistry]{simulation of molecules}). The Jordan--Wigner mapping between fermions and qubits is typically used (it has not yet been established if other mappings~\cite{verstraete2005mapping,derby2021CompactMapping}, which preserve locality, provide concrete advantages in the fault-tolerant setting). For an $L \times L$ lattice, we require $M = 2L^2$ qubits to simulate the spinful Fermi--Hubbard model using the Jordan--Wigner mapping.
+
+
+\subparagraph{Accessing the Hamiltonian:} 
+Quantum algorithms for simulating the Fermi--Hubbard model require access to the Hamiltonian. This is typically provided by \hyperref[prim:BlockEncodings]{block-encoding} or \hyperref[prim:HamiltonianSimulation]{Hamiltonian simulation}. The structure in the Fermi--Hubbard Hamiltonian reduces the costs of these subroutines. For example, performing a block-encoding using the \hyperref[prim:LCU]{linear combinations of unitaries} technique requires access to a PREPARE unitary and a SELECT unitary. The PREPARE unitary requires \hyperref[prim:StatePrepData]{preparing a quantum state from classical data}. Because the Fermi--Hubbard Hamiltonian has a small number of unique coefficients, the cost of this unitary can be reduced. Combining the results of \cite{babbush2018EncodingElectronicSpectraLinearT, yoshioka2022CondensedMatterSimulation, CampbellHubbard22} one can implement an $(M(2t+U/8), \bigO{\log(M)}, \epsilon)$-block-encoding of the Fermi--Hubbard Hamiltonian using
+\begin{equation}
+    \bigO{M + \log(M/\epsilon)}
+\end{equation}
+non-Clifford gates. 
+
+As another example, the costs of \hyperref[prim:ProductFormulae]{Trotter approaches} for Hamiltonian simulation can exploit the fact that many terms in the Fermi--Hubbard Hamiltonian commute, due to their locality. We will explicitly discuss these costs below.
+
+
+
+
+
+
+
+\subparagraph{State preparation:} 
+\begin{itemize}
+    \item Eigenstate preparation: There exist quantum algorithms that can prepare energy eigenstates using \hyperref[prim:QSVT]{QSVT}-based eigenstate filtering~\cite{lin2020NearOptimalGroundState} (cost scales as $1/\gamma$ with $\gamma$ the overlap of the initial state with the desired eigenstate) or \hyperref[prim:QuantumAdiabaticAlgorithm]{adiabatic state preparation} (scaling depends on the gap between energy levels along the adiabatic path). Adiabatic state preparation was proposed as a method of classifying the phase diagram of the Fermi--Hubbard model~\cite{wecker2015StronglyCorrelated}. A discrete version of the adiabatic approach, based on \hyperref[prim:Qubitization]{qubitization}, was numerically investigated in the context of preparing ground states of the Fermi--Hubbard model~\cite{Lemieux2021_GS_prep}, and showed promising results for the small system sizes considered (see also \cite{tubman2018PostponingCatastrophe}).
+    \item Thermal states: A number of algorithms have been developed for \hyperref[prim:GibbsSampling]{preparation of thermal states}. The most promising of these algorithms depend on the mixing time of a Markov chain (as in classical Monte Carlo approaches for preparing Gibbs states), which is currently undetermined for the Fermi--Hubbard model.  
+    \item Time evolution: As discussed above, \hyperref[prim:ProductFormulae]{Trotter approaches} for Hamiltonian simulation can exploit beneficial features of the Fermi--Hubbard Hamiltonian, such as locality, fixed particle number, and commutativity of the terms~\cite{childs2019NearlyOptimalLattSim,clinton2021HamiltonianSimulationNearTermHubbard,su2021NearlyTightTrottInerElect}. For a Fermi--Hubbard model with $\eta$ fermions on $M$ spin-lattice-sites, $p$th-order Trotter methods can simulate time evolution for time $\tau$ up to error $\epsilon$ using
+    \begin{equation}
+        \bigO{\frac{5^p M \eta^{1/p} \tau^{1+1/p}}{\epsilon^{1/p}}}
+    \end{equation}
+    gates. Explicit gate counts for Trotterization can be obtained from~\cite{Kivlichan2020ImprovedFaultTolerantSimulationCondensedMatter,clinton2021HamiltonianSimulationNearTermHubbard,CampbellHubbard22,schubert2023trotterFermiHubbard}, which have focused on constant factors for low-order formulae, rather than the asymptotic scaling.
+
+    Post-Trotter methods, such as \cite{haah2018QAlgSimLatticeHam}, using \hyperref[prim:QSPqubitization]{quantum signal processing} as a building block, can achieve similar scaling in $M$ and $t$. A suboptimal approach (i.e., not using the method of \cite{haah2018QAlgSimLatticeHam}) briefly discussed in~\cite{flannigan2022} has a gate complexity of approximately 
+    \begin{equation}
+        44 M^2 (2t + 3U/8)\tau
+    \end{equation}
+    $T$ gates to simulate time evolution for time $\tau$ using \hyperref[prim:QSPqubitization]{quantum signal processing}, neglecting logarithmic dependence on the error of the simulation.\footnote{Note that in \cite{flannigan2022}, $M$ is defined as the number of lattice sites, and so corresponds to $M/2$ here.}
+\end{itemize}
+
+
+
+
+
+\subparagraph{Measuring observables:} 
+\begin{itemize}
+    \item Energies: \hyperref[prim:QPE]{Quantum phase estimation} can be used to measure the energy eigenvalues of the Fermi--Hubbard Hamiltonian, given access to an initial state $\ket{\psi}$ that has sufficient overlap $\gamma = |\braket{\psi}{E_j}|$ with the target eigenstate $\ket{E_j}$. We require $\bigO{\gamma^{-2} \epsilon^{-1}}$ calls to a unitary $U$ encoding the spectrum of the Hamiltonian to measure the energy to precision $\epsilon$.\footnote{It is possible to improve the complexity to $\bigO{\gamma^{-1} \epsilon^{-1}}$ using \hyperref[prim:AA]{amplitude amplification} if a sufficiently precise estimate of the eigenvalue is known, or to $\bigO{\gamma^{-2} \Delta^{-1} + \epsilon^{-1}}$ by exploiting knowledge of the gap $\Delta$ between the energy eigenstates to perform rejection sampling~\cite{berry2018ImprovedEigenstatesFermionic}.} Successfully applying QPE projects the initial state into the target eigenstate, which enables the measurement of other observables with respect to the target eigenstate.
+
+    Using $U \approx e^{iHt}$ implemented via \hyperref[prim:ProductFormulae]{second-order product formulae} (the approximation error must be balanced against the error from QPE) results in a $T$ gate count of $\bigO{M^{3/2}/\Delta E^{3/2}}$ to resolve the energy of the Fermi--Hubbard model to precision $\Delta E$, neglecting the cost of initial state preparation~\cite{Kivlichan2020ImprovedFaultTolerantSimulationCondensedMatter,CampbellHubbard22}. Performing QPE on a quantum walk operator $W$ which acts like $e^{i\arccos{H}}$ and can be implemented via \hyperref[prim:Qubitization]{qubitization}~\cite{poulin2018SpectralQubitization,berry2018ImprovedEigenstatesFermionic} results in a $T$ gate scaling of $\bigO{M^2/\Delta E}$, also neglecting the cost of initial state preparation~\cite{babbush2018EncodingElectronicSpectraLinearT}.
+        
+    \item Other observables: There have been few studies considering the costs of measuring observables other than the ground state energy using fault-tolerant quantum algorithms. In general, it is important to minimize the number of calls to the unitary $U_\psi$ that prepares the desired state, as this is typically considered the dominant cost.
+    Reference~\cite{wecker2015StronglyCorrelated} discussed methods for measuring density correlation functions $(n_{i \uparrow} + n_{i \downarrow})(n_{j \uparrow} + n_{j \downarrow}) $, pair correlation functions $\smash{c_{i \sigma}^\dag c_{j \sigma'}^\dag c_{k \sigma'} c_{l \sigma}}$, and dynamical correlation functions $\smash{\bra{E_0} e^{iHt} A e^{-iHt}B \ket{E_0}}$ (for operators $A,B$ and ground state $\ket{E_0}$), including approaches for nondestructively measuring some of these observables. Some of these approaches can now be reframed as performing \hyperref[prim:AmpEst]{amplitude estimation}~\cite{knill2007ObservableMeasurement} on $U_O$, a unitary \hyperref[prim:BlockEncodings]{block-encoding} of the observable $O$ with subnormalization factor $\alpha_O$~\cite{rall2020EstimatingPhysicalQuantities}.
+    
+    A recent approach~\cite{huggins2022ExpectationValue,apeldoorn2022TomographyStatePreparationUnitaries} based on the \hyperref[prim:GradientEstimation]{quantum gradient estimation} algorithm of~\cite{gilyen2017OptQOptAlgGrad} simultaneously computes the value of $M$ (noncommuting) observables $O_j$. The algorithm makes $\bigOt{M^{1/2}/\epsilon}$ calls to $U_\psi, U_\psi^\dag$ (or $R_\psi = I - 2 \ket{\psi}\bra{\psi}$) and either $\bigOt{M^{3/2}/\epsilon}$ calls to gates of the form $e^{i x O_j}$~\cite{huggins2022ExpectationValue} or $\bigOt{M/\epsilon}$ calls to a block-encoding of the observables~\cite{apeldoorn2022TomographyStatePreparationUnitaries}. The algorithm also requires $\bigO{M \log(1/\epsilon) }$ additional qubits. This approach has been considered in the context of measuring fermionic reduced density matrices and dynamic correlation functions~\cite{huggins2022ExpectationValue}. 
+\end{itemize}
+
+
+
+
+
+
+
+
+
+
+\subsubsection*{Existing error corrected resource estimates}
+There have been a number of fault-tolerant resource estimates for algorithms targeting both static and dynamic properties of the Fermi--Hubbard model. In Table~\ref{Tab:ResourceEst_FermiHubbard}, we present approximate resource estimates for simulations of the 
+2D $10\times 10$ spinful Fermi--Hubbard model. The table presents the number of logical qubits and gates required to run the algorithm; these can be converted into physical resource estimates via methods for \hyperref[prim:FTQC]{fault-tolerant quantum computation}. 
+
+References~\cite{babbush2018EncodingElectronicSpectraLinearT,yoshioka2022CondensedMatterSimulation} applied \hyperref[prim:Qubitization]{qubitization}-based \hyperref[prim:QPE]{quantum phase estimation} to calculate the ground state energy to constant additive error. For a lattice with $M$ spin orbitals, using the compilation of~\cite{babbush2018EncodingElectronicSpectraLinearT}, the number of $T$ gates scales as roughly~\cite[Eq.~(61)]{babbush2018EncodingElectronicSpectraLinearT}
+\begin{equation}
+    \# T \propto \frac{(4t + U)M^2}{\Delta E}
+\end{equation}
+and the number of logical qubits scales as approximately~\cite[Eq.~(62)]{babbush2018EncodingElectronicSpectraLinearT}
+\begin{equation}
+    \# \mathrm{Qubits} \sim M + \log\left( \frac{(2t + 0.5U)M^4}{\Delta E} \right).
+\end{equation}
+
+
+References~\cite{Kivlichan2020ImprovedFaultTolerantSimulationCondensedMatter,CampbellHubbard22} applied second-order \hyperref[prim:ProductFormulae]{Trotter}-based \hyperref[prim:QPE]{quantum phase estimation} to calculate the ground state energy, targeting relative error. Relative errors are appropriate when energy densities in the thermodynamic limit are of interest, and are better suited to the poorer error scaling of Trotter methods (compared to post-Trotter methods like qubitization). In both references, rigorous but potentially loose upper bounds on the Trotter error are computed. For a lattice with $M$ spin orbitals, using the compilation of~\cite{CampbellHubbard22}, the number of $T$ gates scales as roughly~\cite[Eqs.~(C3), (D6), (D10), (E17), (F10)]{CampbellHubbard22}
+\begin{equation}
+    \# T \propto t\sqrt{t+U} \left(\frac{M}{\Delta E}\right)^{3/2}
+\end{equation}
+and the number of logical qubits scales as approximately~\cite[Table II]{CampbellHubbard22}
+\begin{equation}
+    \# \mathrm{Qubits} \sim (1 + \kappa)M
+\end{equation} 
+where $\kappa$ is a free parameter that controls the number of ancilla qubits used for a compilation technique known as Hamming weight phasing (which reduces the cost of applying identical arbitrary angle rotation gates in parallel)~\cite{gidney2018_halving_addition,Kivlichan2020ImprovedFaultTolerantSimulationCondensedMatter}, set to $\kappa=0.25$ in~\cite{CampbellHubbard22} and in our Table~\ref{Tab:ResourceEst_FermiHubbard}.
+
+
+\begin{table}[!ht]
+    \centering
+    \begin{adjustbox}{max width=\textwidth}
+    \begin{tabular}{c|c|c|c}
+        \textbf{Problem and method}  & \textbf{\#~T %/Toffoli 
+        gates} & \makecell{ \textbf{\#~Logical} \\ \textbf{qubits}}  & \textbf{Parameters} \\ \hline\hline
+        \makecell{Ground state energy \\ via qubitized QPE \cite{babbush2018EncodingElectronicSpectraLinearT, yoshioka2022CondensedMatterSimulation} } &  $\sim 10^8$ & $\sim 236$ & $U/t=4$ and $\Delta E = 0.01t$\\ \hline
+        \makecell{Ground state energy \\ via Trotterized QPE ~\cite{CampbellHubbard22, Kivlichan2020ImprovedFaultTolerantSimulationCondensedMatter}  }  &   $\sim 5 \times 10^6$
+        & $\sim 250$
+         & $U/t = 8$ and $\Delta E = 0.005 E_{\rm tot}$
+        \\ \hline
+        \makecell{Dynamics \\ via fourth-order Trotter~\cite{flannigan2022} } &  $4.6\times 10^5$  & 200 & $T=10/t$, $U=t$, and $\epsilon \leq 1\%$ \\
+    \end{tabular}
+    \end{adjustbox}
+    \caption{Fault-tolerant resource estimates for quantum phase estimation (QPE) and dynamics simulation applied to a 2D $10\times 10$ Fermi--Hubbard model. The QPE circuits target an energy error of $\Delta E$. In the second row, $E_{\rm tot}$ denotes the ground state energy. The dynamics simulation runs for time $T$, and targets an error of less than $1\%$ in a spatially averaged intensive observable, with Trotter errors bounded numerically via extrapolated small-scale simulations. The presented gate counts are for a single run of the circuit. For QPE, the number of required runs depends on the overlap between the initial state and the ground state. For dynamics simulations, the number of circuit repetitions depends on the precision to which one wants to estimate a given observable. The parameters for each problem vary between different rows of the table, and so cannot be directly compared (although the different methods for the same problem, e.g., ground state energy estimation, could be compared by changing the analyses in the original papers to the desired matching parameter values).
+    }
+    \label{Tab:ResourceEst_FermiHubbard}
+\end{table}
+
+
+
+
+The methods described above for encoding the Hamiltonian spectra (qubitization and Trotter) can also be used to simulate the dynamics of the Fermi--Hubbard model. Trotter methods can be applied directly, while qubitization can be combined with \hyperref[prim:QSPqubitization]{quantum signal processing} (QSP) to perform Hamiltonian simulation. In~\cite{flannigan2022}, a comparison was made between fourth-order Trotterization and qubitization$+$QSP for simulating time evolution of a $10 \times 10$ Fermi--Hubbard model. Trotter was determined to be the more efficient method, although this conclusion hinges on a Trotter decomposition with large steps (justified via numerical simulations). We note that the Trotter decompositions and analyses in~\cite{CampbellHubbard22,flannigan2022} are different, which hampers an immediate comparison. It may also be fruitful to compare with Hamiltonian simulation algorithms designed explicitly for simulating local Hamiltonians~\cite{haah2018QAlgSimLatticeHam} (see discussion in~\cite{babbush2018EncodingElectronicSpectraLinearT}). 
+
+
+
+
+\subsubsection*{Caveats}\label{FHcaveats}
+In general, preparing the ground state of the Fermi--Hubbard model is known to be a hard problem, even for a quantum computer. This task has been proven QMA-hard for the Fermi--Hubbard model with a site dependent magnetic field~\cite{schuch2009} and for the Fermi--Hubbard model with a site-dependent $t \rightarrow t_{ij}$~\cite{Ogorman2022ElectronicStructureQMA}. While the complexity class of the canonical Fermi--Hubbard model is not yet known, when preparing the ground state via quantum phase estimation or eigenstate filtering methods,  it is necessary to prepare an initial state with an overlap that decays no worse than polynomially with system size; otherwise, the overall complexity will be superpolynomial. While numerical simulations on small system sizes have shown encouraging results~\cite{tubman2018PostponingCatastrophe,Lemieux2021_GS_prep}, it is still an open question as to whether this property holds for sufficiently large system sizes to enable extrapolation to the thermodynamic limit.
+
+It is also important to note that this extrapolation of measured properties, computed at a range of finite system sizes, to the thermodynamic limit, has been observed to contribute a significant proportion of the uncertainty and errors in classical methods~\cite{leblanc2015TwoDimHubbard}, and will also afflict quantum simulations.
+
+Finally, it will be necessary to repeat simulations a large number of times. In order to measure a single observable to precision $\epsilon$ we require $\bigO{1/\epsilon^2}$ incoherent repetitions of the simulation, or $\bigO{1/\epsilon}$ using methods based on \hyperref[prim:AmpEst]{amplitude estimation}. To map out and compute properties of the phase diagram or extract the phase following a quench, we may need to measure a large number of observables. In some cases, it may be necessary to re-prepare the initial state for each observable. 
+
+
+
+
+
+\subsubsection*{Comparable classical complexity and challenging instance sizes}
+The Fermi--Hubbard model has been a fertile environment for the development and testing of classical numerical methods for both static and dynamical properties. State-of-the-art methods for computing the phase diagram include: quantum Monte Carlo methods (determinantal QMC, diagrammatic MC, auxiliary-field QMC, diffusion MC), density matrix renormalization group (DMRG), coupled cluster methods, impurity methods (dynamical mean-field theory, density matrix embedding theory), among others. These methods typically have an approximation parameter (e.g., the excitation degree in coupled cluster or the bond dimension in DMRG) which influences the scaling of the algorithm and the accuracy of the simulation. Modern numerical studies of the Fermi--Hubbard model typically cross-validate using a number of simulation methods~\cite{leblanc2015TwoDimHubbard,schafer2021MultiMethodHubbard}. For example,~\cite{leblanc2015TwoDimHubbard} benchmarked a range of methods and performed sufficiently large and accurate simulations for extrapolation to the thermodynamic limit. That work concluded that ``the ground-state properties of a substantial part of the Hubbard model phase space are now under numerical control,'' but that some uncertainties still remain for $4t \leq U \leq 8$ and dopings near half-filling. For a recent review of numerical simulations of the Fermi--Hubbard model, we refer the reader to~\cite{Qin2022HubbardComputational}.
+
+
+The simulation of dynamics of the Fermi--Hubbard model appears to be more challenging for classical methods. For example,~\cite{daley2022,flannigan2022} concluded that simulating the dynamics of a $10 \times 10$ lattice would be infeasible for tensor network techniques. Other classical approaches for simulating time evolution of the Fermi--Hubbard model include nonequilibrium extensions of dynamical mean-field theory~\cite{aoki2014NonequilibriumFH} or Floquet methods~\cite{oka2019FermiHubbardDynamics}.
+
+
+
+
+
+\subsubsection*{Speedup}
+The speedup of quantum algorithms for computing static properties, such as the ground state energy, of the Fermi--Hubbard model is difficult to determine. In general, we know that closely related models are QMA-hard (see \hyperref[FHcaveats]{Caveats}) and so should be exponentially difficult for both classical and quantum computers. Assuming an initial state that has overlap with the target eigenstate that decays no faster than polynomially, then quantum phase estimation can be used to efficiently measure the eigenenergy and project into the desired eigenstate. It does so with cost $\bigO{M^2/\Delta E}$ or $\mathcal{O}((M/\Delta E)^{3/2})$, depending on the quantum algorithm used. Exact classical methods such as exact diagonalization have a cost that scales exponentially with $M$ or $1/\Delta E$. Approximate classical methods scale with an approximation parameter (e.g., bond dimension, number of excitations) which will depend on both $M$ and $\Delta E$. For example, \cite[Fig.~4]{lee2022isThereEvidenceChemistry} shows the convergence of a tensor network (PEPS) calculation for the 2D Fermi--Hubbard model as a function of bond dimension and system size. For the small systems studied (up to $16 \times 4$ sites) the plots are consistent with the bond dimension scaling polynomially in $1/\Delta E$, with a weak dependence on the system size. If this holds for larger system sizes and across a range of system parameters, this would suggest that quantum algorithms provide only a polynomial speedup for computing the ground state energy.
+
+Simulating the dynamics of the Fermi--Hubbard Hamiltonian requires polynomial resources using quantum algorithms, scaling almost linearly in $M$ and $\tau$. In contrast, all known classical methods appear to scale exponentially in system size and simulation accuracy. For example, \cite{flannigan2022} used tensor network (matrix product state) approaches for simulating the dynamics of the Fermi--Hubbard model following a quench. When truncating the bond dimension to facilitate efficient classical simulation, they found that errors in the observables grew exponentially with time. While this supports the conclusion of an exponential quantum speedup, we note that classical approaches will likely continue to improve and be applied to increasingly large system sizes. By using carefully engineered interactions (e.g., deviating significantly from a square lattice) it can be shown that simulating the dynamics of the Fermi--Hubbard model on a planar graph is a BQP-complete problem, and so is expected to be hard for classical computers, in the worst case~\cite{bao2015universal}.
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection*{NISQ implementations}
+There have been a number of proposals (and experimental demonstrations) of simulating the Fermi--Hubbard model on NISQ hardware. Ground state calculations can be performed using the \hyperref[prim:VQA]{variational quantum eigensolver (VQE)}~\cite{jiang2018,reiner2018, reiner2019,cai2020,cade2020FermiHubbardVQE}, and experimental demonstrations have been carried out on lattices of size $1 \times 8$ and $2 \times 4$ using 16 superconducting qubits, yielding qualitative agreement with theoretical expectation~\cite{stanisic2022VQEFermiHubbard}. 
+
+Dynamics can be simulated using \hyperref[prim:HamiltonianSimulation]{Hamiltonian simulation} (typically Trotter methods)~\cite{clinton2021HamiltonianSimulationNearTermHubbard} and have been demonstrated for an $8 \times 1$ lattice on 16 superconducting qubits~\cite{arute2020ObservationFHModel}.
+
+The simple Hamiltonian of the Fermi--Hubbard model makes it well suited to realization in analog quantum simulators, including ultracold atoms in optical lattices, trapped ions, and neutral atom arrays. It has been argued that some local observables can be robust to errors in the simulation~\cite{poggi2020,flannigan2022}, enabling analog simulations to already surpass classical methods for simulating dynamics. We refer the reader to~\cite{daley2022,gross2017} for additional discussion on analog simulation. 
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection*{Outlook}
+The Fermi--Hubbard model provides a longstanding and physically relevant computational challenge. The low gate counts and modest number of logical qubits required to compute ground state energies could make quantum algorithms competitive with leading classical approaches in challenging regimes. We note that further research is required to ascertain the costs for initial state preparation for these calculations. For the less-well-studied task of simulating the dynamics of the Fermi--Hubbard model, quantum algorithms currently provide an exponential speedup over known classical algorithms. Nevertheless, as the Fermi--Hubbard Hamiltonian is sufficiently simple to be realized in many controlled physical systems, future fault-tolerant quantum computers will also have to compete against analog quantum simulators.
+
+
+
+
+%\subsubsection*{Further reading}
+
+
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+
+
+
+
+
+\end{refsection}
+
+
+
+
+
+
+
+
+\newpage
+\begin{refsection}
+
+\subsection{SYK model}\label{appl:SYK}
+
+
+\subsubsection*{Overview}
+
+The Sachdev--Ye--Kitaev (SYK) model~\cite{sachdev1993_sy_model,kitaev2015_syk} 
+is a simplified model of a quantum black hole that is  strongly coupled and ``maximally chaotic,'' but still solvable. This remarkable and, to date, unique combination of properties has led to great activity surrounding SYK. It has applications in high-energy physics through its connections to black holes and quantum gravity, and it has applications in condensed matter physics as a model of quantum chaos and scrambling, which sheds light on phases of matter in strongly coupled metals \cite{rosenhaus2019SYK,song2017stronglyCorrelatedMetalSYK}. 
+While many interesting properties of the SYK model can be computed analytically in certain limits, not all properties qualify, and questions remain about the behavior of the model outside of these limits---these questions can potentially be addressed numerically by a quantum computer. 
+
+\subsubsection*{Actual end-to-end problem(s) solved}
+The SYK model has many variants; a common version to consider is the four-body ($q=4$) Majorana fermion Hamiltonian with Gaussian coefficients
+\begin{align}
+    H_{\rm SYK} = \frac{1}{4\times 4!}\sum_{i,j,k,\ell=1}^N g_{ijk\ell} \; \chi_i\chi_j \chi_k \chi_{\ell} \,,
+\end{align}
+where $\chi_i$ denote Majorana fermion mode operators obeying the anticommutation relation $\chi_i\chi_j+\chi_j\chi_i = 2\delta_{ij}$, and $g_{ijk\ell}$ are coefficients drawn independently at random from a Gaussian distribution with zero mean and variance $\sigma^2 = 3!g^2/N^3$ (with $g$ the tunable coupling strength).
+
+In the limit of a large number of local degrees of freedom $N\rightarrow \infty$ and at strong coupling $\beta g \gg 1$ (where $\beta$ is the inverse of the temperature), the SYK model is exactly solvable (to physicists' rigor) for certain properties and provides insights into quantum gravity and quantum chaos. However, questions remain about the wealth of properties out of reach by taking limits or the nonasymptotic regime of parameters. For example, it has been challenging to rigorously calculate
+the density of states at a certain energy or the ground state energy of the four-body SYK model at the large-$N$ limit~\cite{cotler2017black,babbush2019SYKmodel,hastings2022optimizing}.
+These problems can potentially be probed numerically on a quantum computer. 
+
+Generally speaking, this often boils down to performing the following task on the quantum computer: given as input an instance of $H_{\rm SYK}$ (generated by choosing the couplings $g_{ijk\ell}$ at random) and an observable $O$, estimate the expectation value $\tr(\rho O)$, where $\rho$ could be, for instance, (i) the ground state of $H_{\rm SYK}$, (ii) the thermal state $\rho \propto e^{-\beta H_{\rm SYK}}$, or (iii) a time-evolved state $\rho = e^{iH_{\rm SYK}t}\ket{0}\bra{0}e^{-iH_{\rm SYK}t}$ from an easy-to-prepare initial state $\ket{0}$, among other possibilities. The observable $O$ could be a local operator or even $H_{\rm SYK}$ itself. Another case is for $O$ to be composed of $t$-dependent time-evolution unitaries $e^{iH_{\rm SYK}t}$. 
+
+For example, computing the ground state energy corresponds to taking $\rho$ to be the ground state of $H_{\rm SYK}$ and $O$ to be $H_{\rm SYK}$, and computing a 4-point out-of-time-ordered correlation function corresponds to taking $\rho$ to be the thermal state at inverse temperature $\beta$ and $O$ to be $Ae^{iH_{\rm SYK}t}Be^{-iH_{\rm SYK}t}Ae^{iH_{\rm SYK}t}Be^{-iH_{\rm SYK}t}$, where $A$ and $B$ are few-body operators \cite{hunter-jones2018PhDThesis}.  In another example, \cite{Brown2019QuantumGI,nezami2023QuantumGravityInLabII} give a detailed proposal to ``simulate quantum gravity in the lab'' via computing expectation values of observables and states formed via simulation of the SYK model. 
+
+Depending on the ultimate end-to-end goal, one may need to repeat this calculation for many different $O$ or for many instances of $H_{\rm SYK}$, e.g., to compute an ensemble average. 
+
+
+\subsubsection*{Dominant resource cost/complexity}
+
+\subparagraph{Mapping the problem to qubits:} 
+To simulate the SYK model on a quantum computer, the Majorana operators are represented by strings of Pauli operators according to the Jordan--Wigner representation (e.g., \cite{garcia-alvarez2017}). As a result, the Hamiltonian $H_{\rm SYK}$ on $N$ Majoranas becomes a linear combination of multi-qubit Pauli operators over $N/2$ qubits. Methods for \hyperref[prim:HamiltonianSimulation]{Hamiltonian simulation} in this Pauli access model typically have dependencies on the number of terms, $N^4$, and on the 1-norm of Pauli coefficients, denoted by $\lambda$, which for typical SYK instances is seen to be $\lambda = \bigO{gN^{5/2}}$ (see \cite[Eq.~(16)]{babbush2019SYKmodel}). 
+
+
+\subparagraph{State preparation:} 
+
+To solve the problem of estimating $\tr(\rho O)$, one must be able to prepare the $(N/2)$-qubit state $\rho$. In some cases, $\rho$ could simply be a product state, which is trivial to prepare. If $\rho$ is the thermal state at inverse temperature $\beta$, then algorithms for \hyperref[prim:GibbsSampling]{Gibbs sampling} would be used to prepare the state. Due to the chaotic properties of SYK and the fact that the system is expected to thermalize quickly in nature, one expects that Monte Carlo--style Gibbs samplers (e.g., \cite{temme2011quantumMetropolis,chen2021fastThermalization, Shtanko2021AlgorithmsforGibbs, Rall_thermal_22,chen2023QThermalStatePrep}) have a favorable $\mathrm{poly}(N)$ gate complexity, but the exact performance is unknown. If $\rho$ is the ground state of $H_{\rm SYK}$, there are several methods for preparing $\rho$, including projection onto $\rho$ by measuring (and postselecting) an ansatz state $\phi$ in the energy eigenbasis using \hyperref[prim:QPE]{quantum phase estimation} (QPE), or by \hyperref[prim:QuantumAdiabaticAlgorithm]{adiabatic state preparation}. The cost of either of these methods is dependent on details such as which ansatz state is used (in particular, its overlap with $\rho$), the adiabatic path, and the spectrum of $H_{\rm SYK}$---in both cases, in the absence of evidence to the contrary, the scaling can be exponential in $N$. In \cite{hastings2022optimizing}, a $\mathrm{poly}(N)$-time quantum algorithm for preparing states $\rho$ achieving a constant-factor approximation to the ground state energy of $H_{\rm SYK}$ was given, which could be used as $\rho$ to probe low-energy properties of the system.
+
+\subparagraph{Time evolution:} 
+The calculation also requires simulating time evolution by $H_{\rm SYK}$. This can be because $O$ is a time-evolved operator, because the state $\rho$ corresponds to a time-evolved state, or simply as a subroutine for QPE or Gibbs sampling, mentioned above.   Reference \cite{garcia-alvarez2017} proposed a scheme for simulating time evolution using a first-order \hyperref[prim:ProductFormulae]{product-formula} approach to \hyperref[prim:HamiltonianSimulation]{Hamiltonian simulation}. That is, it implements the unitary $e^{iH_{\rm SYK}t}$ to precision $\epsilon$, with gate complexity $\mathcal{O}(N^{10}g^2t^2/\epsilon)$.  However, this steep scaling with $N$ suggests that accessing large system sizes will be difficult with this method. 
+Reference \cite{babbush2019SYKmodel} later gave a method with better $N$ dependence, achieving gate complexity $\mathcal{O}(N^{7/2}gt +N^{5/2}gt\,\text{polylog}(N/\epsilon))$, leveraging \hyperref[prim:QSPqubitization]{qubitization with quantum signal processing}. This gate complexity grows more slowly than the number of terms in $H_{\rm SYK}$ ($\bigO{N^4}$), a feat that is only possible because the simulation method generates the SYK coupling coefficients pseudorandomly: they perform the PREPARE step in the \hyperref[prim:LCU]{linear combination of unitaries} with a shallow quantum circuit composed of $\mathrm{polylog}(N)$ random two-qubit gates, producing a state for which the $N^4$ amplitudes are distributed approximately as independent Gaussians.
+Further reduction in the gate count would be bottlenecked by the 1-norm $\lambda$ of the coefficients of $H_{\rm SYK}$; however, recent work~\cite{Xu2020ASM} suggests gravitational features may remain even if the Hamiltonian is substantially sparsified, which could reduce the number of terms and the value of $\lambda$. 
+
+\subparagraph{Measuring observables:} 
+
+Finally, given the ability to prepare a purification of $\rho$ and supposing $O$ is unitary (if it is not, it could be decomposed into a sum of unitaries and each constituent computed separately), estimating the expectation value $\tr(\rho O)$ to precision $\epsilon$ can be done by \hyperref[prim:AmpEst]{overlap estimation}, costing $\bigO{1/\epsilon}$ calls to the routine that prepares $\rho$ and to the routine that applies $O$. If the purification of $\rho$ cannot be prepared, the cost is $\bigO{1/\epsilon^2}$.  
+
+\subsubsection{Existing error corrected resource estimates} 
+Reference \cite{babbush2019SYKmodel} compiled the dominant contributions in their approach to Hamiltonian simulation into Clifford + $T$ gates, and they found that at $N=100$, implementing $e^{iHt}$ requires fewer than $10^7 gt$ $T$ gates, and at $N=200$, it requires fewer than $10^8 gt$ $T$ gates.
+The $T$-count can be turned into an estimate of the running time and number of physical qubits, see the discussion of \hyperref[prim:FTQC]{fault-tolerant quantum computation}.
+
+
+\subsubsection*{Caveats}
+Existing resource estimates only focus on simulating the dynamics of SYK models, but the proposed classically challenging problems involve static properties such as density of states and properties of thermal states. Probing these static properties in an end-to-end fashion would likely require preparing thermal states, ground states, or other kinds of low-energy states, in addition to being able to implement $e^{iHt}$. The cost of preparing these states is unknown and difficult to assess analytically. Another caveat is that the gate counts quoted above do not take into account the $\bigO{1/\epsilon}$ scaling of reading out an observable to precision $\epsilon$, or any repetitions for different instances of $H_{\rm SYK}$ required for making inferences about the physics of SYK. 
+
+
+\subsubsection*{Comparable classical complexity and challenging instance sizes}
+As mentioned above, one of the reasons that the SYK model is appealing is that many properties can be computed analytically in certain limits. 
+Other properties that would be of interest to numerically compute on a quantum computer require poorly scaling classical methods. Exact diagonalization of systems consisting of more than roughly 50 fermions would be very challenging due to the exponential growth of the Hilbert space, which has dimension $2^{N/2}$. For example, \cite{cotler2017black} and \cite{garcia-garcia2016spectralSYK} gave a variety of numerical results based on exact diagonalization up to $N=34$ and $N=36$, respectively.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection*{Speedup}
+
+Hamiltonian simulation has $\mathrm{poly}(N)$ runtime, an exponential speedup over exact diagonalization, which is the go-to method for classical simulation of SYK-related problems. However, Hamiltonian simulation does not alone solve the same end-to-end problem as exact diagonalization; the persistence of the exponential speedup requires identifying specific interesting properties where the relevant initial states can also be prepared in $\mathrm{poly}(N)$ time, which is currently less clear.
+
+
+
+
+\subsubsection*{NISQ implementations}
+
+Experimental realizations of the SYK model have been proposed on several different experimental platforms \cite{franz2018mimicing,rahmani2019interactingMajoranaFermions,luo2019SYK_with_NMR}.
+However, even if these demonstrations can be realized, we do not expect this approach to scale in the absence of quantum error correction.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection*{Outlook}
+Simulating time evolution of the SYK model on a quantum computer has relatively mild gate cost, due to the model's straightforward mapping to a qubit Hamiltonian. At the same time, it is difficult to simulate the SYK model on a classical computer, owing to its chaotic and strongly coupled nature. However, further work is needed to understand the entire end-to-end pipeline. It has not yet been identified which properties would be most valuable to compute on a quantum computer and how costly they will be. Computing these properties will likely involve far more than a single run of time evolution on a single instance of the SYK model, so the overall cost is likely to be much larger than what initial gate counts in the literature suggest. 
+
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+\end{refsection}
+
+
+
+\newpage
+
+
+
+
+
+\begin{refsection}
+
+\subsection{Spin models}\label{appl:SpinModels}
+
+
+\subsubsection*{Overview}
+Classical and quantum spin systems are prototypical models for a wide range of physical phenomena including: magnetism, neuron activity, simplified models of materials and molecules, and networks. Studying the properties of spin Hamiltonians can also provide useful insights in quantum information science.
+
+A number of scientific and industrial problems can be mapped onto finding the ground or thermal states of classical or quantum spin models, for example \hyperref[appl:CombOpt]{solving combinatorial optimization problems}, \hyperref[appl:EnergyBasedML]{training energy-based models in machine learning}, and simulating low energy models of \hyperref[appl:ElectronicStructure]{quantum chemistry}~\cite{tazhigulov2022SpinModelsMolecules}. 
+
+Simulating the dynamics of quantum spin models is primarily of interest for quantum information science, and condensed matter physics or chemistry, for example interpreting nuclear magnetic resonance~\cite{sels2020NMR,obrien2021NMRsim} or related spectroscopy experiments~\cite{Chiesa2019NeutronScattering,mcardle2021Muons}.
+
+Because of the natural mapping between spin-$1/2$ systems and qubits, as well as the locality of interactions commonly present, the resources required to simulate simple spin models using quantum algorithms can be much lower than for problems in areas like \hyperref[appl:ElectronicStructure]{quantum chemistry} or \hyperref[appl:BreakingCrypto]{cryptography}.
+
+While our discussion will focus on quantum algorithms designed to be run on \hyperref[prim:QEC]{fault-tolerant quantum computers}, the simple Hamiltonians of spin models are naturally realized in many physical systems. This has led to the use of analog simulators~\cite{bloch2012qSim,georgescu2014qSim}, such as arrays of trapped ions or neutral atoms, for simulating the static and dynamic properties of interesting spin models. We will comment briefly on this below.
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection*{Actual end-to-end problem(s) solved}
+The most commonly studied spin models are those with pairwise interactions, referred to as $2$-local Hamiltonians. We note that the interactions are not necessarily geometrically local, although this will be present in many models of physical systems. Given a graph $\mathcal{G}$ with $N$ vertices $\{v_i\}$ and $L$ edges $\{E_{ij}\}$ we associate a classical or quantum spin with each vertex, and an interaction between spins with each edge. We can also add one-body interactions acting on individual spins. The Hamiltonian can then be written as
+\begin{equation}\label{Eq:SpinHamiltonian}
+    H = \sum_{v_i\in V} \sum_{\alpha \in \{x,y,z\}} B_i^\alpha \sigma_\alpha^i + \sum_{E_{ij} \in E} \sum_{\alpha, \beta \in \{x,y,z\}} J_{ij}^{\alpha \beta} \sigma_\alpha^i \sigma_\beta^j
+\end{equation}
+where $\{\sigma_x^i,\sigma_y^i,\sigma_z^i\}$ denote the Pauli operators $X_i,Y_i,Z_i$ acting on site $i$, and $\{B_i^\alpha\}, \{J_{ij}^{\alpha \beta}\}$ are coefficients. For classical spin Hamiltonians, the sums are restricted to $Z$ operators. The Hamiltonian in Eq.~(\ref{Eq:SpinHamiltonian}) encompasses a wide range of spin models, including: the classical Ising model
+\begin{equation}
+    H = \sum_i B_i Z_i + \sum_{ij} J_{ij} Z_i Z_j
+\end{equation}
+which also describes the Hamiltonians arising from quadratic unconstrained binary optimization (QUBO) problems, the (quantum) transverse field Ising model (TFIM)
+\begin{equation}
+    H = B \sum_i X_i + J \sum_{ij} Z_i Z_j\,,
+\end{equation}
+and the Heisenberg model with a site-dependent magnetic field, defined in 1D with nearest-neighbor interactions by
+\begin{equation}
+    H = \sum_j B_j Z_j + J^x X_j X_{j+1} + J^y Y_j Y_{j+1} + J^z Z_j Z_{j+1}.
+\end{equation}
+Across the different models, we can vary the dimension, locality of interactions (e.g.~nearest-neighbor vs.~fully connected vs.~power-law), and values of the site-dependent coefficients in comparison to the interaction terms.
+The models can be extended beyond 2-local by considering couplings of 3 or more spins---see for example $p$-spin models, which are $p$-local~\cite{derrida1980randomEnergyModel}. The above definitions can be extended from spin-$1/2$ systems to higher spin operators by generalizing the Pauli operators with their \href{https://en.wikipedia.org/wiki/Spin_(physics)\#Higher_spins}{higher dimensional counterparts}.
+
+
+
+For classical spin models we seek to prepare the ground or thermal states of the model, as these may encode, for example, the solution to a combinatorial optimization problem, or a probability distribution that can be used for generative modelling. For quantum spin models, we similarly seek to compute ground or thermal states. However, because these are not classical states that can be easily extracted, we typically wish to sample observables with respect to these states. Examples include the energy, the magnetization of the system, or correlations between sites. In dynamical simulations of quantum systems, we seek to determine how observables of interest vary as a function of evolution time. Examples include the magnetization (used to infer the Hamiltonian in NMR~\cite{hogben2011NMRSpinach} or related~\cite{bonfa2021MuonSim} experiments), or the growth of correlations between sites to probe thermalization. \hyperref[prim:HamiltonianSimulation]{Hamiltonian simulation} can efficiently access not only any feature that could be observed for simulated targets (e.g., solid-state materials of interest), but also additional features~\cite{Fraxanet2022decadesQSim} which can lead to deeper understanding of the physics involved. 
+Since studies of quench dynamics often require preparation of simple states (such as product states or the ground states of classically solvable Hamiltonians) and the measurement of local observables, propagation under the Hamiltonian typically dominates the simulation cost. For lattice systems with $N$ spins in $D$ dimensions, it is conventional to consider evolution times that scale as $\Omega\left(N^{1/D}\right)$, as the system must evolve for this long for self-thermalization to take place or even for information to propagate across the system due to the Lieb--Robinson bound~\cite{chen2023speedLimits}. 
+
+
+
+
+
+\subsubsection*{Dominant resource cost/complexity}
+
+For a system of $N$ spin-$1/2$ particles, we require $N$ qubits to represent the state of the system. For $N$ spin-$S$ particles, the problem can be mapped to qubits in different ways, for example using $N \lceil \log_2(2S+1)\rceil$~\cite{sawaya2020ResourceEfficientQuantumDLevel} qubits or using $2NS$ qubits~\cite{mcardle2021Muons}.
+
+Quantum algorithms for preparing the ground or Gibbs states of classical spin systems are discussed in detail in the sections on \hyperref[appl:CombOpt]{combinatorial optimization}, and \hyperref[appl:EnergyBasedML]{energy-based machine learning models}, respectively. We will restrict our discussion to the resources required for performing time evolution of quantum spin models. The reason for this is that quantum algorithms for preparing ground or thermal states require similar primitives for Hamiltonian access to algorithms for time evolution (e.g., \hyperref[prim:BlockEncodings]{block-encodings} or \hyperref[prim:HamiltonianSimulation]{Hamiltonian simulation} itself) and use these in conjunction with either: eigenstate filtering approaches~\cite{lin2019OptimalQEigenstateFiltering,lin2020NearOptimalGroundState} based on \hyperref[prim:QSVT]{quantum singular value transformation}, \hyperref[prim:QuantumAdiabaticAlgorithm]{adiabatic state preparation}, \hyperref[prim:QPE]{quantum phase estimation} from a trial state, or \hyperref[prim:GibbsSampling]{quantum algorithms for thermal state preparation}. More detailed discussions of these algorithms and their caveats can be found on the linked pages, as well as in the discussion of quantum algorithms for simulating \hyperref[appl:ElectronicStructure]{molecules and materials} or the \hyperref[appl:FermiHubbard]{Fermi--Hubbard model}, where preparing (approximate) eigenstates is the primary topic of interest. All of these algorithms depend on either an overlap between the trial state and the target state, the minimum gap along an adiabatic path, or the mixing time of a Markov chain---all of which are difficult to bound in the general case.
+
+When simulating the \hyperref[prim:HamiltonianSimulation]{time evolution} of spin systems, the most efficient algorithms exploit the locality of interactions in the Hamiltonian, and the resulting commutation structure. For $2$-local spin-$1/2$ systems on a $D$-dimensional lattice with nearest-neighbor geometric locality, algorithms with almost optimal gate complexity are known for performing time evolution. Reference~\cite{childs2019NearlyOptimalLattSim} showed that $(2k)$th-order \hyperref[prim:ProductFormulae]{product formulae} scale as $\bigO{(Nt)^{1+1/2k} / \epsilon^{1/2k} }$ to simulate time evolution for time $t$ to accuracy $\epsilon$, using a Hamiltonian given in the Pauli access model. Note that this expression suppresses the $5^{2k}$ constant factor present in $(2k)$th-order Trotter. Similarly, \cite{haah2018QAlgSimLatticeHam} gave an algorithm with complexity $\bigO{Nt \cdot \mathrm{polylog}(Nt/\epsilon)}$ for Hamiltonians given in the sparse access model. In contrast, note that approaches that are asymptotically optimal in the black-box setting, such as \hyperref[prim:QSPqubitization]{quantum signal processing}, have a gate complexity of $\bigO{N^2Dt + \log(1/\epsilon)}$ using a \hyperref[prim:BlockEncodings]{block-encoding} based on \hyperref[prim:LCU]{linear combinations of unitaries (LCU)}.
+
+
+
+Spin Hamiltonians with power-law interactions were studied in~\cite{tran2019LocalitySimPowerLaw,childs2021TheoryTrotter}, that is, where the interaction strength between spins $i$ and $j$ depends inversely on a power of the distance between the spins, denoted by $\nrm{i-j}_2$. For a $D$-dimensional lattice with $2$-local interactions with interaction strengths scaling as $1/\nrm{i-j}_2^\alpha$, $(2k)$th-order Trotter gives a scaling of (as above, suppressing the $5^{2k}$ constant factor present in $2k$th-order Trotter)~\cite{childs2021TheoryTrotter}
+\begin{equation}
+		\bigOt{\begin{array}{rcl} N^{3-\frac{\alpha}{D}(1+1/2k)+1/k} t^{1+1/2k}\epsilon^{-1/2k} & &\text{for } 0 \leq \alpha < D,\\
+		N^{2+1/2k} t^{1+1/2k}\epsilon^{-1/2k}& & \alpha \geq D \end{array}}.
+\end{equation}
+Focusing on the $D=1$ case, if one were to directly apply \hyperref[prim:QSPqubitization]{quantum signal processing} based on a block-encoding via the LCU approach, the scaling would be
+\begin{equation}
+ \bigOt{N^2 t + \log(1/\epsilon)}
+\end{equation}
+
+These asymptotic complexities are complemented by the constant factor analyses discussed in the following section.
+
+For estimating expectation values of observables to precision $\epsilon$, one can either consider directly sampling and then re-preparing the state of interest (scaling as $\bigO{1/\epsilon^2}$), or coherent approaches based on \hyperref[prim:AmpEst]{amplitude estimation} scaling as $\bigO{1/\epsilon}$, but requiring a longer coherent circuit depth. Measurements of simple observables, such as the magnetization, can be obtained through the computational basis measurements on single qubits. For more complicated observables, one can consider the approaches in~\cite{rall2020EstimatingPhysicalQuantities,huggins2022ExpectationValue,apeldoorn2022TomographyStatePreparationUnitaries}, discussed in more detail in the section on \hyperref[appl:ElectronicStructure]{quantum chemistry}.
+
+
+
+
+
+
+
+\subsubsection*{Existing error corrected resource estimates}
+A number of \hyperref[prim:LatticeSurgery]{fault-tolerant resource estimates} for simulating the dynamics of spin systems, or for finding their ground states via \hyperref[prim:QPE]{quantum phase estimation} have been reported in the literature. In such calculations it is necessary to optimize the constant factor contributions from implementing the algorithmic primitives used. A detailed comparative study on simulating the dynamics of a 1D nearest-neighbor Heisenberg model was reported in~\cite{childs2018towardsFirstQSimSpeedup}, comparing the logical qubit and $T$ gate counts of \hyperref[prim:ProductFormulae]{product formulae}, \hyperref[prim:TaylorDyson]{Taylor series}, and \hyperref[prim:QSPqubitization]{quantum signal processing}. The two most efficient approaches are shown in the first two rows of Table~\ref{Tab:ResourceEst_spin_model}.
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{savenotes}
+\begin{table}[!htb]
+    \centering
+    % \begin{minipage*}{\textwidth}
+    \begin{adjustbox}{max width=\textwidth}
+    \begin{tabular}{c|c|c|c|c|c}
+       \textbf{ Problem} & \textbf{Method} & \textbf{\#~Spins} & \textbf{\#~$T$ gates} & \makecell{\textbf{\#~Logical} \\ \textbf{qubits} } & \textbf{Parameters} \\ \hline \hline
+        1D Heisenberg dyn. & \makecell{QSP} & 50 & $2.4\times 10^9$  & 67 & \makecell{$B_j \in [-1,1], J^x=J^y=J^z=1$,\\ $t=N, \epsilon=10^{-3}$}  \cite{childs2018towardsFirstQSimSpeedup} \\ \hline
+        1D Heisenberg dyn. & \makecell{Trotter (6th order)}   &  50 &  $1.8\times 10^8$ & 50 & \makecell{$B_j \in [-1,1], J^x=J^y=J^z=1$,\\ $t=N, \epsilon=10^{-3}$} \cite{childs2018towardsFirstQSimSpeedup}  \\ \hline
+    2D NN TFIM\footnote{2D nearest-neighbor transverse field Ising model.} dyn. & \makecell{Trotter (4th order)} & 100  &  $1.7\times 10^5$ & 100 & $t=10/J, B=J, \epsilon=10^{-2}$ \cite{flannigan2022,Beverland2022Requirements}\\ \hline
+        2D $1/r^2$ TFIM dyn. & \makecell{Trotter (4th order)} &  100 &  \makecell{ $1.5\times 10^7$ } & 100 & $t=10/J, B=J, \epsilon=10^{-2}$ \cite{flannigan2022}\\ \hline
+        \makecell{2D Heisenberg ground state \\ with nearest- and next-nearest- \\neighbor interactions} & \makecell{Qubitized QPE} &  100 &  $10^8$ & N.C.\footnote{Not computed, scales as $\bigO{N+ \log(N) + \log(N/\epsilon)}$.} & $\epsilon=10^{-2}, J_1=1, J_2=0.5, B_j=0$
+        \cite{yoshioka2022CondensedMatterSimulation} \\ 
+    \end{tabular}
+    \end{adjustbox}
+    % \end{minipage*}
+    \caption{
+    Fault-tolerant resource estimates for quantum phase estimation (QPE) and dynamics simulation (dyn.) applied to different spin models. The presented gate counts are for a single run of the circuit. The results presented in rows 1 and 2 can be compared to each other, and both target an error of $\epsilon=10^{-3}$ in the operator norm distance between the ideal and implemented time evolution unitary. While \cite{childs2018towardsFirstQSimSpeedup} presents both analytic and empirical Trotter error bounds, the gate count presented in the table is that resulting from the empirical bound, though we remark that more recent analytic bounds are close to matching the empirical bounds~\cite{childs2021TheoryTrotter}. The results presented in rows 3 and 4 can be compared to each other, and determine the number of Trotter steps used empirically by targeting an error of $\epsilon=10^{-2}$ in a particular spatially averaged local observable, and then extrapolating this behavior to larger system sizes. 
+    }
+\label{Tab:ResourceEst_spin_model}
+\end{table}
+\end{savenotes}
+
+
+On a \hyperref[prim:LatticeSurgery]{fault-tolerant quantum computer} arbitrary angle rotation gates must be synthesized using a larger number of $T$ and Clifford gates~\cite{kitaev1997quantumComputationsAlgosQEC}. The number of $T$ gates to synthesize a group of parallel rotation gates can be reduced if they share the same angle~\cite{gidney2018_halving_addition,CampbellHubbard22}. This technique can be exploited in fault-tolerant compilations of algorithms simulating physical spin systems, which often exhibit features such as translational invariance.
+
+In addition to the entries given in Table~\ref{Tab:ResourceEst_spin_model}, fault-tolerant approaches to simulating NMR~\cite{obrien2021NMRsim} and muon spectroscopy~\cite{mcardle2021Muons} experiments, which are effectively spin model simulations, have been considered. 
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection*{Caveats}
+The decision forms of the ground state problem for 2-local classical and quantum spin models are NP--complete~\cite{barahona1982,Lucas2014IsingFormulationNP} and QMA--complete~\cite{kempe2006complexity}, respectively. As such, we do not expect quantum algorithms to provide efficient solutions to these problems in the general case. Nevertheless, given the success of classical heuristics for these problems, one may hope to observe a similar benefit from quantum heuristic algorithms, such as Monte Carlo--style \hyperref[prim:GibbsSampling]{Gibbs sampling algorithms}.
+
+In contrast, simulating the dynamics of spin models is a BQP-complete problem~\cite{lloyd1996UnivQSim}, and is likely one of the most simple beyond-classical calculations that could be performed on a future fault-tolerant quantum computer. While such a computation would be of great scientific interest, providing new insights in quantum information and many-body physics, it is currently unclear whether dynamics simulations of large systems will have a direct impact on industrially relevant applications.
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection*{Comparable classical complexity and challenging instance sizes}
+
+Exact classical simulations of quantum spin models are exponentially costly in system size. Exact simulations that consider a time evolution long enough for information to propagate across the system (as per the Lieb--Robinson bound) are thus limited to around 50 spins using the largest classical supercomputers~\cite{haner2017petabyte45qubit,childs2018towardsFirstQSimSpeedup}.
+
+Approximate classical algorithms for studying quantum spin systems include tensor network approaches and quantum Monte Carlo methods. These methods provide empirically accurate results for computing the ground states of physically motivated spin systems, in particular those with local interactions, in low dimensions. For example, the ground states of local, gapped 1D Hamiltonians have area law entanglement, and so can be efficiently represented by matrix product states. Similar statements can be made in 2D, using e.g.~projected entangled pair states (PEPS). 
+
+In contrast, these methods are less accurate when performing simulations of quantum spin dynamics~\cite{schuch2008entropyScaling,schollwock2011dMRG}. In these systems the entanglement entropy grows linearly with time~\cite{calabrese2005entanglementEntropy1D}, resulting in a cost that grows exponentially with time for tensor network approaches targeting fixed accuracy. For example, it was claimed in~\cite{flannigan2022} that simulations of the dynamics of the 2D TFIM for $N=100$ spins would be far beyond the current capabilities of tensor network methods~\cite{flannigan2022}. 
+
+Many physical systems are subject to strong interactions with their environment which limits their coherence times. In these cases, the behavior of the system can often be reproduced by simulating a smaller number of spins (e.g.~$\leq 30$) and accounting for the interactions with the environment through physically motivated heuristics~\cite{wilkinson2020MuonFluorine}. Such simulations (accessible via open source software libraries) are used to analyze NMR~\cite{hogben2011NMRSpinach} and muon spectroscopy experiments~\cite{bonfa2021MuonSim}.
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection*{Speedup}
+The speedup for computing the ground states of quantum spin Hamiltonians over classical approximate methods (such as tensor networks or quantum Monte Carlo) is currently an open research question. A large speedup appears to require the availability of good initial states for quantum algorithms, without also being able to efficiently solve the problem classically~\cite{lee2022isThereEvidenceChemistry}.
+
+The simulation of quantum spin dynamics appears to be exponentially costly using all known classical methods. As such, quantum algorithms for \hyperref[prim:HamiltonianSimulation]{Hamiltonian simulation} would provide an exponential speedup for this task. This would likely provide insights in quantum information and many--body physics. As an example, such systems could study the competition and interplay between thermalization and many--body localization in quantum systems. 
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{NISQ implementations}
+
+Quantum spin models are commonly used as benchmark systems for NISQ algorithms---e.g.~finding ground states~\cite{kandala2017VQE}, simulating dynamics~\cite{rosenberg2023dynamics}, or probing thermalization~\cite{mi2023SpinChainDissipation}. 
+
+The Hamiltonians of spin models are also naturally realized in a wide range of physical systems, including trapped ions or neutral atoms~\cite{bloch2012qSim, georgescu2014qSim}. For example, recent experiments in neutral atom systems have studied the dynamics of $\bigO{200}$ spins, which went beyond the capabilities of classical simulation via matrix product state approaches~\cite{ebadi2021phasesMatter,scholl2021aFM}. Analog simulators are already an important tool providing new scientific insights, and they set a high bar for the future performance of fault-tolerant approaches to simulating spin systems. 
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection*{Outlook}
+Simulating the behavior of spin systems is arguably one of the most natural tasks for quantum computers, and is exponentially costly using all known classical methods. Such simulations can provide important insights into questions in quantum information and many-body physics, as well as acting as models for more complex systems in condensed matter physics and chemistry.    
+
+Fault-tolerant resource estimates for quantum algorithms simulating spin systems are among the lowest known for beyond-classical tasks. Nevertheless, analog quantum simulators are already able to natively simulate the dynamics of hundreds of spins. In order to surpass these capabilities, digital approaches may need to consider more complex observables, or target accuracies not available with error correction. 
+
+In addition, for many systems of scientific interest in related fields, such as chemistry or condensed matter physics, decoherence--inducing interactions with the environment often limit the required simulation sizes. Identifying applications requiring accurate simulation of the dynamics of large spin models would increase the impact and applicability of quantum algorithms in this area.
+
+
+
+
+
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+
+\end{refsection}
+

@@ -1,0 +1,40 @@
+
+\begin{table*}[t]
+    \centering
+    \begin{tabularx}{\textwidth}{@{}>{\bfseries}l*{3}{X}@{}}
+        \toprule
+        Endpoint & Request Body & Response & Description \\
+        \cmidrule(r){1-4}
+        \it{GET allocations/} 
+            & \makecell[l]{allocation\_ids: list(str) \\  fields: list(str)}
+            & allocations: list(dict)
+            & Fetch resource allocations listed by id. \\
+        \it{POST allocations/} 
+            & specification: dict
+            & allocation\_id: str
+            & This allocates a set of resources from a resource request specification. \\
+        \it{DEL allocations/} 
+            & allocation\_id: str     
+            & status: bool
+            & Destroy a resource allocation and return resources to the pool of available resources. \\
+        \it{GET resources/} 
+            & \makecell[l]{specification: dict \\  fields: list(str)}   
+            &  resources: list(dict)
+            & Fetch the current state of resources on a system.  This should report status of anything that a user may be able to specify for their job placement, including QPU status and software stack status \\
+        \it{GET tasks/} 
+            & \makecell[l]{task\_ids: list(str) \\  fields: list(str)}
+            & tasks: list(dict)
+            & If a list of tasks are passed in, provide information on currently running tasks on the system.  If no tasks passed in, provide information on all running tasks.  This may constrain the results for the executing user so that it shows only their own jobs if the user is otherwise unprivileged. \\
+        \it{POST tasks/} 
+            & \makecell[l]{task\_information: dict \\  allocation\_id: str \\ batch\_id: str}  
+            & allocation\_id: str
+            & Launch a task. \\
+        \it{DEL tasks/} 
+            & \makecell[l]{task\_ids: list(str) \\  signal: int} 
+            & status: bool
+            & Send a signal to tasks for termination. \\
+        \bottomrule
+    \end{tabularx}
+    \caption{Minimal quantum cloud bursting API specification.}
+    \label{table:quantum_cloud_bursting}
+\end{table*}

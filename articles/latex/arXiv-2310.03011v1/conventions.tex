@@ -1,0 +1,43 @@
+\section{Some wording conventions}
+
+\begin{itemize}
+    \item We opt for American conventions over British (optimization, not optmisation, flavor, not flavour, etc.)
+    \item Conventions on specific words with multiple spellings: parametrized (not parameterized)
+    \item Words like nontrivial and nonsingular should not be hyphenated, unless it would be confusing otherwise (e.g.~a double consonant, so non-negative is ok). Some specific words that we are always hyphenating / not hyphenating:
+    \begin{itemize}
+        \item No hyphens: postselection, nonzero, nonlinear, nondestructive, speedup, nonuniform, subquadratic, nonparametric, suboptimal, subnormalization, tradeoff
+        \item Hyphens: non-unitary, non-square, block-encoding
+    \end{itemize}
+    \item Only first word of Title (of section, subsection, etc) is capitalized, except for proper nouns or words following colons. 
+    \item Monte Carlo has no hyphen, but capitalized. This includes ``Monte Carlo--style algorithms" which technicallyuses an ``en dash'' between ``Monte Carlo'' and ``style'' (rather than a hyphen)
+    \item Use ``analog" for e.g. ``analog quantum simulator". Use ``analogue" for other cases, e.g. ``X is an analogue of Y". See discussion here: \url{https://grammarist.com/spelling/analog-analogue/}
+    \item Use ``nature" over ``Nature"
+    \item $T$ gate (no hyphen, math mode for $T$), but $T$-count, and $T$-depth (with hyphen)
+    \item We include the Oxford comma on a list of 3 or more items, e.g., ``we often want to form a single block-encoding of a product, tensor product, or linear combination of the individual block-encoded operators.''
+\end{itemize}
+
+\section{Typesetting conventions}
+
+\begin{itemize}
+    \item Following American (over British) conventions, put punctuation such as commas and periods inside of the end quotation, and use ``double quotations.'' The only isntance where `single quotations' would be used is for nested quotations. 
+    \item Footnotemarks should appear after periods and commas, but inside quotation marks
+\end{itemize}
+
+\section{Matrices, vectors, dot products}
+\begin{itemize}
+    \item Vectors should appear in lowercase latin letters
+    \item The all-ones vector should appear as $\mathbf{1}$.
+    \item Matrices should appear in uppercase latin letters
+    \item Dot products between vectors $u$ and $v$ can be denoted either by $u^\intercal v$ or by $\langle u, v \rangle$, but the definition of $\langle \cdot, \cdot \rangle$ should be restated the first time it appears in each article
+\end{itemize}
+
+\section{QRAM vs.~QROM}
+Most often, we refer to a classical-write quantum-read version of QRAM, which we can just call QRAM, but if there might be confusion, the ``classical-write quantum-read'' qualifier can be added the first time it appears in an article. 
+
+
+\section{Big-$\mathcal{O}$ notation}\label{app:bigO}
+We are using $\mathcal{O}$ for big-O notation, and $\tilde{\mathcal{O}}$ when logarithmic factors are suppressed. The meaning of the tilde should ideally be restated in each article when it first appears. You can use the command \textbackslash{bigO} and \textbackslash{bigOt} commands which have been defined in the preamble. 
+
+\section{In-text citations}
+
+When citing something, no need to spell out ``Ref.'' Just cite directly as [4] or [5], e.g.~``As shown in [5], ...''

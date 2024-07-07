@@ -1,0 +1,307 @@
+%!TEX root = ../main.tex
+
+
+\section{Loading classical data}\label{prim:LoadingClassicalData}
+
+The end-to-end quantum applications covered in this document have classical inputs and classical outputs, in the sense that the problem is specified by some set of classical data, and the solution to the problem should be a different set of classical data. In some cases, the input data is relatively small, and loading it into the algorithm does not contribute significantly to the cost of the algorithm. In other cases---for example, ``big data'' problems within the areas of \hyperref[appl:ClassicalML]{machine learning} and \hyperref[appl:finance]{finance}---the dominant costs, both for classical and quantum algorithms, can be related to how the algorithms load and manipulate this large quantity of input data. Consequently, the availability of quantum speedups for these problems is often dependent on the ability to quickly and coherently access this data. The true cost of this access is the source of significant subtlety in many end-to-end quantum algorithms. 
+
+\localtableofcontents
+
+\newpage
+
+\begin{refsection}
+
+\subsection{Quantum random access memory}\label{prim:QRAM}
+
+
+\subsubsection*{Rough overview (in words)}
+
+Quantum random access memory (QRAM) is a construction that enables coherent access to classical data, such that multiple different elements in a classical database can be read in superposition. The ability to rapidly access large, unstructured classical data sets in this way is crucial to the speedups of certain quantum algorithms (for example, \hyperref[appl:QMLfromLinAlg]{quantum machine learning based on quantum linear algebra}). QRAM is commonly invoked in such cases as a way to circumvent data-input bottlenecks~\cite{aaronson2015ReadTheFinePrint}, i.e.~situations where loading input data could limit the end-to-end runtime of an algorithm. It remains an open question, however, whether a large-scale QRAM will ever be practical, casting doubt on quantum speedups that rely on QRAM. Note that, while here we focus on the more common use case of loading \emph{classical} data with QRAM, certain QRAM architectures can be adapted to also load \emph{quantum} data.   
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Rough overview (in math)}
+
+Consider a length-$N$, unstructured classical data vector $x$, and denote the $i^\mathrm{th}$ entry as $x_i$. Let the number of bits of $x_i$ be denoted by $d$ and let $D = 2^d$. Given an input quantum state $\ket{\psi} = \sum_{i =0}^{N-1}\sum_{j=0}^{D-1}\alpha_{ij} \ket{i}_A \ket{j}_B$, QRAM is defined~\cite{giovannetti2007QuantumRAM} as a unitary operation $Q$ with the action,
+\begin{equation}
+    Q\ket{\psi} = Q\sum_{i =0}^{N-1}\sum_{j=0}^{D-1}\alpha_{ij} \ket{i}_A \ket{j}_B  = \sum_{i =0}^{N-1}\sum_{j=0}^{D-1}\alpha_{ij} \ket{i}_A \ket{j \oplus x_i}_B.
+    \label{eq:QRAM_definition}
+\end{equation}
+Here, $A$ is a $\log_2(N)$-qubit register, and $B$ is a $d$-qubit register. Note that the unitary $Q$ can also be understood as an oracle (or black box) providing access to $x$, as $Q(\sum_i \alpha_i \ket{i}\ket{0}) = \sum_i \alpha_i \ket{i}\ket{x_i}$.
+
+Let $T_Q$ denote the time it takes to implement the operation $Q$, where $T_Q$ can be measured in circuit depth, total gate cost, $T$-gate cost, etc., depending on the context. Algorithms that rely on QRAM to claim exponential speedups over their classical counterparts frequently assume that $T_Q = \mathrm{polylog} (N)$. 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Dominant resource cost (gates/qubits)}
+
+The QRAM operation $Q$ can be implemented as a quantum circuit that uses $\bigO{N}$ ancillary qubits and $\bigO{N}$ gates. Assuming gates acting on disjoint qubits can be parallelized, the depth of the circuit is only $T_Q = \bigO{\log(N)}$. Explicit circuits can be found in, e.g., \cite{dimatteo2020FaultTolerantQRAM,hann2021resilienceofQRAM}. The number of ancillary qubits can be reduced at the price of increased circuit depth; circuits implementing $Q$ can be constructed using $\bigO{N/M}$ ancillary qubits and depth $\bigO{M\log(N)}$, where $M \in [1, N]$, see examples in \cite{low2018tradingTgatesforDirtyQubits, Berry2019QubitizationOfArbitraryBasisChemistry, dimatteo2020FaultTolerantQRAM, hann2021resilienceofQRAM} (the setting of $M=N/\log(N)$ is sometimes referred to as ``QROM"---see terminology caveats below---and its fault-tolerant cost of implementation is well established~\cite{babbush2018EncodingElectronicSpectraLinearT}). 
+
+Note that the above resource costs neglect the dependence on $d$ for simplicity, since different constructions yield different $d$ dependence. For example, the $d$ bits of a data element can be queried in series, requiring $\bigO{N}$ ancillary qubits with $T_Q = \bigO{d\log(N)}$ (improvement to $T_Q = \bigO{d+\log(N)}$ is possible for certain QRAM architectures~\cite{chen2023efficient}). Alternatively, the $d$ bits can be accessed in parallel, with $T_Q = \bigO{\log(N)}$, but at the price of $\bigO{Nd}$ ancillary qubits.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Caveats}
+
+The main concern for QRAM's practicality is the large hardware overhead that is necessary to realize fast queries $T_Q = \bigO{\log(N)}$. This cost is likely to be prohibitive for big-data applications where $N$ can be millions or billions. This cost will be magnified by additional overhead associated with \hyperref[prim:QEC]{error correction} and \hyperref[prim:FaultTolerance]{fault tolerance}~\cite{dimatteo2020FaultTolerantQRAM}, especially given that circuits implementing $Q$ are composed of $\bigO{N}$ non-Clifford gates. Indeed, the fact that $\bigO{N}$ non-Clifford gates are required, together with the assumption that \hyperref[prim:LatticeSurgery]{magic state distillation} is expensive to run in a massively parallel fashion, has led some to argue that $T_Q = \bigO{\log(N)}$ is not realistic in a fault-tolerant setting. It is possible that alternative approaches to fault tolerance tailored to QRAM could help alleviate this large hardware overhead.
+
+The fault-tolerance overhead may be reduced for the so-called bucket-brigade QRAM (BBQRAM)~\cite{giovannetti2007QuantumRAM, arunachalam2015RobustnessBuckBrigQRAM, hann2021resilienceofQRAM}. BBQRAM can be understood as a family of circuits implementing $Q$ that are intrinsically resilient to noise. More precisely, \cite{hann2021resilienceofQRAM} shows that if $\epsilon$ is the per-gate error rate, BBQRAM circuits can implement $Q$ with leading-order fidelity $F \sim 1- \epsilon\, \mathrm{polylog}(N)$, while generic circuits implementing $Q$ have leading-order fidelity $F \sim 1- \epsilon\, \bigO{N}$. Nevertheless, some amount of error correction will almost certainly be required even for BBQRAM circuits. 
+
+Some terminology caveats:
+\begin{itemize}
+    \item The unitary $Q$ is referred to by some as Quantum Read-Only Memory (QROM)~\cite{babbush2018EncodingElectronicSpectraLinearT}, reflecting the fact that $Q$ corresponds only to reading data. Some algorithms also require the ability to write to the vector $x$ duration a computation, but the writing of classical data need not be implemented via a quantum circuit.
+    \item The term QRAM is used by different authors to refer to the unitary $Q$, families of circuits that implement $Q$, or quantum hardware that runs said circuits. 
+    \item Some use the term QRAM to refer exclusively to the case $N\gg 1$ and $T_Q = \mathrm{polylog} (N)$, where the implementation challenges for QRAM are most pronounced. 
+    \item The terms QRAM and QROM are sometimes synonymous with the cases of $T_Q = \mathrm{polylog}(N)$ and $T_Q = \mathrm{poly}(N)$, respectively, even though $T_Q$ is unrelated to the distinction between reading and writing. The term QROAM has also been used to describe intermediate circuits that trade off depth and width~\cite{Berry2019QubitizationOfArbitraryBasisChemistry}.
+\end{itemize} 
+Elsewhere in this document, we follow the convention described in the final two bullet points above: usage of the term QRAM, unless specified otherwise, refers to the ability to implement $Q$ at cost $\mathrm{polylog}(N)$. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Example use cases}
+
+\begin{itemize}
+    \item \hyperref[prim:LinearAlgebra]{Quantum linear algebra}. QRAM can be used as an oracle implementation for linear algebra algorithms operating on unstructured data (e.g.,~by acting as a subroutine in a \hyperref[prim:BlockEncodingsClassical]{block-encoding}), with applications in \hyperref[appl:ClassicalML]{machine learning}, \hyperref[appl:finance]{finance}, etc. For example, the quantum recommendation systems algorithm~\cite{kerenidis2016QRecSys} (now dequantized) uses QRAM as a subroutine to efficiently encode rows of an input data matrix in the amplitudes of quantum states (see Appendix A of \cite{kerenidis2016QRecSys} for details).   
+    \item \hyperref[prim:HamiltonianSimulation]{Hamiltonian simulation}, \hyperref[appl:ElectronicStructure]{quantum chemistry}, \hyperref[appl:CondensedMatter]{condensed matter physics}. In the \hyperref[prim:LCU]{linear combination of unitaries} query model, QRAM can be used as a subroutine for ``PREPARE'' oracles that encode coefficients of the simulated Hamiltonian into the \hyperref[prim:StatePrepData]{amplitudes of quantum states}~\cite{babbush2018EncodingElectronicSpectraLinearT}. These use cases typically consider the hybrid QROM/QRAM constructions with $\bigO{K \log(N)}$ ancillary qubits and depth $\bigO{N/K}$ (with $K$ a parameter to be optimized), because the amount of data (and thus the size of $N$) scales only polynomially with the system size.  
+    \item \hyperref[prim:AA]{Grover's search}. QRAM can be used as an oracle implementation for Grover's oracle in the context of an unstructured database search, see Chapter 4 of \cite{nielsen2002QCQI}. This sort of Grover's search appears for example in quantum algorithms that utilize dynamic programming to give polynomial speedups for combinatorial optimization problems like the traveling salesman problem \cite{ambainis2019QSpeedUpExpTimeDPAlgs}.  However, it has been argued that a quantum computer running Grover's algorithm with a QRAM oracle would not provide a speedup over a classical computer with comparable hardware resources~\cite{steiger2016RacingInParallel}. 
+    \item \hyperref[appl:TDA]{Topological data analysis} (TDA). A small QRAM (i.e., not exponentially larger than the main quantum data register) is used in some quantum algorithms for TDA~\cite{lloyd2016quantumTDA,mcardle2022streamlinedTDA} in order to load the positions of the data points for computing whether simplices are present in the complex at a given length scale.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Further reading}
+
+\begin{itemize}
+    \item Reference~\cite{jaques2023qram} focuses on various fundamental and practical concerns for large-scale QRAM, while also providing a comprehensive survey of the field. 
+    \item Reference~\cite{ciliberto2018QMLReview} provides an overview of practical concerns facing QRAM in the context of big-data applications (though the discussions of noise resilience there and in \cite{arunachalam2015RobustnessBuckBrigQRAM} are somewhat outdated, cf.~\cite{hann2021resilienceofQRAM}). 
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+
+
+\end{refsection}
+
+
+\newpage
+
+
+\begin{refsection}
+
+\subsection{Preparing states from classical data}\label{prim:StatePrepData}
+
+\subsubsection*{Rough overview (in words)}
+
+An important subroutine in many quantum algorithms is preparing a quantum state given a list of its amplitudes stored, for example, in a classical database.\footnote{When the amplitudes are given by some well-behaved function, rather than being arbitrarily chosen, different (related) protocols are used, see \hyperref[StatePrepData-further-reading]{Further reading} below.} The upshot is that $N$ amplitudes, which require $\bigO{N}$ classical bits to write down, can be encoded in a quantum state with only $\log_2(N)$ qubits, an exponential compression in memory. However, there are caveats; for example, simple information-theoretic bounds \cite{plesch2011statePrepUniversal} dictate that the quantum circuit that prepares the $\log_2(N)$-qubit state must still have at least $\bigO{N}$ gates, so no exponential advantage in gate complexity is possible. Depending on which resource is being optimized, the best protocol for state preparation will look different and optimal state preparation methods are known for most choices of metric. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Rough overview (in math)}
+
+Let $x = (x_0,\ldots,x_{N-1}) \in \mathbb{C}^N$ be a vector of $N$ complex numbers, and let
+\begin{equation}\label{eq:ket_psi_state_prep}
+\ket{\psi} = \frac{1}{\lVert x \rVert}\sum_{i=0}^{N-1} x_i \ket{i}
+\end{equation}
+be the associated normalized quantum state, where $\lVert x \rVert$ denotes the standard Euclidean vector norm. Let $n=\log_2(N)$ denote the number of qubits of $\ket{\psi}$. The goal is to prepare the state $\ket{\psi}$ by applying a quantum circuit to the state $\ket{0}^{\otimes n}$, a problem studied extensively in previous literature. A common approach, originating in \cite{grover2002SuperposEffIntegrProbDistr}, is to iterate through each of the $n$ qubits and perform a single-qubit rotation, with the angle of rotation determined by the setting of the previous qubits. The rotation on the first qubit creates the 1-qubit state
+\begin{equation}
+    \left(\sqrt{\sum\nolimits_{i=0}^{N/2-1} |x_i|^2 }\right)\ket{0} + \left(\sqrt{\sum\nolimits_{i=N/2}^{N-1} |x_i|^2 }\right) \ket{1}
+\end{equation}
+by performing a single-qubit rotation (about the $Y$ axis) on the state $\ket{0}$ by an appropriate angle. Next, a similar kind of single-qubit rotation is performed on the second qubit, where the angle of rotation is conditioned on whether the first qubit is $\ket{0}$ or $\ket{1}$. The $m$th rotation is by one of $2^{m-1}$ angles, depending on the setting of the first $m-1$ qubits. Thus, in total there are $1+2+\ldots+2^{n-1} = N-1$ total angles that might be used for single-qubit rotations. This sequence of operations prepares the state $\lVert 
+x\rVert^{-1}\sum_{i=0}^{N-1}\lvert x_i \rvert \ket{i}$. To apply the phases, a single qubit rotation about the $Z$-axis by the appropriate angle is performed---the angle depends on the setting of all $n$ qubits, corresponding to the $N=2^n$ different phases that might be needed. Thus, the total number of angles that define the protocol is $2N-1$, exactly corresponding to the number of real parameters needed to describe the general state in Eq.~\eqref{eq:ket_psi_state_prep}.
+
+\begin{figure}[ht]
+    \centering
+\begin{displaymath}
+\Qcircuit @C=1em @R=1em {
+\lstick{\ket{0}} &\gate{R_y(\theta_{0,0})} &\ctrlo{1}               & \ctrl{1}                & \ctrlo{1}                       & \ctrlo{1} & \ctrl{1}&  \ctrl{1} &\qw \\
+\lstick{\ket{0}} &\qw                     &\gate{R_y(\theta_{1,0})} & \gate{R_y(\theta_{1,1})} & \ctrlo{1}                & \ctrl{1} & \ctrlo{1} & \ctrl{1} & \qw \\
+\lstick{\ket{0}} &\qw                     &\qw                     & \qw                     & \gate{R_y(\theta_{2,0})}          & \gate{R_y(\theta_{2,1})} & \gate{R_y(\theta_{2,2})} & \gate{R_y(\theta_{2,3})} & \qw
+% { \inputgroupv{1}{2}{1em}{1em}{\ket{\psi}}}
+}
+\end{displaymath} 
+    \caption{\label{fig:StatePrepSequential}Simple quantum circuit to prepare an arbitrary state $\ket{\psi}$ with non-negative real coefficients on $n=3$ qubits. The gate $R_y(\theta)$ denotes a single-qubit rotation by angle $\theta$ about the $Y$ axis. The angles $\theta_{s,p}$ run from $s=0,1,\ldots,n-1$ and $p=0,1,\ldots,2^s-1$, for a total of $2^n-1$ angles, which can be calculated from the amplitudes $x_i$. To account for negative or complex coefficients, as many as $2^n$ additional controlled $R_z$ rotations would be needed. More sophisticated proposals can reduce the depth for ancilla-free constructions from $\bigO{2^n}$ to $\bigO{2^n/n}$ \cite{sun2021asymptotically}.}
+\end{figure}
+
+It remains to describe how the controlled single-qubit rotations are performed when there are many control bits and different angles for each setting of the control. Here, one has many choices and the exact method will depend on how one has access to the data in $x$ and what resource is being optimized. The most straightforward way is to iterate through each possible setting of the control bits and perform a multiply controlled rotation by a fixed angle for each in sequence. This approach requires $\bigO{N}$ gates spread over $\bigO{N}$ depth, as depicted in Fig.~\ref{fig:StatePrepSequential}. When ancilla qubits are available, one can design protocols that have shallower depth (but the same total number of gates). For example, to perform the controlled rotation, one might store the $2N-1$ angles needed to create the state in a \hyperref[prim:QRAM]{quantum random access memory} data structure. In this case, to perform a rotation, one need only read in the value of the angle from the QRAM into an ancilla register, then perform a rotation by the angle stored in memory. This way, one can apply the correct angle in one shot, rather than iterating through all possible angles. 
+
+Assuming one can perform arbitrary single-qubit gates to exact precision, it is possible to prepare the state $\ket{\psi}$ exactly. However, often one must design circuits from a discrete gate set, such as Clifford gates and $T$ gates, for example, when compiling into a gate sequence that can be \hyperref[prim:LatticeSurgery]{implemented fault tolerantly}. When this is the case, single-qubit rotations must be performed approximately: to approximate a single-qubit rotation to error $\epsilon$, a Clifford+$T$ sequence of length $\bigO{\log(1/\epsilon)}$ must be applied \cite{ross2014optimal}. 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Dominant resource cost (gates/qubits)}
+
+In the table below, we collect several state preparation results in the model where any single-qubit gate can be performed exactly and the only multi-qubit gates allowed are CNOTs. Each result is state-of-the-art in some parameter regime. The circuit size (i.e.,~the total number of single-qubit and CNOT gates) and depth (i.e.,~the number of parallel-acting layers of gates), as well as the number of ancilla qubits (i.e.~the number of qubits beyond the $n$ qubits needed to hold the state $\ket{\psi}$) are listed. 
+
+\begin{table}[!ht]
+\renewcommand{\arraystretch}{1.2}
+\centering
+\begin{tabular}{c|c|c|c}
+\textbf{Ref.} & \textbf{Circuit size} & \textbf{Circuit depth} & \textbf{Ancilla qubits} \\
+\hline
+\hline
+\cite{sun2021asymptotically,yuan2023optimalControlledStatePrep} & $\bigO{2^n}$ & $\bigO{\frac{2^n}{n}}$ & none \\
+\hline
+\cite{sun2021asymptotically,yuan2023optimalControlledStatePrep}  & $\bigO{2^n}$ & $\bigO{\frac{2^n}{m+n}}$ & $m \in [0,\bigO{2^n/n}]$ \\
+\hline
+\cite{sun2021asymptotically,zhang2022StatePrepOptimal,gui2023spacetime} & $\bigO{2^n}$ & $\bigO{n}$ & $\bigO{2^n}$ \\
+\end{tabular}
+\end{table}
+Note that the result of \cite{yuan2023optimalControlledStatePrep}, which shows depth $\bigO{2^n/(m+n)}$ using $m$ ancilla qubits for $m \leq \bigO{2^n/n}$, encompasses all other results in the table (and is superior to the third row as it uses $\bigO{2^n/n}$ ancilla qubits instead of $\bigO{2^n}$). We include the other results for completeness, as they are distinct constructions and can have other potential upsides.  
+
+A lower bound of $\Omega(2^n)$ is known for circuit size \cite{plesch2011statePrepUniversal}, so all of the results above are size optimal up to constant factors. Moreover, for any $m$, a lower bound of $\Omega(\max(n,2^n/(n+m)))$ is known for the circuit depth \cite{sun2021asymptotically}, so all of the results above are also optimal in circuit depth, up to constant factors. 
+
+For approximate state preparation in a discrete gate set such as $\{H,S,T,\mathrm{CNOT}\}$, the state $\ket{\psi}$ is prepared up to $\epsilon$ error, measured by the $\ell_2$-norm, and the circuit size and depth will depend on $\epsilon$. In this case, we have the following table of results. 
+
+\begin{table}[!ht]
+\renewcommand{\arraystretch}{1.2}
+\centering
+\begin{tabular}{c|c|c|c}
+\textbf{Ref.} & \textbf{Circuit size} & \textbf{Circuit depth} & \textbf{Ancilla qubits} \\
+\hline
+\hline
+\cite{sun2021asymptotically} & $\bigO{2^n \log(2^n/\epsilon)}$ & $\bigO{\frac{2^n \log(2^n/\epsilon)}{n}}$ & none \\
+\hline
+\cite{sun2021asymptotically}  & $\bigO{2^n \log(2^n/\epsilon)}$ & $\bigO{\frac{2^n\log(2^n/\epsilon)}{m+n}}$ & $m \in [0,\bigO{\frac{2^n}{n \log(n)}}]$ \\
+\hline
+\cite{gui2023spacetime} & $\bigO{2^n\log(n/\epsilon)}$ & $\bigO{n +\log(1/\epsilon)}$ & $\bigO{2^n}$ \\
+\end{tabular}
+\end{table}
+
+If the state $\ket{\psi}$ is sparse, meaning that only $d$ of the $N$ amplitudes are nonzero, then more efficient state preparation methods are known. In particular, \cite{zhang2022StatePrepOptimal} gave a circuit of depth $\bigO{\log(nd)}$ that uses only $\bigO{nd\log(d)}$ ancilla qubits, a great improvement over the general case when $d \ll N$. 
+
+In some \hyperref[prim:FaultTolerance]{fault-tolerant implementation schemes}, such as \hyperref[prim:LatticeSurgery]{lattice surgery using surface codes}, Clifford gates can be performed cheaply, while $T$ gates require the expensive process of magic state distillation. While $\Omega(2^n\log(1/\epsilon)/\log(n))$ total gates are necessary to approximately create $\ket{\psi}$ \cite[Eq.~4.85]{nielsen2002QCQI} (matching upper bounds from \cite{gui2023spacetime} up to $\mathrm{polylog}(n)$ factors), \cite{low2018tradingTgatesforDirtyQubits} noted that it is possible for most of these to be Clifford gates. The number of $T$ gates can be reduced to $\sqrt{2^n}\log(2^n/\epsilon)$ using $\sqrt{2^n}\log(1/\epsilon)$ ancillas (in fact, there is a smooth tradeoff between the $T$ count and the number of ancillas). Furthermore, these ancillas can be \textit{dirty}, meaning they can be initialized into any quantum state, so long as they are returned to this (potentially unknown) state at the end of the procedure.
+
+All of the above constructions are ``garbage-free'' state preparation protocols, because they prepare the state $\ket{\psi}$ exactly and all ancilla qubits are returned to their initial state. However, in some applications, it is allowable to leave the ancilla register entangled with the data as long as the coefficients are correct. That is, one prepares the state 
+\begin{equation}
+\frac{1}{\lVert x\rVert}\sum_{i=0}^{N-1} x_i \ket{i} \otimes \ket{\mathrm{garbage}_i}\,.
+\end{equation}
+In this setting, \cite[Sec. IIID]{babbush2018EncodingElectronicSpectraLinearT}, en route to giving better algorithms for the \hyperref[appl:ElectronicStructure]{electronic structure problem},  gave a construction that approximately prepares the state above using only $\bigO{2^n+\log(1/\epsilon)}$ $T$ gates and $\bigO{\log(N)}$ ancilla qubits, albeit still requiring $\bigO{N\log(1/\epsilon)}$ Clifford gates and $\bigO{\log(N/\epsilon)}$ ancillas. In \cite{babbush2018EncodingElectronicSpectraLinearT} it is presented with $\bigO{N}$ depth but could be improved to $\bigO{\log(N)}$ depth at the expense of additional ancillas, using log-depth constructions for \hyperref[prim:QRAM]{QRAM}. This method can also make use of the spacetime tradeoffs mentioned above, as discussed in \cite{low2018tradingTgatesforDirtyQubits,Berry2019QubitizationOfArbitraryBasisChemistry}.
+
+\subsubsection*{Caveats}
+
+\begin{itemize}
+\item Classical pre-processing: computing the circuits for preparing $\ket{\psi}$ given the list of $N$ coefficients $x$ can be a non-negligible classical cost. For example, computing each of the $\bigO{N}$ single-qubit rotation angles requires computing sums and evaluating trigonometric functions, which can be done to precision $\epsilon$ in $\mathrm{polylog}(1/\epsilon)$ classical time. Moreover, computing Clifford+$T$ gate sequences that approximate given rotation angles to error $\epsilon$ likewise requires $\mathrm{polylog}(1/\epsilon)$ classical time \cite{ross2014optimal}. The total classical work scales as $O(N\mathrm{polylog}(1/\epsilon))$, although this cost can be parallelized. 
+%
+\item Coherent arithmetic: to avoid some of the classical pre-processing, one might try to perform the arithmetic coherently. This might be unavoidable if the entries of $x$ arrive in an online fashion and rotation angles and other quantities need to be computed after superpositions have been created. Formally, the scaling of coherent arithmetic is mild, generally requiring just $\mathrm{polylog}(N,1/\epsilon)$ number of gates and ancilla qubits, but in practice this is likely to be expensive (e.g., known methods for coherently computing $\arcsin(\cdot)$ to nine bits of precision use order-$10^4$ Toffoli gates and more than 100 ancilla qubits \cite{haner2018OptimizingQuantumArithmetic}). See \cite{sanders2019BlackBoxQuantumStatePreparation} for a general black-box approach that avoids coherent arithmetic.
+%
+\item Too many ancilla qubits: achieving depths that scale logarithmically with $N$ requires $\bigO{N}$ ancilla qubits, which limits the size of $N$ that might be practical. This could be mitigated if it is possible to develop a large-scale hardware element specialized for performing the sort of circuits that arise in these protocols, similar to a \hyperref[prim:QRAM]{quantum random access memory}.
+%
+\item Long-range gates: achieving $\mathrm{polylog}(N)$ depth for state preparation requires $\bigO{N}$ ancilla qubits and $\bigO{N}$ gates, many of which act in parallel and on far-separated qubits. If spatial locality were imposed, it would likely be difficult to avoid $\bigO{N}$ overhead in depth.  
+
+\item Dequantization: Consider the task of drawing samples from the same probability distribution induced by measuring $\ket{\psi}$ in the computational basis in time $\mathrm{polylog}(N)$ time. Preparing $\ket{\psi}$ as described is a quantum method of doing so, but the same can be done classically by first constructing a certain classical data structure and assuming access to classical RAM \cite{chakraborty2018BlockMatrixPowers}. In some \hyperref[appl:ClassicalML]{machine learning} applications, this idea leads to classical algorithms that effectively dequantize quantum algorithms that utilize the state preparation primitive \cite{tang2018QuantumInspiredRecommSys,tang2018QInspiredClassAlgPCA}.  
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Example use cases}
+
+\begin{itemize}
+    \item \hyperref[prim:TaylorDyson]{Hamiltonian simulation} via \hyperref[prim:LCU]{linear combination of unitaries} (LCU) requires a PREPARE step where a state is prepared with certain classically computed coefficients. Relatedly, the same PREPARE gadget is used to construct \hyperref[prim:BlockEncodings]{block-encodings} of such Hamiltonians. However, in this application, state preparation with garbage is generally allowable.
+    \item In certain quantum \hyperref[appl:ClassicalML]{machine learning} protocols, classical data (e.g., image pixel values) are encoded into a quantum state via the so-called ``amplitude encoding,'' where $N$ classical features are stored in a quantum state of $\log_2(N)$ qubits \cite{schuld2021machineLearning}. Following the preparation of the amplitude encoded data, the state is processed with the goal of, for example, classifying the image. 
+    \item Creating a \hyperref[prim:BlockEncodingsClassical]{block-encoding} of a matrix of classical data is performed using state preparation as a subroutine (more precisely, block-encoding classical data requires controlled state preparation). The block-encoding is then useful in a variety of contexts, for example in \hyperref[prim:QIPM]{quantum interior point methods}.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Further reading}\label{StatePrepData-further-reading}
+\begin{itemize}
+    \item  When the amplitudes $x_i$ correspond to an efficiently computable function $f(i)$, the complexity of state preparation can be reduced. In this case, the oracle access to $x_i$ can be replaced by a reversible computation of $f(i)$, up to $t$ bits of precision, using coherent arithmetic $\ket{i}\ket{0^t} \rightarrow \ket{i}\ket{f(i)}$~\cite{haner2018OptimizingQuantumArithmetic,bhaskar2015ReversibleArithmetic,munoz2018SquareRoot}. The value of $f(i)$ can be \textit{transduced} into the amplitude using the methods of \cite{grover2000SynthesisOfSuperpositions,sanders2019BlackBoxQuantumStatePreparation,wang2021BlackBoxLCU, bausch2020BlackBoxState}, and the success probability boosted to unity using \hyperref[prim:AmpAmp]{quantum amplitude amplification}. There is an alternative method~\cite{mcardle2022StatePreparation}, based on \hyperref[prim:QSVT]{quantum singular value transformation (QSVT)} that circumvents the need for the coherent evaluation of $f(i)$ by implementing a low-cost \hyperref[prim:BlockEncodings]{block-encoding} of $\sin(i)$, and then using QSVT to apply $f(\arcsin(\cdot))$ to this block-encoding. The complexity of both of these approaches depends on an ``L2-norm filling-fraction" $\mathcal{F}_f^{[N]} := \nrm{f(i)}_2 / (\sqrt{N} |f(i)|_{\mathrm{max}})$ as $\mathcal{O}(1/\mathcal{F}_f^{[N]})$ (see \cite{mcardle2022StatePreparation} for more detail). There is also an approach~\cite{rattew2022AdiabaticStatePrep} based on \hyperref[prim:QuantumAdiabaticAlgorithm]{the adiabatic algorithm} which has a worse dependence on $\mathcal{F}_f^{[N]}$. For efficiently integrable probability distributions, one can use the approach of \cite{grover2002SuperposEffIntegrProbDistr}, which has complexity independent of $\mathcal{F}_f^{[N]}$. However, this approach requires coherent arithmetic to reversibly evaluate the integral of the desired function (when applied to functions for which an analytic expression for the integral is not available, this can nullify the quadratic speedup in \hyperref[prim:AmpEst]{quantum Monte Carlo estimation}~\cite{herbert2021GroverRudolphNoSpeedup}). There also exist methods specialized for certain target states, such as Gaussians~\cite{kitaev2008WavefunctionPreparing,rattew2021GaussianStatePrep}.
+
+    \item A related problem asks to synthesize an arbitrary $2^n \times 2^n$ unitary. Without ancillas, this requires depth and size $\bigO{4^n}$, for which there are upper \cite{mottonen2005decompositions} and lower \cite{shende2004minimalTwoQubitCNOTCircuits} bounds that match up to constant factors. With ancillas, it is an open question whether or not the depth can be reduced to $\mathrm{poly}(n)$; this is related to the ``unitary synthesis problem'' from the list of open problems in \cite{aaronson2021openProblems}, and it has been studied in several works, e.g., \cite{sun2021asymptotically,rosenthal2021queryBoundsUnitaries,yuan2023optimalControlledStatePrep}. A depth lower bound of $\Omega(n + 4^n/(m+n))$ is known for $m$ ancilla qubits \cite{sun2021asymptotically}, but the shallowest upper bound is depth $\bigO{n2^{n/2}}$, using $m=\bigO{4^n/n}$ ancilla qubits \cite{yuan2023optimalControlledStatePrep}. 
+
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+
+\end{refsection}
+
+
+\newpage 
+
+
+\begin{refsection}
+
+\subsection{Block-encoding dense matrices of classical data}\label{prim:BlockEncodingsClassical}
+
+\subsubsection*{Rough overview (in words)}
+
+Many applications of quantum algorithms require access to large amounts of classical data, and in order to process this data on quantum devices, one needs coherent query access to the data. Block-encoding is a technique for importing classical data into quantum computers that provides exactly this type of coherent query access. Block-encodings work by encoding the matrices of classical data as blocks within larger matrices, which are defined such that the full encoding is a unitary operator. One way of thinking of this process is by ``brute-force'' compiling a unitary with the right structure, and then postselecting measurement outcomes to ensure the desired block of the unitary was applied. In general, block-encoding a dense matrix is not an efficient process, as one can typically expect multiplicative factors in the overhead that scale with system size (e.g., $\bigO{\mathrm{poly}(N)}$), and the process requires access to \hyperref[prim:QRAM]{QRAM}, which can be prohibitively expensive. For a general treatment not restricted to dense classical data, see the article on \hyperref[prim:BlockEncodings]{block-encoding}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Rough overview (in math)}
+
+Given an $N\times M$ matrix $A$, a block-encoding is a way of encoding the matrix $A$ as a block in a larger unitary matrix:
+\begin{equation}
+U_A = \begin{pmatrix}A/\alpha & \cdot \\ \cdot & \cdot \end{pmatrix}
+\end{equation}
+We say that the unitary $U_A$ is an $(\alpha, a, \epsilon)$-block-encoding of the matrix $A\in\mathbb{C}^{N\times M}$ if 
+\begin{equation}
+\left\lVert A - \alpha (\bra{0}^{\otimes a} \otimes I )U_A(\ket{0}^{\otimes a} \otimes I)\right\rVert \leq \epsilon,
+\end{equation}
+where $a\in\mathbb{N}$ represents the number of ancilla qubits needed, $\alpha\in\mathbb{R}_+$ is a normalization constant, and $\epsilon\in\mathbb{R}_+$ is an error parameter. Note that the definition above holds for general matrices, even though additional embedding or padding may be needed.
+
+In this section, we focus on the loading of classical matrices of data using a pair of \hyperref[prim:StatePrepData]{state preparation} unitaries~\cite{gilyen2018QSingValTransfArXiv, kerenidis2016QRecSys, chakraborty2018BlockMatrixPowers}. In particular, the product
+\begin{equation}
+U_A=U_R^\dagger U_L
+\end{equation}
+is an $(\alpha,a,\epsilon)$-block-encoding of $A$, where $U_L$ and $U_R$ are unitaries that perform state preparation, $\alpha$ is a normalization constant (which can be chosen depending on application, but a convenient choice is $\alpha=\nrm{A}_F$, the Frobenius norm of $A$), and $\epsilon$ is an error parameter that captures the error stemming from state preparation. In particular, the unitaries $U_L$ and $U_R$ prepare the states:
+\begin{equation}\label{eq:block-enc-state-prep}
+U_L\ket{0}\ket{i}=\ket{\psi_i}\qquad U_R\ket{0}\ket{j}=\ket{\phi_j},
+\end{equation}
+such that $A_{ij}=\braket{\psi_i}{\phi_j}$. The states $\ket{\psi_i}$ and $\ket{\phi_j}$ encode the (normalized) rows of $A$ and norms of those rows, respectively.
+
+There are several methods of implementing the state preparation unitaries. One commonly used scheme involves constructing binary trees representing the amplitudes in the states $\ket{\psi_i}$ and $\ket{\phi_j}$ in Eq.~\eqref{eq:block-enc-state-prep}, and building the state preparation unitaries out of controlled-$Y$ rotations by angles defined in those binary trees. In this way, one can construct an $\epsilon$-close approximation to the desired quantum state on $\log(N)$ qubits using $\bigO{N}$ qubits and $\bigO{\log^2(N/\epsilon)}$ $T$-depth. See the section on \hyperref[prim:StatePrepData]{preparing states from classical data} for more details. To load the data into a binary tree (for use in the state preparation step), a \hyperref[prim:QRAM]{QRAM} data structure can be employed. An improved state preparation approach was developed in~\cite{clader2022resourcesForBlockEncoding} that quadratically improves the $T$-depth to $\bigO{\log(N/\epsilon)}$ by pre-applying all the single qubit rotations onto ancilla qubits, and then using a controlled-SWAP network to inject the ancillas appropriately.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Dominant resource cost (gates/qubits)}
+
+In the case of general, dense matrices,  detailed resource counts and implementations of block-encodings were studied in \cite{clader2022resourcesForBlockEncoding}. When building a block-encoding of a dense matrix $A$, one can optimize for reduced logical qubit count, $T$-depth, or $T$-count. In general, the dominant cost in terms of qubit counts comes from the state preparation step, requiring $\bigO{N}$ qubits. For $T$-depth, the dominant contribution comes from QRAM with a scaling that can range from $\bigO{\log(N)}$ to $\bigO{N}$, with a tradeoff between $T$-depth and qubit count described in \cite{low2018tradingTgatesforDirtyQubits}. If we focus on $T$-gates as the primary resource, the following dominant contributions to the complexities can be achieved:
+
+\begin{center} \noindent\begin{tabular}{c||c|c}
+ & \textbf{Optimized for min depth} & \textbf{Optimized for min count}\\
+\hline
+\hline
+\textbf{\# Qubits} & $4 N^2$ & $N\log(1/\epsilon)$\\ 
+\hline  
+\textbf{$T$-Depth} & $10\log(N)+24\log(1/\epsilon)$ & $8 N + 12 \log(N) (\log(1/\epsilon))^2$ \\
+\hline
+\textbf{$T$-Count} & $12N^2\log(1/\epsilon) $ & $16N\log(1/\epsilon) + 12 \log(N) (\log(1/\epsilon))^2$\\
+\end{tabular}
+\end{center}
+
+\noindent Detailed equations with accurate constants can be found in \cite{clader2022resourcesForBlockEncoding}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Caveats}
+
+There are several ways of implementing block-encodings, even in the case of general matrices described above. The method is composed of two primitives: (\emph{i}) \hyperref[prim:StatePrepData]{state preparation} and (\emph{ii}) \hyperref[prim:QRAM]{QRAM}. Each of those primitives have multiple options for implementation, and one can trade one resource for another. For instance, in the state preparation step, one can use the standard method of state preparation to a fixed precision $\epsilon$, or one can pre-compute the angles required for state preparation, and implement the controlled-rotations in a parallelized way, as mentioned above. The pre-rotated state preparation method requires a $T$-depth that scales as $\mathcal{O}(\log(N/\epsilon))$, whereas the traditional approach scales as $\mathcal{O}(\log(N)\log^2(1/\epsilon))$. Similarly, for the QRAM step there are several proposed implementations, including Select-SWAP \cite{low2018tradingTgatesforDirtyQubits} and Bucket-Brigade \cite{giovannetti2007QuantumRAM,hann2021resilienceofQRAM}, which have pros and cons based on architectural requirements. For instance, the Bucket-Brigade implementation can be more robust to noise than the Select-SWAP method, but Select-SWAP lends itself to a lower overall $T$-depth scaling. 
+
+Another important caveat is that block-encodings of dense classical data are not expected to be computationally efficient techniques. While one can tradeoff the time complexity (e.g., $T$-depth) with the number of ancilla qubits in the QRAM (such that the QRAM either requires $\bigO{\log(N)}$ $T$-depth with $\bigO{\mathrm{poly}(N)}$ qubits, or $\bigO{\mathrm{poly}(N)}$ $T$-depth with $\bigO{\log(N)}$ qubits), these are nevertheless expected to be prohibitive overhead costs for realistic problem sizes. See the section on \hyperref[prim:QRAM]{QRAM} for the caveats of using QRAM data structures. Moreover, the resource costs for block-encoding depend on norms of the matrix $A$, which could scale as $\bigO{\mathrm{poly}(N)}$, further nullifying any exponential speedup.
+
+A final caveat to note is that if the matrix being block-encoded is sparse and efficiently row computable, or if the matrix enjoys some structure in the data in addition to sparsity, then more efficient block-encoding methods can be employed --- see \hyperref[prim:BlockEncodings]{block-encoding} for details.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Example use cases}
+In \hyperref[appl:PortfolioOptimization]{financial portfolio optimization}, classical data representing average historical returns and covariance matrices for a universe of assets is needed in a quantum algorithm for optimizing a portfolio. See, for example, \cite{dalzell2022socp}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Further reading}
+
+\begin{itemize}
+    \item An excellent overview of block-encodings and quantum linear algebra: \cite{gilyen2018QSingValTransf}
+    \item A detailed resource count of block-encoding with explicit circuits: \cite{clader2022resourcesForBlockEncoding}
+    \item Select-SWAP QRAM and a tradeoff between qubit count and $T$-gates: \cite{low2018tradingTgatesforDirtyQubits}
+\end{itemize}
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+
+\end{refsection}

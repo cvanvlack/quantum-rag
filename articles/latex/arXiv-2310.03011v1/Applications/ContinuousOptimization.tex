@@ -1,0 +1,374 @@
+%!TEX root = ../main.tex
+
+\section{Continuous optimization }\label{appl:ContinuousOpt}
+
+
+Continuous optimization problems arise throughout science and industry. On their face, continuous optimization problems rarely seem quantum mechanical; nevertheless, quantum algorithms have been proposed for accelerating both \hyperref[appl:GeneralConvexOpt]{convex} and \hyperref[appl:EscapingSaddlePoints]{nonconvex} continuous optimization. Most of the research on these algorithms thus far has been to develop and utilize the diverse set of primitive ingredients that give rise to potential quantum advantage in this space, without an eye toward the end-to-end practicality of the algorithms. Developing a better understanding of the practicality of these approaches should be a focus of future work. 
+
+
+\localtableofcontents
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{refsection}
+\subsection{Zero-sum games: Computing Nash equilibria }\label{appl:ZeroSumGames}
+
+\subsubsection*{Overview}
+
+In a two-player zero-sum game, each player independently chooses a strategy and then receives a ``payoff'' (such that the sum of the payoffs is always zero) that depends on which pair of strategies was chosen. A Nash equilibrium is the optimal way of probabilistically choosing a strategy that maximizes a player's worst-case payoff. The problem of computing a Nash equilibrium is, in a certain sense, equivalent to solving a Linear Program (LP): computing a Nash equilibrium is a special case of LP, and conversely any LP can be reduced to computing a Nash equilibrium at the expense of introducing dependencies on a certain instance-specific ``scale-invariant'' precision parameter \cite{apeldoorn2019QAlgorithmsForZeroSumGames}.
+%which can be solved with classical or quantum algorithms for \hyperref[appl:ConicProgramming]{conic programming}. 
+However, the quantum approach to \hyperref[appl:ConicProgramming]{solving LPs} based on the \hyperref[prim:MWU]{multiplicative weights update} method \cite{apeldoorn2019QAlgorithmsForZeroSumGames} is more efficient in the special case of computing Nash equilibria, and has fewer caveats. It gives a potentially quadratic speedup over its classical counterpart. 
+
+\subsubsection*{Actual end-to-end problem(s) solved}
+
+A two-player zero-sum game is defined by an $n \times m$ matrix $A$ called the ``payoff matrix,'' which specifies how much player 1 wins from player 2 when player 1 plays (pure) strategy $i \in [n]$ and player 2 plays (pure) strategy $j \in [m]$. A pure strategy is one in which the players use one fixed strategy in each game. By contrast, a mixed strategy is one in which players randomly choose a pure strategy, according to some probability distribution. Assume the entries of $A$ are between $-1$ and $1$. A Nash equilibrium is an optimal (generally mixed) strategy that maximizes a player's worst-case payoff regardless of the other player's choice. That is, a distribution $y \in \Delta^m$, where $\Delta^m$ denotes the $m$-dimensional probability simplex, is an optimal strategy for player 2 if it is the argument that optimizes the equation
+\begin{equation}
+    \begin{split}
+        \lambda^* = \min_{y \in \Delta^m} \max_{i \in [n]} e_i^\intercal A y
+    \end{split}
+\end{equation}
+where $[n]$ denotes the set of strategies available to player 1, and $e_i$ denotes a basis state associated with strategy $i$. The quantity $\lambda^*$ is the value of the game. This can be rewritten explicitly \cite{apeldoorn2019QAlgorithmsForZeroSumGames} as the following LP
+\begin{equation}
+    \begin{split}
+        &\min_{y \in \mathbb{R}^m} \lambda \\
+        \text{subject to }\qquad & Ay \leq \lambda \mathbf{1}, \qquad \sum_j y_j = 1, \qquad y_j \geq 0\;\forall j
+    \end{split}
+\end{equation}
+where $\mathbf{1}$ is the all-ones vector. 
+The dual LP for the above then corresponds to computing the Nash equilibrium for player 1.
+
+The end-to-end problem solved is to, given access to the entries of the matrix $A$ and an error parameter $\epsilon$, compute a probability vector $y$ such that
+\begin{equation}
+    Ay \leq (\lambda^* + \epsilon) \mathbf{1}\,.
+\end{equation}
+
+
+\subsubsection*{Dominant resource cost/complexity}
+The quantum algorithm builds from a classical algorithm based on the \hyperref[prim:MWU]{multiplicative weights update} method from \cite{grigoriadis1995SubLinRndApxAlgMatrixGames}. With probability at least $1-\delta$, the classical algorithm finds a solution $y$ that approximates the Nash equilibrium to error $\epsilon$ after $\lceil 16 \ln(nm/\delta)/\epsilon^2)\rceil $ iterations, where each iteration can be accomplished using $n+m$ queries to the entries of the matrix $A$ and $\bigO{n+m}$ total time. An important subroutine of each iteration is a Gibbs sampling step for a diagonal matrix (a special case of the general quantum \hyperref[prim:GibbsSampling]{Gibbs sampling} problem in which any Hermitian matrix is allowable). When the matrix $A$ is sparse, the number of queries can be reduced to $2s$, where $s$ is the maximum number of nonzero entries in a row or column of $A$, and the total time can be reduced to $\bigO{s\ln(mn)}$.
+
+The quantum algorithm assumes coherent access to the matrix entries of $A$. Through \hyperref[prim:AmpAmp]{amplitude amplification} and the related subroutines of \hyperref[prim:AmpEst]{amplitude estimation} and minimum finding, the quantum algorithm of \cite{apeldoorn2019QAlgorithmsForZeroSumGames} speeds up the Gibbs sampling task and reduces the maximum cost of an iteration to $\tilde{\mathcal{O}}(\sqrt{n+m}/\epsilon)$ queries to the matrix elements of $A$ and an equal amount of time complexity, where $\tilde{\mathcal{O}}$ notation suppresses logarithmic factors. In the case that the matrices are sparse, the maximum cost of an iteration is reduced to $\tilde{\mathcal{O}}(\sqrt{s}/\epsilon^{1.5})$. The work of \cite{bouland2023zerosum} introduces a technique called dynamic Gibbs sampling, which exploits the fact that the distribution to be sampled changes slowly from iteration to iteration, and further reduces the iteration cost to $\tilde{\mathcal{O}}(\sqrt{n+m}/\epsilon^{1/2} +1/\epsilon)$ in the dense case. This gives a total query and time complexity roughly given by
+%
+\begin{align}
+\text{dense:} \;\;\; & \left(\frac{16\ln(nm)}{\epsilon^2} \text{ iterations}\right)\times \left(\tilde{\mathcal{O}}\left(\frac{\sqrt{n+m}}{\sqrt{\epsilon}} + \frac{1}{\epsilon}\right) \text{ per iteration}\right) = \tilde{\mathcal{O}}\left(\frac{\sqrt{n+m}}{\epsilon^{2.5}} + \frac{1}{\epsilon^3}\right)\\
+\text{sparse:} \;\;\; & \left(\frac{16\ln(nm)}{\epsilon^2} \text{ iterations}\right)\times \left(\tilde{\mathcal{O}}\left(\frac{\sqrt{s}}{\epsilon^{1.5}}\right) \text{ per iteration}\right) = \tilde{\mathcal{O}}\left(\frac{\sqrt{s}}{\epsilon^{3.5}}\right)& 
+\end{align}
+%
+This complexity assumes access to a \hyperref[prim:QRAM]{quantum random access memory} (QRAM). Without a QRAM, the cost per iteration increases by a factor $\tilde{\mathcal{O}}(1/\epsilon^2)$. 
+
+See also \cite{li2019SublinearClassifiers}, which independently from \cite{apeldoorn2019QAlgorithmsForZeroSumGames} gave a quantum algorithm that solves zero-sum games with slightly worse $\epsilon$ dependence, as well as \cite{li2021sublinearGeneralMatrixGames}, which gave quantum algorithms for generalizations of zero-sum games to other vector norms. 
+
+
+\subsubsection*{Existing error corrected resource estimates}
+
+There are no existing error corrected resource estimates for this algorithm.
+
+\subsubsection*{Caveats}
+\begin{itemize}
+    \item Due to poor dependence of the complexity on the error $\epsilon$, this algorithm is only likely to be useful in situations where it is not necessary to learn the optimal strategy to high precision. It is unclear when such situations arise in practice. 
+    
+    \item As mentioned above, if no \hyperref[prim:QRAM]{QRAM} is available, the runtime suffers a $\tilde{\mathcal{O}}(1/\epsilon^2)$ time slowdown. 
+    \item A fully end-to-end analysis should also consider the exact way that the queries to the matrix entries of $A$ are implemented. If they are given in a classical database, a large $\bigO{nm}$-size \hyperref[prim:QRAM]{QRAM} may also be required to implement the queries in $\text{polylog}(mn)$ time. Note that this would be separate from the $\tilde{\mathcal{O}}(1/\epsilon^2)$-size QRAM the algorithm uses to reduce the time complexity. To avoid the QRAM  requirement for implementing a query, it must be the case that the matrix entries are efficiently computable in some other way.
+
+\end{itemize}
+
+\subsubsection*{Comparable classical complexity and challenging instance sizes}
+
+The classical version of the quantum algorithm has time and query complexity given by \cite[Section 2]{apeldoorn2019QAlgorithmsForZeroSumGames}
+\begin{align}
+\text{dense:} \;\;\; & \left(\frac{16\ln(nm)}{\epsilon^2} \text{ iterations}\right)\times \left(\bigO{n+m} \text{ per iteration}\right) = \tilde{\mathcal{O}}\left(\frac{n+m}{\epsilon^2}\right)\\
+\text{sparse:} \;\;\; & \left(\frac{16\ln(nm)}{\epsilon^2} \text{ iterations}\right)\times \left(\tilde{\mathcal{O}}(s) \text{ per iteration}\right) = \tilde{\mathcal{O}}\left(\frac{s}{\epsilon^{2}}\right)& 
+\end{align}
+Alternatively, the problem could be solved using other approaches for solving the associated LP. Classical interior point methods for LPs can achieve $\bigO{n^{\omega}\log(1/\epsilon)}$ runtime in the common case that $m=\bigO{n}$ \cite{cohen2021LPsinMMtime}, where $\omega < 2.37$ is the matrix-multiplication exponent. This runtime exhibits better $\epsilon$ dependence at the expense of worse $n$ dependence. Note that \hyperref[prim:QIPM]{quantum interior point methods} have also been proposed for \hyperref[appl:ConicProgramming]{conic programs} like LPs, but whether they could yield a speedup over classical interior point methods would depend on the scaling of certain instance-specific parameters.
+
+\subsubsection*{Speedup}
+
+The quantum complexity has a quadratic improvement in complexity with respect to the parameter $n+m$, and a polynomial slowdown with respect to the parameter $\epsilon$. 
+
+\subsubsection*{Outlook}
+
+It is difficult to assess whether a practical advantage could be obtained in the setting of zero-sum games without further investigation of how queries to matrix elements are accomplished, an assessment of constant factors involved in the algorithm, and consideration of any additional overheads from \hyperref[prim:FTQC]{fault-tolerant quantum computation}. The theoretical speedup available is quadratic and may require a medium or large-scale \hyperref[prim:QRAM]{QRAM}. This speedup may not be sufficiently large to overcome these overheads in practice. 
+
+It is perhaps instructive to compare the outlook of zero-sum games to \hyperref[appl:ConicProgramming]{conic programming} more generally. On the one hand, unlike the algorithm for general SDPs and LPs, the algorithm for zero-sum games does not have a complexity dependence on instance-specific parameters denoting the size of the primal and dual solutions. This makes it easier to evaluate the runtime of the algorithm and more likely that it can be an effective algorithm. On the other hand, a core subroutine of the quantum algorithm is to perform \emph{classical} Gibbs sampling quadratically faster than a classical computer can using techniques like \hyperref[prim:AmpAmp]{amplitude amplification}. However, it is not clear how the speedup could be made greater than quadratic, even in special cases.  A similar subroutine is required in the \hyperref[prim:MWU]{multiplicative weights} approach to \hyperref[appl:ConicProgramming]{solving SDPs}, but in that case, the Gibbs state to be sampled is a truly quantum state (i.e.~nondiagonal in the computational basis), rather than a classical state. Using more advanced methods for \hyperref[prim:GibbsSampling]{Gibbs sampling}, it is possible that in some special cases there could be a superquadratic quantum speedup for SDPs that would not be available for the simpler case of LPs and zero-sum games. 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+\end{refsection}
+
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{refsection}
+\subsection{Conic programming: Solving LPs, SOCPs, and SDPs }\label{appl:ConicProgramming}
+
+\subsubsection*{Overview}
+Conic programs are a specific subclass of convex optimization problems, where the objective function is linear and the convex constraints are restrictions to the intersection of affine spaces and certain cones within $\mathbb{R}^n$. Commonly considered cones are the positive orthant, the second-order cone (``ice-cream cone''), and the semidefinite cone, which give rise to linear programs (LPs), second-order cone programs (SOCPs), and semidefinite programs (SDPs), respectively. This framework remains quite general and many real-world problems can be reduced to a conic program. However, the additional structure of the program allows for more efficient classical and quantum algorithms, compared to \hyperref[appl:GeneralConvexOpt]{completely general convex problems}. 
+
+Algorithms for LPs, SOCPs, and SDPs have long been a topic of study.
+Today, the best classical algorithms are based on \hyperref[prim:QIPM]{interior point methods} (IPMs), but other algorithms based on the \hyperref[prim:MWU]{multiplicative weights update} (MWU) method exist and can be superior in a regime where high precision is not required. Both of these approaches can be turned into quantum algorithms with potential to deliver asymptotic quantum speedup for general LPs, SOCPs, and SDPs. However, the runtime of the quantum algorithm typically depends on additional instance-specific parameters, which makes it difficult to produce a general apples-to-apples comparison with classical algorithms.
+
+\subsubsection*{Actual end-to-end problem(s) solved}
+\begin{itemize}
+\item 
+Linear programs (LPs) are the simplest convex program. An LP instance is specified by an $m \times n$ matrix $A$, an $n$-dimensional vector $c$ and an $m$-dimensional vector $b$. The problem can then be written as 
+\begin{equation}\label{eq:LP}
+    \begin{split}
+        &\min_{x \in \mathbb{R}^n} \langle c, x \rangle \\
+        \text{subject to } & Ax=b \\
+        & x_i \geq 0 \text{ for } i=1,\ldots,n
+    \end{split}
+\end{equation}
+where notation $\langle u, v \rangle$ denotes the standard dot product of vectors $u$ and $v$. 
+The function $\langle c, x\rangle $, which is linear in $x$, is called the objective function, and a point $x$ is called feasible if it satisfies the linear equality\footnote{Inequality constraints of the form $Ax \leq b$ can be converted to linear equality constraints and positivity constraints by introducing a vector of slack variables $s$ and imposing $Ax + s = b$ and $s_i \geq 0$ for all $i$. An analogous trick is possible for SOCP and SDP.} constraints $Ax=b$ as well as the positivity constraints $x_i \geq 0$ for all $i$. We denote the feasible point that optimizes the objective function by $x^*$. Let $\epsilon$ be a precision parameter. The actual end-to-end problem solved is to take as input a classical description of the problem instance $(c,A,b,\epsilon)$ and output a classical description of a point $x$ for which $\langle c, x \rangle \leq \langle c, x^*\rangle + \epsilon$. The set of points that obey the positivity constraints $x_i \geq 0$ forms the positive orthant of the vector space $\mathbb{R}^n$. This set meets the mathematical definition of a convex cone: for any points $u$ and $v$ in the set and any non-negative scalars $\alpha,\beta\geq 0$, the point $\alpha u+\beta v$ is also in the set.  
+
+\item
+Second-order cone programs (SOCPs) are formed by replacing the positivity constraints in the definition of LPs with one or more second-order cone constraints, where the second-order cone of dimension $k$ is defined to include points $(x_0;x_1;\ldots;x_{k-1}) \in \mathbb{R}^k$ for which $x_0^2 \geq x_1^2+\ldots + x_{k-1}^2$. 
+\item Semidefinite programs (SDPs) are formed by replacing the $n$-dimensional vector $x$ in the definition of LPs with a $n \times n$ symmetric matrix $X$ and replacing the positive orthant constraint with the conic constraint that $X$ is a positive semidefinite matrix. Denote the set of $n \times n$ symmetric matrices by $\mathbb{S}^n$, and for any pair of matrices $U,V \in \mathbb{S}^n$, define the notation $\langle U, V\rangle  = \text{tr}(UV)$ (which generalizes the standard dot product). Then, an SDP instance is specified by matrices $C, A^{(1)},A^{(2)},\ldots, A^{(m)} \in \mathbb{S}^n$, as well as $b \in \mathbb{R}^m$, and can be written as
+\begin{equation}\label{eq:SDP}
+    \begin{split}
+        &\min_{X \in \mathbb{S}^n} \langle C, X \rangle \\
+        \text{subject to } & \langle A^{(j)}, X\rangle = b_j \text{ for } j = 1,\ldots,m \\
+        & X \succeq 0
+    \end{split}
+\end{equation}
+where $X\succeq 0$ denotes the constraint that $X$ is positive semidefinite. 
+\end{itemize}
+In the LP or SDP case, we might also require as input parameters $R$ and $r$, where $R$ is a known upper bound on the size of the solution in the sense that $\sum_i |x_i| \leq R$ (LP) or $\text{tr}(X) \leq R$ (SDP), and where $r$ is an analogous upper bound on the size of the solution to the \emph{dual} program (not written explicitly here, see~\cite{apeldoorn2018ImprovedQSDPSolving}).
+
+
+\subsubsection*{Dominant resource cost/complexity}
+
+Two separate approaches to solving conic programs with quantum algorithms have been proposed in the literature. Both methods start with classical algorithms and replace some of the subroutines with quantum algorithms. 
+\begin{enumerate}
+    \item \hyperref[prim:QIPM]{Quantum interior point methods} (QIPMs) for LPs \cite{kerenidis2018QIntPoint}, SOCPs \cite{kerenidis2019QAlgsSecondOrderConeSVM,augustino2022inexact}, and SDPs \cite{kerenidis2018QIntPoint,augustino2021quantum,huang2022fasterQuantumIPM} have been proposed. These methods start with classical interior point methods, for which the core step is solving a linear system, and simply replace the classical linear system solver with a \hyperref[prim:QuantumLinearSystemSolvers]{quantum linear system solver} (QLSS), combined with pure state \hyperref[prim:Tomography]{quantum tomography}. Given a linear system $Gu = v$, the QLSS produces a quantum state $\ket{u}$, and quantum tomography is subsequently used to gain a classical estimate of the amplitudes of $\ket{u}$ in the computational basis.  The QLSS ingredient introduces complexity dependence on a parameter $\kappa=\lVert G \rVert \lVert G^{-1}\rVert$, the condition number  of $G$, where $\lVert \cdot \rVert$ denotes the spectral norm. Additionally, the QLSS requires that the classical data defining $G$ be loaded in the form of a \hyperref[prim:BlockEncodingsClassical]{block-encoding}, for which the standard construction introduces a dependence on the factor $\zeta = \lVert G \rVert_F \lVert G \rVert^{-1}$, where $\lVert \cdot \rVert_F$ denotes the Frobenius norm. Finally, the tomography ingredient introduces a complexity dependence on a parameter $\xi$, defined as the precision to which the vector $u$ must be classically learned, measured in $\ell_2$ norm. Assuming $m$ is on the order of the number of degrees of freedom (i.e.~$n$ in the case of LP and SOCP, and $n^2$ in the case of SDP), the number of queries the QIPM makes to block-encodings of the input matrices is
+    \begin{equation}
+        \begin{split}
+            \text{LP, SOCP  \cite{augustino2022inexact}:}& \qquad \tilde{\mathcal{O}}\left(\frac{n^{1.5}\zeta \kappa}{\xi}\log(1/\epsilon)\right) \\
+            \text{SDP  \cite{kerenidis2018QIntPoint,augustino2021quantum}:}& \qquad \tilde{\mathcal{O}}\left(\frac{n^{2.5}\zeta \kappa}{\xi}\log(1/\epsilon)\right)
+        \end{split}
+\end{equation}
+    where the $\tilde{\mathcal{O}}$ notation hides logarithmic factors. Note that depending on how $\xi$ is defined, extra factors of $\kappa$ may be required. Moreover, note that the complexity statements in~\cite{augustino2021quantum} go further and analyze the worst-case dependence of $\xi$ on the overall error $\epsilon$, and additionally make the worst-case replacement $\zeta \leq \bigO{n}$.
+    The numerical values of $\kappa$, $\zeta$, and $\xi$ are generally difficult to determine in advance for a specific application. The \hyperref[prim:BlockEncodingsClassical]{block-encoding} queries can be executed in circuit depth $\mathrm{polylog}(n+m,1/\epsilon)$, which can also be absorbed into the $\tilde{\mathcal{O}}$ notation (although it is important to note that the circuit \emph{size} is generally $\bigO{n^2}$). If the input matrices are sparse or given in a form other than as a list of matrix entries, there may be other more efficient \hyperref[prim:BlockEncodings]{methods for block-encoding}; in this case the parameter $\zeta$ might be replaced with another parameter $\alpha > 1$, whose value would depend on the block-encoding method.
+    
+    
+    \item Quantum algorithms based on the \hyperref[prim:MWU]{multiplicative weights update} (MWU) method have been proposed for SDP \cite{brandao2016QSDPSpeedup,brandao2017QSDPSpeedupsLearning,apeldoorn2017QSDPSolvers,apeldoorn2018ImprovedQSDPSolving} and LP \cite{apeldoorn2017QSDPSolvers,apeldoorn2019QAlgorithmsForZeroSumGames}. The quantum algorithm closely follows the classical algorithm based on MWU to iteratively update a candidate solution to the program. Each iteration is carried out using quantum subroutines, including \hyperref[prim:GibbsSampling]{Gibbs sampling}, as well as \hyperref[prim:AA]{Grover search} and quantum minimum finding \cite{durr1996QMinimumFinding,apeldoorn2017QSDPSolvers} (a direct application of Grover search). Let $s$ denote the sparsity, that is, the maximum number of nonzero entries in any row or column of the matrices composing the problem input (thus, $s \leq \max(m,n)$). Then, the runtime has been upper bounded by
+    \begin{equation}
+        \begin{split}
+            \text{LP \cite{bouland2023zerosum}:}& \qquad \tilde{\mathcal{O}}\left(\sqrt{s}\left(\frac{rR}{\epsilon}\right)^{3.5}\right) \\
+            \text{SDP \cite{apeldoorn2018ImprovedQSDPSolving}:}& \qquad \tilde{\mathcal{O}}\left(s\sqrt{m}\left(\frac{rR}{\epsilon}\right)^{4}+s\sqrt{n}\left(\frac{rR}{\epsilon}\right)^5\right)
+        \end{split}
+\end{equation}
+    assuming sparse access to the input matrices, where $r,R$ are the parameters related to the size of the primal and dual solutions, defined above. In  \cite{apeldoorn2018ImprovedQSDPSolving}, the input model was generalized to a ``quantum operator input model,'' based on \hyperref[prim:BlockEncodings]{block-encodings} where $s$ is replaced by the block-encoding normalization factor $\alpha$ in the runtime expressions. Note that it is possible the runtime for LP could be improved by applying the dynamic Gibbs sampling method of  \cite{bouland2023zerosum} together with the reduction from LP to zero-sum games in \cite{apeldoorn2019QAlgorithmsForZeroSumGames}.
+\end{enumerate}
+The runtime expressions for the QIPM approach and the MWU approach are not directly comparable, as the former depends on instance-specific parameters $\kappa$, $\zeta$, and $\xi$, while the latter depends on instance-specific parameters $r$ and $R$. However, note that the explicit $n$-dependence is better in the case of MWU than QIPM, while the $\epsilon$-dependence is worse. 
+
+\subsubsection*{Existing error corrected resource estimates}
+Neither of the approaches for conic programs have garnered study at the level of error-corrected resource estimates. Reference~\cite{dalzell2022socp} performed a resource analysis for a QIPM at the logical level, but did not analyze additional \hyperref[prim:FTQC]{overheads due to error correction}. The goal of that analysis was to completely compile the QIPM for SOCP into Clifford gates and $T$ gates, and then to numerically estimate the parameters $\kappa$, $\zeta$, and $\xi$ for the particular use case of \hyperref[appl:PortfolioOptimization]{financial portfolio optimization}, which can be reduced to SOCP. A salient feature of the QIPM is that $\bigO{n+m} \times \bigO{n+m}$ matrices of classical data must be repeatedly accessed by the QLSS via \hyperref[prim:BlockEncodings]{block-encoding}, necessitating a large-scale \hyperref[prim:QRAM]{quantum random access memory} (QRAM) with $\bigO{n^2}$ qubits. Accordingly, for SOCPs with $n=500$ and $m=400$ (which are still easily solved on classical computers) it was estimated that 8 million logical qubits would be needed. The total number of $T$ gates needed for the same instance size was on the order of $10^{29}$, which can be distributed over roughly $10^{24}$ layers.
+
+
+We are not aware of an analogous logical resource analysis for the MWU approach to conic programming. Such an analysis would be valuable and should ideally choose a specific use case to be able to evaluate the size of all parameters involved. 
+
+\subsubsection*{Caveats}
+\begin{itemize}
+\item The QIPM approach requires a large-scale \hyperref[prim:QRAM]{QRAM} of size $\bigO{n^2}$. This is a necessary ingredient to retain any hope of a speedup, and for relevant choice of $n$ the associated hardware requirements could be prohibitively large. 
+%
+\item The QIPM approach has a weak case for a large asymptotic speedup: even under optimal circumstances, the asymptotic speedup over classical interior point methods is less than quadratic. See the \hyperref[prim:QIPM]{article on the QIPM approach} for more information.
+%
+\item The QIPM approach has a large constant prefactor that is estimated to be on the order of $10^3$ coming from state-of-the-art \hyperref[prim:QuantumLinearSystemSolvers]{QLSS} \cite{costa2021OptimalLinearSystem,jennings2023QLSS}. (It is possible this could be improved using alternative approaches to QLSS such as variable-time amplitude amplification \cite{ambainis2010VTAA}. See also \cite{jennings2023QLSS}.) 
+%
+\item The MWU approach requires a medium-scale \hyperref[prim:QRAM]{QRAM} of size $\bigO{R^2r^2/\epsilon^2}$. This requirement can be avoided at the cost of an additional multiplicative overhead of $\bigO{R^2r^2/\epsilon^2}$. 
+ %
+\item The MWU approach has poor dependence on error $\epsilon$; for SDPs it is $\epsilon^{-5}$. Even at modest choices of $\epsilon$, this may lead the algorithm to be impractical pending significant improvements. 
+%
+\item A general caveat that applies to both approaches is that the appearance of instance-specific parameters makes it difficult to predict the performance of these algorithms for more specific applications. 
+\end{itemize}
+
+\subsubsection*{Comparable classical complexity and challenging instance sizes}
+As in the quantum case, there are multiple distinct approaches in the classical case. 
+\begin{enumerate}
+    \item Classical interior point methods (CIPMs): There exist fast IPM-based software implementations for solving conic programs, such as ECOS \cite{domahidi2013ECOS} and MOSEK \cite{andersen2000MOSEK}. These solvers can solve instances with thousands of variables in a matter of seconds on a standard laptop \cite{domahidi2013ECOS}. However, the runtime scaling is poor and scaling too far beyond this regime leads the solvers to be far less practical. The runtime of the best provably correct classical IPMs for the regime where the number of constraints is roughly equal to the number of degrees of freedom is
+    \begin{equation}
+        \begin{split}
+            \text{LP \cite{cohen2021LPsinMMtime}:}& \qquad \tilde{\mathcal{O}}\left(n^{\omega}\log(1/\epsilon)\right) \\
+            \text{SOCP \cite{monteiro2000SOCP}:}& \qquad \tilde{\mathcal{O}}\left(n^{\omega+0.5}\log(1/\epsilon)\right)
+            \\
+            \text{SDP  \cite{huang2022fasterIPM}:}& \qquad \tilde{\mathcal{O}}\left( n^{2\omega}\log(1/\epsilon)\right)
+        \end{split}
+\end{equation}
+    where $\omega<2.37$ is the matrix multiplication exponent. It is plausible that, with some attention, the extra $n^{0.5}$ factor for SOCP could be eliminated with modern techniques. Additionally, the runtime can be somewhat reduced when the number of constraints is much less than the number of degrees of freedom; for example, the $n$-dependence of the complexity of the CIPM for SDP in \cite{jiang2020fasterIPM} can be as low as $\tilde{\mathcal{O}}(n^{2.5})$ when there are few constraints.  On practical instances, employing techniques for fast matrix multiplication is often not beneficial, and Gaussian Elimination-like methods are used, where $\omega=3$.  Note that, alternatively, by using iterative classical linear systems solvers \cite{strohmer2009kaczmarz}, each $n^{\omega}$ factor could be replaced by a factor of $n$ at the cost of a linear dependence on $(\kappa \zeta)^2$, which could be superior if the matrices are well conditioned. 
+    %
+    \item Classical MWU methods: a classical complexity statement for LPs is inferred from the reduction in \cite{apeldoorn2019QAlgorithmsForZeroSumGames} from LPs to zero-sum games and the classical analysis that appears there. For the SDP case, references in the classical literature appear only to examine specific subclasses of SDPs (e.g.~\cite{arora2005fastAlgorithms,arora2007SDP}). A general statement of the classical complexity for SDPs appears alongside the quantum algorithm in \cite[Section 2.4]{apeldoorn2017QSDPSolvers}.
+    \begin{equation}
+        \begin{split}
+            \text{LP \cite{apeldoorn2019QAlgorithmsForZeroSumGames}:}& \qquad \tilde{\mathcal{O}}\left(s\left(\frac{rR}{\epsilon}\right)^{3.5}\right) \\
+            \text{SDP \cite{apeldoorn2017QSDPSolvers}:}& \qquad \tilde{\mathcal{O}}\left(s\sqrt{nm}\left(\frac{rR}{\epsilon}\right)^{4}+sn\left(\frac{rR}{\epsilon}\right)^7\right)
+        \end{split}
+\end{equation}
+
+\item Cutting-plane methods: these classical methods are used for SDPs and can outperform IPMs when the number of constraints is small. The best algorithm, based on \cite{lee2015FasterCuttingPlaneConvexOpt,jiang2020CuttingPlane}, has runtime $\bigO{m(mn^2+n^{\omega}+m^2)\log(1/\epsilon)}$, which can be as low as $\bigO{n^\omega}$ when $m$ is small. 
+\end{enumerate}
+It is important to note that the algorithms with the best provable complexities may not be the ones that are most useful in practice.
+
+\subsubsection*{Speedup}
+
+For both the IPM and the MWU approach, there can be at most a polynomial quantum speedup: upper and lower bounds scaling polynomially with $n$ are known in both the classical and quantum cases \cite{apeldoorn2018ImprovedQSDPSolving}. The speedup of the QIPM method depends on the scaling of $\kappa$ with $n$, but the speedup cannot be more than quadratic. The speedup of the MWU method with respect to the $n$-scaling could be as much as quadratic, assuming the sparsity is constant. There is a possibility that the speedup could be larger in practice if the \hyperref[prim:GibbsSampling]{Gibbs sampling} routine is faster in practice than its worst-case upper bounds suggest, perhaps by utilizing Monte Carlo--style approaches to Gibbs sampling. 
+
+
+\subsubsection*{Outlook}
+
+It is very plausible that an asymptotic polynomial speedup can be obtained in problem size using the MWU method for solving LPs or SDPs, but the speedup appears only quadratic, and an assessment of practicality depends on the scaling of certain unspecified instance-specific parameters. Similarly, the QIPM method could bring a subquadratic speedup but only under certain assumptions about the condition number of certain matrices. These quadratic and subquadratic speedups alone might be regarded as unlikely to yield practical speedups after \hyperref[prim:FTQC]{error correction overheads} and slower quantum clock speeds are considered. Future work should aim to find additional asymptotic speedups while focusing on specific practically relevant use cases that allow the unspecified parameters to be evaluated. 
+
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+\end{refsection}
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{refsection}
+\subsection{General convex optimization  }\label{appl:GeneralConvexOpt}
+
+\subsubsection*{Overview}
+
+A convex problem asks to optimize a convex function $f$ over a convex set $K$, where $K$ is a subset of $\mathbb{R}^n$. Here we examine the situation where the value of $f(x)$ and the membership of $x$ in the set $K$ can each be efficiently computed classically. However, we do not exploit/assume any additional structure that may be present in $f$ or $K$. This situation contrasts with that of \hyperref[appl:ConicProgramming]{solving conic programs}, where $f$ is linear and $K$ is an intersection of convex cones and affine spaces, features that can be exploited to yield more efficient classical and quantum algorithms.  
+
+A so-called ``zeroth-order'' solution to this problem solves it simply by adaptively evaluating $f(x)$ and $x \in K$ for different values of $x$. For the zeroth-order approach, a quantum algorithm can obtain a quadratic speedup with respect to the number of times these functions are evaluated, reducing it from $\tilde{\mathcal{O}}(n^2)$ to $\tilde{\mathcal{O}}(n)$, where $\tilde{\mathcal{O}}$ notation hides factors polylogarithmic in $n$  and other parameters. This could lead to a practical speedup only if the cost to evaluate $f(x)$ and $x\in K$ is large, and lack of structure rules out other, possibly faster, approaches to solving the problem. 
+
+\subsubsection*{Actual end-to-end problem(s) solved}
+
+Suppose we have classical algorithms $\mathcal{A}_f$ for computing $f(x)$ and $\mathcal{A}_K$ for computing $x \in K$ (``membership oracle''), which require $C_f$ and $C_K$ gates to perform with a reversible classical circuit, respectively. Suppose further we have an initial point $x_0 \in K$ and that we have two numbers $r$ and $R$ for which we know that $B(x_0,r) \subset K \subset B(x_0,R)$, where $B(y,t) = \{z \in \mathbb{R}^n: \lVert z-y \rVert \leq t\}$ denotes the ball of radius $t$ centered at $y$. Using $\mathcal{A}_f$, $\mathcal{A}_K$, $x_0$, $r$, $R$, and $\epsilon$ as input, the output is a point $\tilde{x}$ that is $\epsilon$-optimal, that is, it satisfies
+\begin{equation}
+    f(\tilde{x}) \leq \min_{x \in K}f(x) + \epsilon\,.
+\end{equation}
+
+\subsubsection*{Dominant resource cost/complexity}
+The work of \cite{chakrabarti2018QuantumConvexOpt} and \cite{apeldoorn2018ConvexOptUsingQuantumOracles} independently establish that there is a quantum algorithm that solves this problem with gate complexity upper bounded  by
+\begin{equation}
+    \left[(C_f + C_K)n +n^3\right]\cdot \text{polylog}(nR/r\epsilon)\,,
+\end{equation}
+where the polylogarithmic factors were left unspecified. The rough idea behind the algorithm is to leverage the \hyperref[prim:GradientEstimation]{quantum gradient estimation} algorithm to implement a \emph{separation oracle}---a routine that determines membership $x\in K$ and when $x \not\in K$ outputs a hyperplane separating $x$ from all points in $K$---using only $\bigO{1}$ queries to algorithm $\mathcal{A}_K$ and $\mathcal{A}_f$. It had been previously established that $\tilde{\mathcal{O}}(n)$ queries to a separation oracle then suffice to perform optimization \cite{lee2015FasterCuttingPlaneConvexOpt}, where $\tilde{\mathcal{O}}$ denotes that logarithmic factors have been suppressed. 
+
+\subsubsection*{Existing error corrected resource estimates}
+
+There have not been any such resource estimates for this algorithm. It may not make sense to perform such an estimate without a more concrete scenario in mind, as the estimate would highly depend on the complexity of performing the circuits for $\mathcal{A}_f$ and $\mathcal{A}_K$. 
+
+\subsubsection*{Caveats}
+
+One caveat is that the quantum algorithm must coherently perform reversible implementations of the classical functions that compute $f(x)$ and $x \in K$. Compared to a nonreversible classical implementation, this may cost additional ancilla qubits and gates. Another caveat relates to the scenario where $f(x)$ and $x\in K$ are determined by classical data stored in a classical database. Such a situation may appear to be an appealing place to look for applications of this algorithm because when $f$ and $K$ are determined empirically rather than analytically, it becomes easier to argue that there is no structure that can be exploited. However, in such a situation, implementing $\mathcal{A}_f$ and $\mathcal{A}_K$ would require a large gate complexity $C_f$ and $C_K$ scaling with the size of the classical database. It would almost certainly be the case that a \hyperref[prim:QRAM]{quantum random access memory} (QRAM) admitting log-depth queries would be needed in order for the algorithm to remain competitive with classical implementations that have access to classical RAM, and the practical feasibility of building a large-scale log-depth QRAM has many additional caveats. 
+
+Another caveat is that there may not be many practical situations that are compatible with a quantum speedup by this algorithm. The source of the speedup in~\cite{chakrabarti2018QuantumConvexOpt, apeldoorn2018ConvexOptUsingQuantumOracles} comes from a separation between the complexity of computing the gradient of $f$ classically vs.~quantumly using calls to the function $f$. Classically, this requires at least linear-in-$n$ number of calls. Quantumly, it can be done in $\bigO{1}$ calls using the quantum algorithm for \hyperref[prim:GradientEstimation]{gradient estimation}. In both the classical and the quantum case, the gradient can subsequently be used to construct a ``separation'' oracle for the set $K$, which is then used to solve the convex problem. 
+
+Thus, a speedup is only possible if there is no obvious way to classically compute the gradient of $f$ other than to evaluate $f$ at many points. This criterion is violated in many practical situations, which are often said to obey a ``cheap gradient principle'' \cite{griewank2008EvalDerivatives, bolte2022nonsmooth} that asserts that the gradient of $f$ can be computed in time comparable to the time required to evaluate $f$. For example, the fact that gradients are cheap is crucial for training modern machine learning models with a large number of parameters. When this is the case, the algorithms from~\cite{chakrabarti2018QuantumConvexOpt,apeldoorn2018ConvexOptUsingQuantumOracles} do not offer a speedup. On the other hand, as observed in \cite[Footnote 19]{apeldoorn2018ConvexOptUsingQuantumOracles} a nontrivial example of a problem where the cheap gradient principle may fail (enabling a possible advantage for these quantum algorithms) is the moment polytope problem, which has connections to quantum information \cite{burgisser2018EffTensorScalingMomentPolytopes}.
+
+When both the function $f$ and the gradient of $f$ can be evaluated at unit cost, this constitutes ``first-order'' optimization, which can be solved by gradient descent. However, gradient descent does not generally offer a quantum speedup, as general quantum lower bounds match classical upper bounds \cite{garg2020noSpeedupGradDescent}, although a quantum speedup could exist in specific cases.
+
+\subsubsection*{Comparable classical complexity}
+The best classical algorithm \cite{lee2017ConvexOptWMemb} in the same setting has complexity 
+\begin{equation}
+    \left[(C'_f + C'_K)n^2 +n^3\right]\cdot \text{polylog}(nR/r\epsilon)\,,
+\end{equation}
+where $C_f'$ and $C'_K$ denote the classical complexity of evaluating $f$ and querying membership in $K$, respectively, without the restriction that the circuit be reversible. 
+
+\subsubsection*{Speedup}
+The speedup is greatest when quantities $C_f$ and $C_K$ are large compared to $n$ and roughly equal to $C'_f$ and $C'_K$. In this case, the quantum algorithm can provide an $\bigO{n}$ speedup, which is at best a polynomial speedup. The maximal power of the polynomial would be obtained if $C_f+C_K\approx C'_f+C'_K$ scales as $n^2$, corresponding to a subquadratic speedup from $\bigO{n^4}$ to $\bigO{n^3}$. 
+
+ 
+
+\subsubsection*{Outlook}
+The only analyses of this strategy are theoretical in nature, interested more so in the query complexity of solving this problem than any specific applications it might have. As such, the analysis is not sufficiently fine-grained to determine any impact from constant factors or logarithmic factors. While a quadratic speedup in query complexity is possible, the maximal speedup in gate complexity is smaller than quadratic. Moreover, there is a lack of concrete problems that fit into the paradigm of ``structureless'' quantum convex optimization. Together, these factors make it unlikely that a practical quantum advantage can be found in this instance. 
+
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+\end{refsection}
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{refsection}
+\subsection{Nonconvex optimization: Escaping saddle points and finding local minima }\label{appl:EscapingSaddlePoints}
+\extramarks{}{Escaping saddle points and finding local minima}
+
+\subsubsection*{Overview}
+
+Finding the global minimum of nonconvex optimization problems is challenging because local algorithms get stuck in local minima. Often, there are many local minima and they are each separated by large energy barriers. Accordingly, instead of finding the global minimum, one may settle for finding a local minimum: local minima can often still be used effectively in situations such as training machine learning models. An effective approach to finding a local minimum is gradient descent, but gradient descent can run into the problem of getting stuck near saddle points, which are not local minima but nonetheless have a vanishing gradient. Efficiently finding local minima thus requires methods for escaping saddle points. Limited work in this area suggests a potential polynomial quantum speedup \cite{zhang2021escapingSaddlePoints} in the dimension dependence for finding local minima, using subroutines for \hyperref[prim:HamiltonianSimulation]{Hamiltonian simulation} and \hyperref[prim:GradientEstimation]{quantum gradient estimation}.
+
+\subsubsection*{Actual end-to-end problem(s) solved}
+
+Suppose we have a classical algorithm $\mathcal{A}_f$ for (approximately) computing a function $f: \mathbb{R}^n \rightarrow \mathbb{R}$  which requires $C_f$ gates to perform with a reversible classical circuit. The amount of error tolerable is specified later. Following \cite{zhang2021escapingSaddlePoints}, suppose further that $f$ is $\ell$-smooth and $\rho$-Hessian Lipschitz, that is
+\begin{align}
+    \lVert \nabla f(x_1) - \nabla f(x_2) \rVert &\leq \ell \lVert x_1 - x_2 \rVert \qquad \forall x_1, x_2 \in \mathbb{R}^n \\
+    \lVert \nabla^2 f(x_1) - \nabla^2 f(x_2) \rVert &\leq \rho \lVert x_1 - x_2 \rVert \qquad \forall x_1, x_2 \in \mathbb{R}^n \,,
+\end{align}
+where $\nabla f$ denotes the gradient of $f$ (a vector), $\nabla^2 f$ denotes the Hessian of $f$ (a matrix), and $\lVert \cdot \rVert$ denotes the standard Euclidean norm for vector arguments, and the spectral norm for matrix arguments. 
+
+The end-to-end problem solved is to take as input a specification of the function $f$, an initial point $x_0$, and an error parameter $\epsilon$, and to output an $\epsilon$-approximate second-order stationary point (i.e.~approximate local minimum) $x$, defined as satisfying 
+\begin{align}
+    \lVert \nabla f(x) \rVert \leq \epsilon \qquad \qquad \lambda_{\min}(\nabla^2 f(x)) \geq -\sqrt{\rho \epsilon}\,,
+\end{align}
+where $\lambda_{\min}(\cdot)$ denotes the minimum eigenvalue of its argument. In other words, the gradient should be nearly zero, and the Hessian should be close to a positive-semidefinite matrix. 
+
+
+\subsubsection*{Dominant resource cost/complexity}
+
+Reference~\cite{zhang2021escapingSaddlePoints} gives a quantum algorithm that performs the $C_f$-gate quantum circuit for coherently computing $f$ a number of times scaling as
+\begin{equation}
+   \tilde{\mathcal{O}}\left(\frac{\log(n)(f(x_0)-f^*)}{\epsilon^{1.75}}\right)
+\end{equation}
+where $x_0$ is the initial point and $f^*$ is the global minimum of $f$. The evaluation of $f$ must be correct up to precision $\bigO{\epsilon^2/n^4}$. Note that the work of \cite{zhang2021escapingSaddlePoints} initially showed a $\log^2(n)$ dependence, which was later improved to $\log(n)$ using the improved simulation method of \cite{childs2022quantumsimulationof}. Any additional gate overhead is not quoted in \cite{zhang2021escapingSaddlePoints}. 
+
+The idea is to run normal gradient descent, which has gradient query cost independent of $n$, until reaching an approximate saddle point.  Classical algorithms typically apply random perturbations to detect a direction of negative curvature and continue the gradient descent. Instead, the quantum algorithm constructs a Gaussian wavepacket localized at the saddle point, and evolves according to the Schr\"odinger equation
+\begin{equation}\label{eq:nonconvex_Ham}
+    i\frac{\partial}{\partial t}\Phi = \left(-\frac{1}{2}\Delta + f(x)\right)\Phi\,,
+\end{equation}
+where $\Delta$ denotes the Laplacian operator. The intuition is that, in the directions of positive curvature, the particle stays localized (as in a harmonic potential), while in the directions of negative curvature, the particle quickly disperses. Thus, when the position of the particle is measured, it is likely to have escaped the saddle point in a direction of negative curvature, and gradient descent can be continued. The other technical ingredient is the \hyperref[prim:GradientEstimation]{quantum gradient estimation algorithm}, which uses a constant number of (coherent) queries to the function $f$ to estimate $\nabla f$. 
+
+A similar approach was taken in \cite{gong2022robustnessNonconvex} for analyzing the complexity of escaping a saddle point when one has access to \emph{noisy} queries to the value of the function $f$. Additionally, lower bounds on the $\epsilon$-dependence of quantum algorithms for this problem are given in \cite{zhang2022lowerBoundsNonconvex}.
+
+\subsubsection*{Existing error corrected resource estimates}
+
+This problem has received relatively little attention, and no resource estimates have been performed. 
+
+\subsubsection*{Caveats}
+
+Reference~\cite{zhang2021escapingSaddlePoints} gives the query complexity of the quantum algorithm but does not perform a full end-to-end resource analysis. (However, it does numerically study the performance of the quantum algorithm in a couple of toy examples.) Additionally, many practical scenarios are said to obey a ``cheap gradient principle'' \cite{griewank2008EvalDerivatives,bolte2022nonsmooth}, which says that computing the gradient is almost as easy as computing the function itself, and in these scenarios, no significant quantum speedup is available.  
+Finally, in the setting of \hyperref[prim:VQA]{variational quantum algorithms}, this does not avoid the issue of barren plateaus, which refers to the situation where a large portion of the parameter space has a gradient (and Hessian) that vanishes exponentially with $n$. These regions would be characterized as $\epsilon$-approximate local minima unless $\epsilon$ is made exponentially small in $n$. 
+
+\subsubsection*{Comparable classical complexity and challenging instance sizes}
+
+The best classical algorithm \cite{zhang2021classicalEscapeSaddlePoints} for this problem makes
+\begin{equation}
+    \tilde{\mathcal{O}}\left(\frac{\log(n)(f(x_0)-f^*)}{\epsilon^{1.75}}\right)
+\end{equation}
+queries to the \emph{gradient} of $f$. Note that $\text{poly}(n)$ queries to the value of $f$ would be needed to construct a query to the gradient. (When the quantum algorithm in \cite{zhang2021escapingSaddlePoints} was first discovered, the best classical algorithm required $\bigO{\log(n)^6}$ gradient queries \cite[Theorem 3]{jin2018EscapesSaddlePoints}, and this was later improved.)
+
+\subsubsection*{Speedup}
+
+The quantum algorithm in \cite{zhang2021escapingSaddlePoints} has the same query complexity as the classical algorithm in \cite{zhang2021classicalEscapeSaddlePoints}; the difference is that the quantum algorithm makes (coherent) queries to an evaluation oracle, while the classical algorithm requires access to a gradient oracle. Thus, if classical gradient queries are available, there is no speedup, and if no gradient query is available, the speedup can be exponential.
+
+\subsubsection*{Outlook}
+
+It is unclear whether the algorithm for finding local minima could lead to a practical speedup, as it depends highly on the (non)availability of an efficient classical procedure for implementing gradient oracles; a quantum speedup is possible only when such oracles are difficult to implement classically. However, the algorithm represents a useful end-to-end problem where the \hyperref[prim:GradientEstimation]{quantum gradient estimation} primitive can be applied. It is also notable that the quantum algorithm employs \hyperref[prim:HamiltonianSimulation]{Hamiltonian simulation}, a primitive not used in most other approaches to continuous optimization. Relatedly, \cite{leng2023quantumHamiltonianDescent} proposes a quantum subroutine called ``quantum Hamiltonian descent'' which is a genuinely quantum counterpart to classical gradient descent, via Hamiltonian simulation of an equation similar to Eq.~\eqref{eq:nonconvex_Ham}. Unlike classical gradient descent, it can exploit quantum tunneling to avoid getting stuck in local minima; thus, it can potentially find \emph{global} minima of nonconvex functions.  Establishing concrete end-to-end problems where quantum approaches based on Hamiltonian simulation yield an advantage in nonconvex optimization is an interesting direction for future work.
+
+
+
+
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+\end{refsection}
+
+\newpage
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+

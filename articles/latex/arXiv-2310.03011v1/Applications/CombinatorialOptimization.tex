@@ -1,0 +1,249 @@
+%!TEX root = ../main.tex
+
+\section{Combinatorial optimization }\label{appl:CombOpt}
+
+\begin{refsection}
+Combinatorial optimization problems are tasks where one seeks an optimal solution among a finite set of possible candidates. In industrial settings, combinatorial optimization arises via scheduling, routing, resource allocation, supply chain management, and other logistics problems, where it can be difficult to find optimal solutions that obey various desired constraints. The field of operations research---which came to prominence after its application to logistics problems faced by WWII militaries---applies methods of combinatorial optimization (as well as \hyperref[appl:ContinuousOpt]{continuous optimization}) to these problem areas for improved decision-making and efficiency in real-world problems.
+
+Combinatorial optimization problems are also at the heart of classical theoretical computer science, where they are used to characterize and delineate complexity classes. Typical combinatorial optimization problems  have limited structure to exploit, and therefore quantum computing most often only provides polynomial speedups. 
+In fact, it came as a surprise in the early days of quantum computing research that for a wide variety of such problems quantum computers do offer up to quadratic speedups via Grover's search algorithm~\cite{grover1996QSearch}.
+Subsequently, much effort was devoted to understanding how Grover's search and its generalization, \hyperref[prim:AmpAmp]{amplitude amplification}, offers speedups for various combinatorial optimization problems. 
+
+In this section, we cover several distinct approaches to solving combinatorial optimization problems. First, we look at combinatorial optimizations through its relation to \hyperref[appl:SearchAlgorithms]{search problems}, where Grover's algorithm, or its generalizations, can be applied to give a quadratic or subquadratic speedup. Then, we cover several proposals---\hyperref[prim:VQA]{variational algorithms} (viewed as an exact algorithm), \hyperref[prim:QuantumAdiabaticAlgorithm]{the adiabatic algorithm}, and the ``short-path'' algorithm \cite{hastings2018ShortPathQuantum,dalzell2022mindthegap}---that have the potential to \hyperref[appl:BeyondGrover]{surpass the quadratic speedup} of Grover's algorithm. We discuss the (limited, but existing) evidence that these approaches could generate significant advantages, as well as the associated caveats. 
+
+We do not specifically cover the large body of work on quantum approaches for \emph{approximate} combinatorial optimization (typically \hyperref[prim:VQA]{variational quantum algorithms} or \hyperref[prim:QuantumAdiabaticAlgorithm]{quantum annealing}). These algorithms usually translate the optimization problem to energy minimization of a spin system with a Hamiltonian that encodes the classical objective function. They apply some physically motivated heuristics to efficiently generate solutions that have low energy, and hopefully achieve a better objective value than could be generated classically in a comparable amount of time. An advantage of these approaches is that they are often more compatible with noisy near-term hardware. While approximate optimization remains an interesting direction, these quantum algorithms are heuristic and there is a general scarcity of concrete evidence that they will deliver practical advantages.
+
+
+\localtableofcontents
+%%
+	\printbibliography[heading=secbib,segment=\therefsegment]
+\end{refsection}
+\newpage
+
+\begin{refsection}
+
+	\subsection{Search algorithms \`{a} la Grover}\label{appl:SearchAlgorithms}
+	\newcommand{\SAT}{\mathsf{SAT}}
+    \newcommand{\QUBO}{\mathsf{QUBO}}
+    \newcommand{\MAXCUT}{$\mathsf{MAX}$-$\mathsf{CUT}$}
+
+	\subsubsection*{Overview}
+	Grover's search algorithm \cite{grover1996QSearch}, and its generalizations, such as \hyperref[prim:AmpAmp]{amplitude amplification}, are essential sources of quantum speedups. 	
+	A straightforward application of Grover search in the spirit of optimization is quantum minimum finding~\cite{durr1996QMinimumFinding} that finds the minimizer of a function on a given set of elements with a quadratic speedup, and its natural generalization analogous to \hyperref[prim:AmpAmp]{amplitude amplification} can be found in~\cite{apeldoorn2017QSDPSolvers}.
+	
+	As search is a very generic primitive, Grover's algorithm is extremely widely applicable and it can speed up many subroutines especially in algorithms for combinatorial optimization. 
+	In the early days of quantum computing, a plethora of such applications were found, and the list still keeps growing. 
+	We list a few such representative applications that demonstrate how Grover's algorithm may be applied to speed up combinatorial optimization.
+	
+	
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	
+	\subsubsection*{Actual end-to-end problem(s) solved}
+	The goal is to solve a search problem, i.e., decide whether there is an element among a set of objects that satisfies some criterion, and if there is such an object, find one. 
+	Many combinatorial optimization problems are fundamentally search problems; a notable class of examples are graph problems, such as finding a maximal independent set, a $k$-coloring, a lowest weight Hamiltonian cycle (called the traveling salesperson problem), or the shortest path between two vertices.
+	
+	For conceptual clarity, here, we focus on the prototypical Boolean satisfiability problem, i.e., $\SAT$ solving: given a Boolean formula in the so-called \emph{conjunctive normal form}, decide whether it has a satisfying Boolean assignment (and if so, find one). A formula in this form consists of some constraints (called \emph{clauses}) each containing the logical AND of some variables or their negation (called \emph{literals}). We denote the number of Boolean variables by $n$, while the total number of literals of the formula by $\ell$ (counted with multiplicity).
+		
+			
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	
+	\subsubsection*{Dominant resource cost/complexity}
+	If there are at least $m$ marked elements among $N$ possible ones, then the search problem can be solved with high probability by using $\bigO{\sqrt{N/m}}$ Grover iterations. Each Grover iteration requires generating a uniform superposition over the $N$ elements starting from the all $0$ state, and to check whether an element is marked (in superposition), which can be implemented with gate cost $\bigO{\ell+n}$. If the formula is satisfiable then there is at least one solution, thus $\bigO{\sqrt{2^n}}$ Grover iterations suffice, giving an overall complexity of $\bigO{(\ell+n)\sqrt{2^n}}$.
+	
+	In some applications, it is useful to consider a generalization of Grover search, \hyperref[prim:AmpAmp]{amplitude amplification}, which enables working with an arbitrary prior distribution on the elements, unlike Grover's algorithm which effectively uses a uniform prior. 
+	The relevance of this extension can be seen through the example of 3-$\SAT$, which is a restricted version of $\SAT$ where each clause has at most 3 literals. A clever application of \hyperref[prim:AmpAmp]{amplitude amplification} described by Ambainis~\cite{ambainis2004QSearchAlgos} for solving 3-$\SAT$ more efficiently uses Schöning's algorithm~\cite{schoning1999ProbAlgForkSAT} and thus generates a nontrivial prior distribution on the solutions. 
+	
+    The complexity of \hyperref[prim:AmpAmp]{amplitude amplification} is similar to that of Grover's search in general. If $\ket{\psi}$ is the quantum state representing the prior distribution, so that measuring the state yields a marked element with probability at least $p$, then $\bigO{\sqrt{1/p}}$ ``Grover iterations'' suffice to find a marked element with high probability. The algorithm requires preparing the initial state $\ket{\psi}$ and then each iteration consist of a reflection $2\ketbra{\psi}{\psi}-I$ around $\ket{\psi}$ and checking whether an element is marked (in superposition). The former reflection can be implemented with two uses of the circuit that prepares $\ket{\psi}$ from the all $0$ state, and a reflection about the all $0$ state.
+	
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	
+	\subsubsection*{Existing error corrected resource estimates}
+	
+	There are several studies on the resource estimation of Grover-type (sub)quadratic speedups. Due to the wide range of these problems, we do not focus on explicit gate counts on any particular problem/implementation variant, but rather list some prominent articles and illustrate their findings on a high level~\cite{campbell2019ApplyingQToCSPs,sanders2020FTQCforCombOpt,babbush2021FocusBeyondQuadratic,cade2022quantifying,cade2022quantum,hoefler2023RealAchievQAdvantage}.
+	Unfortunately, these recent studies revealed that quadratic or smaller speedups alone are unlikely to be useful probably even in the medium term, unless the large overheads of  \hyperref[prim:FTQC]{fault-tolerant quantum computing} schemes can be greatly reduced.
+    For example,~\cite{sanders2020FTQCforCombOpt} concluded that even if there is some reasonable advantage in quantum gate counts for solving the constraint satisfaction problems that they consider, the classical computation supporting the  \hyperref[prim:FTQC]{fault-tolerant quantum computation} actually annihilates the speedup in practice. They state that ``Even when considering only problem instances that can be solved within one day, we find that there are potentially large quantum speedups available. $\ldots$ However, the number of physical qubits used is extremely large, $\ldots$ In particular, the quantum advantage disappears if one includes the cost of the classical processing power required to perform decoding of the surface code using current techniques.'' 
+	The most recent of the above quoted papers \cite{hoefler2023RealAchievQAdvantage} estimates that getting a quantum advantage via a quadratic speedup requires at least a month-long computation already if each iteration contains at least one floating-point operation.
+	The situation looks more promising for cubic and quartic speedups, but unfortunately such improvements seem to require \hyperref[appl:BeyondGrover]{techniques beyond Grover search}.
+	
+	
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	
+	\subsubsection*{Caveats}
+	Grover originally described his result as ``A fast quantum mechanical algorithm for database search''~\cite{grover1996QSearch}. If we work in the circuit model of quantum computation, then strictly speaking Grover search gives a slowdown for database search, as  every Grover iteration  needs to ``touch'' every element in the database. If we anyway need to touch all $N$ elements in the database, then the best we can do is to simply go over every element in linear time $\bigO{N}$. Grover's search circuit in this case would have gate complexity $\bigOt{N^{3/2}}$, clearly worse than sequentially going through the entire dataset.
+	
+	In the database scenario, we can only recover the quadratic speedup if we assume that we can use a \hyperref[prim:QRAM]{quantum random access memory}  (QRAM), with constant (or logarithmic) cost for each database query. The analogous assumption regarding ordinary RAM is often made in classical computer science, simply because RAM calls are cheap in practice. However, since a RAM call should be able to touch every bit of the database, from a circuit complexity perspective a RAM call must have gate cost at least $N$. On the other hand, this task can be parallelized very well, so with appropriate hardware it is reasonable to count a RAM call to have (time) complexity $\log(N)$. While \hyperref[prim:QRAM]{QRAM} can also be implemented with a quantum circuit of $\bigO{\log(N)}$ depth, a similar  accounting might not be fair in the case of \hyperref[prim:QRAM]{QRAM} if error correction is necessary, especially if one implements the entire QRAM circuit in a \hyperref[prim:FTQC]{fault-tolerant} fashion.
+	
+	
+	However, Grover's algorithm can provide a quadratic speedup without extra hardware assumptions when the elements of the list that we search over can be easily generated and checked ``on the fly.'' For example, in the case of $\SAT$, we search over the $2^n$ possible truth assignments, yet we can easily check whether an individual assignment is satisfactory by simply substituting the assignment into the formula and evaluating the resulting Boolean expression. 
+	
+	
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	
+	\subsubsection*{Comparable classical complexity}
+	
+	For the unstructured search problem, exhaustive search is essentially the best that can be done, with a running time $\sim\ell \cdot 2^n$. Of course, $\SAT$ seems to be far from  unstructured, but under the Strong Exponential-Time Hypothesis~\cite{impagliazzo2001WhichProbHasSETC,calabro2009SETH} the best classical algorithm for $\SAT$ has running time $2^{n-o(n)}$. 
+	
+	A similar argument holds for the generalized problem considered in the setting of \hyperref[prim:AmpAmp]{amplitude amplification}: if we have some prior distribution, we can classically find a marked element by sampling from this distribution about $\sim \frac{1}{p}$ times. Since unstructured search is a special case of this problem, we cannot hope for a better classical algorithm in general.
+	
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	
+	\subsubsection*{Speedup}
+	
+	The speedup is quadratic in terms of the number of required iterations if we compare to corresponding naive classical algorithms. It can be shown that this speedup is optimal in the black-box query model~\cite{bennett1997QSearchLowerBound}. Moreover, we do not expect that there would be a bigger than quadratic speedup in gate complexity~\cite{buhrman2021QSETH} in the general (non-black-box) case.
+	
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	
+	
+	\subsubsection*{Outlook}
+	
+	We have discussed how Grover search provides a quadratic speedup for $\SAT$, and how \hyperref[prim:AmpAmp]{amplitude amplification} yields a quadratic speedup for 3-$\SAT$. 
+	Grover's algorithm can be used as a subroutine in several other combinatorial optimization problems as well, e.g., related to graphs. In the literature, these problems are most often studied in the query model, therefore here we also only discuss their speedup in terms of query complexity. Since these are (sub)quadratic speedups, we know that the fault-tolerant resource estimates will be unfavorable anyway, as discussed above.
+	
+	For example, the problem of finding the shortest paths from a single source $s$ in graph $G=(V,E)$ to all other vertices $v\in V$ can be solved using Dijkstra's algorithm in time $\bigO{|E|+|V|\log|V|}$ if the graph is provided with its adjacency list (and with query complexity $\bigO{|E|}$), whereas the quantum query complexity of this problem is $\widetilde{\Theta}(\sqrt{|V||E|})$~\cite{durr2004QQueryCompGraph}. The paper~\cite{durr2004QQueryCompGraph} determines the query complexity of several other graph problems such as deciding graph connectivity and strong connectivity as well as finding the minimum-weight spanning tree. For all of these problems, there is a similar moderate (sub)quadratic quantum speedup.
+	
+	One graph problem that is often mentioned in connection to quantum computation is the (in)famous traveling salesperson problem. However, for this problem, the best provable speedup is only subquadratic. The naive classical problem runs in time $n!$, and Grover's algorithm offers a quadratic speedup over it. Unfortunately, the best classical algorithm uses dynamic programming and runs in time $2^n$. Ambainis et al.~\cite{ambainis2019QSpeedUpExpTimeDPAlgs} showed how to obtain a speedup over this algorithm by combining classical precalculation with recursive applications of Grover’s search resulting in time complexity $\bigOt{1.817^n}$ assuming that \hyperref[prim:QRAM]{QRAM} calls have unit costs. Considering the overheads coming from the implementation of \hyperref[prim:QRAM]{QRAM} and \hyperref[prim:FTQC]{fault tolerance}, the traveling salesperson problem seems to be one of the \textit{least} likely candidates to achieve a practical quantum speedup. 
+	
+	Finally, let us mention quantum walk algorithms, which can also be viewed as a generalization of Grover's search. However, quantum walks are more distant relatives of Grover's search and can only be applied in more specific settings. They can be used for proving many nontrivial speedups in query complexity, however the resulting algorithms are often not practical due to high space and/or gate complexity overheads, as is the case for the prototypical Element Distinctness problem. The query reduction is moderate $N^2\rightarrow N^{4/3}$ in the number of elements $N$, but the corresponding quantum algorithm~\cite{ambainis2004QWalkForElementDist} unfortunately uses a \hyperref[prim:QRAM]{QRAM} consisting of about $\sim N^{4/3}$ registers.
+	
+	There are nevertheless more practical quantum walk algorithms applicable, e.g., to speed up backtracking algorithms~\cite{montanaro2015QuantumBacktracking, ambainis2017TreeSizeEstimation,jarret2017ImprovedQBacktracking,martiel2020practicalBacktracking}, which are among the most successful and widely used classical heuristics for solving $\SAT$ instances in practice.  The quantum algorithm can achieve an essentially quadratic speedup compared to its classical backtracking variant. This approach is applicable to the traveling salesperson problem in the special case that the graph has degree at most 4 \cite{moylett2017travelingSalemsanBoundedDegree}. For resource estimates see the earlier quoted reference~\cite{campbell2019ApplyingQToCSPs}. A further extension of this algorithm is applicable to branch-and-bound algorithms~\cite{montanaro2019QBranchAndBound,chakrabarti2022universal}, and in some cases yields running times that are substantially better than what we know can be achieved by naively using Grover's algorithm. For example, it can find exact ground states for most instances of the Sherrington--Kirkpatrick model \cite{sherrington1975solvable} in time $\bigO{2^{0.226n}}$ \cite{montanaro2019QBranchAndBound}, which means about a quadratic speedup compared to classical methods. Branch-and-bound-based speedups can also be applied to solve mixed-integer programs, which includes certain formulations of the \hyperref[appl:PortfolioOptimization]{portfolio optimization} problem \cite{chakrabarti2022universal}. 
+	
+	There is a plethora of other applications of quantum search speedups, ranging from machine learning~\cite{wiebe2015QNearestNeighbour} to dynamical programming solutions of other NP-hard problems~\cite{ambainis2019QSpeedUpExpTimeDPAlgs},\ which we do not discuss here for length constraints and due to discouraging resource estimates for (sub)quadratic quantum speedups.
+
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ %%
+	\printbibliography[heading=secbib,segment=\therefsegment]
+	
+\end{refsection}
+
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{refsection}
+\subsection{Beyond quadratic speedups in exact combinatorial optimization}\label{appl:BeyondGrover}
+\extramarks{}{Beyond quadratic speedups}
+
+\newcommand{\SAT}{\mathsf{SAT}}
+\newcommand{\QUBO}{\mathsf{QUBO}}
+\newcommand{\MAXCUT}{$\mathsf{MAX}$-$\mathsf{CUT}$}
+
+\subsubsection*{Overview}
+
+The discovery of Grover's algorithm \cite{grover1996QSearch} (later generalized to \hyperref[prim:AmpAmp]{amplitude amplification}) has long been the source of enthusiasm that quantum algorithms can be advantageous for combinatorial optimization, as it leads to quadratic asymptotic speedups for many concrete end-to-end \hyperref[appl:SearchAlgorithms]{search problems} in this area. However, resource estimates indicate that early and intermediate-term \hyperref[prim:FTQC]{fault-tolerant} devices will fail to deliver practical advantages when the available speedup is only quadratic, due to intrinsic  overheads of quantum computation compared to classical computation (see, e.g.,~\cite{campbell2019ApplyingQToCSPs,babbush2021FocusBeyondQuadratic}). Thus, identifying whether beyond-quadratic speedups are available is of principal importance for identifying end-to-end practical advantages in combinatorial optimization. Despite the fact that Grover's algorithm is optimal in the black-box (unstructured) setting, superquadratic speedups could be possible when the combinatorial optimization problem has a certain structure that can be better exploited by a quantum algorithm than a classical algorithm. 
+
+Unfortunately, many proposals that could conceivably deliver superquadratic speedups lack rigorous theoretical performance guarantees. This includes the \hyperref[prim:QuantumAdiabaticAlgorithm]{quantum adiabatic algorithm} and \hyperref[prim:VQA]{variational quantum algorithms} such as the quantum approximate optimization algorithm (QAOA) \cite{farhi2014QAOA}, which is typically formulated to give approximate solutions, but at higher cost could also be used to find exact solutions. Limited analytic and numerical work provides some evidence (e.g.~\cite{boulebnane2022solvingSATwQAOA,shaydulin2023evidenceQAOA}) that QAOA could outperform a vanilla application of Grover's algorithm to the $k$-$\SAT$ problem, but provides no definitive conclusion on the matter. Alternatively, a line of work in~\cite{hastings2018ShortPathQuantum,dalzell2022mindthegap} studies a different algorithm (related in certain aspects to the \hyperref[prim:QuantumAdiabaticAlgorithm]{quantum adiabatic algorithm}) and provide rigorous running time guarantees that \emph{slightly} surpass Grover's algorithm. 
+
+However, while these algorithms may have a speedup over Grover's algorithm, this does not entail a superquadratic speedup over the \emph{best} classical algorithm, which can often exploit structure in other ways to do much better than exhaustive search. Overall, it remains a wide open question whether quantum algorithms can provide superquadratic speedups for useful problems in exact combinatorial optimization. 
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Actual end-to-end problem(s) solved}
+
+Combinatorial optimization problems ask to find which solution is optimal among a finite set of possible candidates. Here, we stick to binary optimization on $n$ bits, where the universe of possible candidates are bit strings $z = (z_1,z_2,\ldots,z_n) \in \{1,-1\}^n$. The input to the problem is a compact description of some cost function $C: \{1,-1\}^n \rightarrow \mathbb{R}$, and the desired output is the string $z^*$ for which $C$ is minimized. Let $E^* = C(z^*)$ denote the optimal value of the cost function. For simplicity we assume $z^*$ is unique and $E^*$ is known ahead of time.\footnote{This assumption can often be relaxed at the expense of at most $\mathrm{poly}(n)$ overhead, e.g., by iterating over all possible values $E^*$ might take, which fall within a $\mathrm{poly}(n)$ size range when the cost function consists of only $\mathrm{poly}(n)$ constant size (integer) terms.}
+
+Concrete examples can be formed by choosing the function $C(z)$ to be a low-degree polynomial in the bits of $z$. For example, if $C$ is a degree-2 polynomial in $z$, this is a Quadratic Unconstrained Binary Optimization ($\QUBO$) problem. If furthermore every term of $C$ has degree exactly 2 (no degree-1 or constant terms) and every coefficient is either $0$ or $1$, then the problem is equivalent to a \MAXCUT problem. Finally, if $C$ is the sum of terms of the form 
+\begin{equation*}
+    z_az_bz_c + z_az_b+z_az_c +z_bz_c + z_a+z_b+z_c \qquad \text{where}\qquad z_a,z_b,z_c \in \{z_1,-z_1,z_2,-z_2,\ldots,z_n,-z_n\}
+\end{equation*}
+then the problem is equivalent to a $\mathsf{MAX}$-3-$\SAT$ instance, where the optimal solution represents the bit string that satisfies the most clauses of a satisfiability formula written in conjunctive normal form, where each clause involves three variables (this is easily generalized from $\mathsf{MAX}$-3-$\SAT$ to $\mathsf{MAX}$-$k$-$\SAT$). 
+
+For a fixed instance $C$, the quantum algorithms must find $z^*$ with high probability over measurement outcomes. If it does so for every $C$ chosen from some class of problem, we say it succeeds in the worst case. Alternatively, we can consider ensembles of instances chosen from some class of problem; if for a large fraction of instances from the ensemble, the algorithm finds $z^*$ with high probability, then we say the algorithm succeeds in the average case.\footnote{A more typical definition of the average-case complexity of an algorithm is the expected runtime required for it to find the solution $z^*$, averaged over both choice of instance and internal algorithmic randomness (i.e.,~classical coin flips or quantum measurement outcomes). This definition is related to the convention we follow, but it is more coarse grained as it does not distinguish between the two types of randomness, the latter of which can be boosted by repetition.} A commonly considered average-case ensemble is the Sherrington--Kirkpatrick (SK) model \cite{sherrington1975solvable}, defined as
+\begin{equation}
+    C(z) = \sum_{i=1}^n\sum_{j=i+1}^n J_{ij} z_i z_j \quad \text{where}\quad J_{ij} \sim \mathcal{N}(0,1),
+\end{equation}
+where the coefficients $J_{ij}$ are drawn randomly from a standard Gaussian distribution $\mathcal{N}(0,1)$. The SK model is relevant in spin-glass theory, and can be generalized to higher-degree interactions, where it is referred to as the $p$-spin model \cite{derrida1980randomEnergyModel}. Another ensemble is the random $\mathsf{MAX}$-$k$-$\SAT$ ensemble, where $\mathsf{MAX}$-$k$-$\SAT$ instances are generated by choosing each clause uniformly at random with some fixed clause-to-variable ratio (see, e.g., \cite{coppersmith2003random}). 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Dominant resource cost/complexity}
+
+A vanilla application of Grover's algorithm to binary optimization problems achieves $\mathcal{O}^*(2^{0.5n})$ running time, where notation $\mathcal{O}^*(2^{an})$ is shorthand for $\mathrm{poly}(n)2^{an}$. We cover three approaches to solving binary optimization problems on a quantum computer that have some potential to improve upon this running time. Note that all of these algorithms require polynomial (in fact, linear $\bigO{n}$) space. However, their running time is expected to scale exponentially in $n$. 
+\begin{itemize}
+\item 
+First, we consider \hyperref[prim:VQA]{variational quantum algorithms}, using the QAOA \cite{farhi2014QAOA} as a representative. These algorithms are typically studied as efficient (polynomial-time) quantum algorithms that produce approximate solutions, i.e.~strings $z \neq z^*$ for which $C(z)$ is small, but not optimal. However, they may also be viewed as exact algorithms, since, if repeated a sufficient number of times, they eventually produce the exactly optimal $z^*$. The QAOA fixes a depth parameter $p$ and variational parameters $\gamma = (\gamma_1,\ldots,\gamma_p)$ and $\beta = (\beta_1,\ldots,\beta_p)$ (sometimes these are set to some fixed instance-independent value, and sometimes they are variationally updated on subsequent repetitions of the algorithm). The QAOA starts in the $n$-qubit equal superposition state $\ket{+}$ and implements alternating rounds of rotations about the diagonal cost function $C$ and a ``mixing'' operator $X = \sum_i X_i$, where $X_i$ denotes the Pauli-$X$ gate about qubit $i$. The state produced by QAOA is thus given by
+\begin{equation}
+    \ket{\psi_{\gamma,\beta}} = e^{-i\beta_p X}e^{-i\gamma_p C}\ldots e^{-i\beta_2 X}e^{-i\gamma_2 C}e^{-i\beta_1X}e^{-i\gamma_1 C}\ket{+}\,.
+\end{equation}
+If one makes a computational basis measurement of $\ket{\psi_{\gamma,\beta}}$, one obtains $z^*$ with probability $|\braket{z^*}{\psi_{\gamma,\beta}}|^2$. The expected number of repetitions required to obtain $z^*$ is the inverse of this probability, and this running time can be quadratically sped up by performing \hyperref[prim:AmpAmp]{amplitude amplification} on top of the QAOA protocol; thus, the QAOA unitary is applied $\bigO{|\braket{z^*}{\psi_{\gamma,\beta}}|^{-1}}$ times. Implementing the QAOA unitary typically requires only $p \cdot \mathrm{poly}(n)$ gates, as each of the rotations about $X$ and $C$ are efficient to implement. For hard combinatorial optimization problems such as typical $\mathsf{MAX}$-$k$-$\SAT$ instances, the expectation is that the total running time required will be exponential. If the depth $p$ is chosen to be constant or even $\mathrm{poly}(n)$, the dominant cost will come from the $\bigO{|\braket{z^*}{\psi_{\gamma,\beta}}|^{-1}}$ repetitions required to amplify the $\ket{z^*}$ state. Alternatively, one can reduce the number of repetitions needed to $\bigO{1}$ at the expense of taking $p$ to be very large (at least exponentially large in $n$); indeed, for sufficiently large $p$, the QAOA can be viewed as a \hyperref[prim:ProductFormulae]{Trotterized} simulation of the \hyperref[prim:QuantumAdiabaticAlgorithm]{adiabatic algorithm} \cite{farhi2014QAOA}. 
+
+There is some analytic evidence that the QAOA may outperform Grover's algorithm at finding the exact solution for constant $p$ in certain cases. Reference~\cite{boulebnane2022solvingSATwQAOA} studied the QAOA applied to hard (i.e.~near the satisfiability threshold) $k$-$\SAT$ instances with instance-independent choice of $\gamma$, $\beta$ for constant $p$, and developed an analytic formula for the expected success probability $|\braket{z^*}{\psi_{\gamma,\beta}}|^2$ averaged over random instance in the limit $n \rightarrow \infty$. This formula was evaluated numerically and suggested for example that the average success probability behaves as $2^{-0.33n}$ for $p=10$ on $8$-$\SAT$.
+One might be tempted to declare that this implies an overall average running time of $\mathcal{O}^*(2^{0.33n/2})$, substantially better than Grover, but such a conclusion is not analytically supported as the average of the inverse probability can be much larger than the inverse of the average probability. Nevertheless, it provides intriguing evidence in favor of such a conclusion. Further numerical evidence that QAOA may be effective as an exact algorithm was provided in \cite{shaydulin2023evidenceQAOA}, which numerically assessed the performance of QAOA on instances of the Low Autocorrelation Binary Sequences (LABS) problem up to $n=40$, although compared to the best classical heuristic solver, the advantage appeared to be subquadratic. 
+%
+\item Second, we consider the \hyperref[prim:QuantumAdiabaticAlgorithm]{quantum adiabatic algorithm} \cite{farhi2000QCompAdiabatic, albash2018AQCreview}. The standard approach, as applied to binary optimization problems, is to start in the state $\ket{+}$ and evolve by a Hamiltonian that interpolates along a path $H(s)$ parameterized by $s \in [0,1]$, given by
+\begin{equation}\label{eq:adiabatic_interpolation}
+    H(s) = (1-s)(-X) + s C\,.
+\end{equation}
+It is important to note that the ground state of $H(0)$ is $\ket{+}$ and the ground state of $H(1)$ is $\ket{z^*}$. This evolution can be simulated on a fault-tolerant gate-based quantum computer using \hyperref[prim:HamiltonianSimulation]{Hamiltonian simulation}, and its running time is dominated by the inverse of the minimum spectral gap $\Delta_{\min}$ of $H(s)$. That is, the gate complexity to run the algorithm and produce $\ket{z^*}$ scales as at least  $\Delta_{\min}^{-1} $ and possibly a larger power of $\Delta_{\min}^{-1}$. Much numerical work has been done on the performance of the adiabatic algorithm on small instances of combinatorial optimization problems, but it generally lacks analytical guarantees. The expectation is that $\Delta_{\min}$ will be exponentially small \cite{knysh2010relevance, young2010firstOrderAdiabatic, hen2011exponentialAdiabatic} in $n$ (or worse, see, e.g., \cite{altshuler2010AndersonLocalization, wecker2016trainingQuantumOptimizer}), meaning the running time of the algorithm is exponentially large, but it remains possible that it surpasses the $\mathcal{O}^*(2^{0.5n})$ running time of Grover's algorithm in some cases, and could in principle deliver a superquadratic speedup. 
+%
+\item Third, we consider the \emph{short-path} algorithm studied in~\cite{hastings2018ShortPathQuantum, hastings2018weaker,hastings2019shortPathToyModel} and a dual version of the algorithm studied in~\cite{dalzell2022mindthegap}. The goal of these algorithms was to be able to provide a rigorous guarantee that the algorithm can find $z^*$ in time $2^{(0.5-c)n}$ for some value of $c>0$. Similar to the adiabatic algorithm, the  short-path algorithm also considers a single-parameter family of Hamiltonians
+\begin{equation}
+    H(s) = (1-s) f_X\left(-\frac{X}{n}\right) + s f_Z\left(\frac{C}{|E^*|}\right)\label{eq:short_path}
+\end{equation}
+where $f_X, f_Z: \mathbb{R} \rightarrow \mathbb{R}$ are monotonic filter functions, and each term $X/n$ and $C/|E^*|$ are normalized to have minimum value $-1$. The idea of the short-path algorithm is to, rather than evolve smoothly from $s=0$ to $s=1$, perform a pair of discrete ``jumps.'' The first jump goes from the ground state $\ket{+}$ at $s=0$ to the ground state $\ket{\psi_b}$ of an intermediate point with $s=b$. The second jump goes from $\ket{\psi_b}$ to the ground state $\ket{z^*}$ at $s=1$. The jumps are accomplished with \hyperref[prim:QPE]{quantum phase estimation} (or more advanced versions utilizing the \hyperref[prim:QSVT]{quantum singular value transformation}) of the Hamiltonian $H_b$ combined with \hyperref[prim:AmpAmp]{amplitude amplification}. The running time of the algorithm is \cite[Theorem 1]{dalzell2022mindthegap}
+\begin{equation}\label{eq:short_path_runtime}
+    \mathrm{poly}(n) \cdot \frac{1}{\Delta} \cdot \left(\frac{1}{|\braket{+}{\psi_b}|} + \frac{1}{|\braket{\psi_b}{z^*}|}\right)\,,
+\end{equation}
+where $\Delta$ is the spectral gap of the Hamiltonian $H(b)$. The $\Delta^{-1}$ factor comes from the need to perform phase estimation at $\bigO{\Delta}$ resolution to successfully prepare $\ket{\psi_b}$, and the two additive inverse overlap terms represent the number of rounds of amplitude amplification for the first and second jumps, respectively. In~\cite{hastings2018ShortPathQuantum}, filter functions $f_X(x) = x^K$ for odd integers $K$ (e.g.~$K=3$) and $f_Z(x) = x$ were chosen, and $b$ was chosen close to 1, such that the first term of Eq.~\eqref{eq:short_path} could be viewed as a small perturbation of the second term. If $C$ is an instance of $\mathsf{MAX}$-$\mathsf{E}k$-$\mathsf{LIN2}$, i.e.~if it is a polynomial for which all monomials are degree exactly $k$, then it was shown that certain conditions on the spectral density of $C$ near the optimal cost value imply sufficient analytic control of $\Delta$ and the other parameters in Eq.~\eqref{eq:short_path_runtime} such that the algorithm runs in time $\mathcal{O}^*(2^{(0.5-c)n})$ for $c  > 0$. However, it remained unclear when these conditions were met. Inspired by~\cite{hastings2018ShortPathQuantum},~\cite{dalzell2022mindthegap} proposed using the filter functions $f_X(x) = x$ and $f_Z(x) = \min(0,(x+1-\eta)/\eta)$ for a fixed choice of $\eta \in [0,1]$, and chose a value of $s$ close to 0 (rather than close to 1). In this sense, the algorithm in~\cite{dalzell2022mindthegap} is dual to that of~\cite{hastings2018ShortPathQuantum}. These modifications allowed additional statements to be proved. For example, it was unconditionally shown that the algorithm solves $k$-$\SAT$ (whether or not a formula has a fully satisfiable solution) in time $\mathcal{O}^*(2^{(0.5-c)n})$ for a (small) constant $c > 0$, and that the same is true for typical instances of the SK model and its higher-body generalization ($p$-spin model), a polynomial speedup over Grover's algorithm and superquadratic advantage over classical exhaustive search. 
+\end{itemize}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Existing error corrected resource estimates}
+
+Reference~\cite{sanders2020FTQCforCombOpt} compiled resource estimates for various primitive tasks related to combinatorial optimization. For example, it estimated that for an $n=512$ instance of the SK model, implementing a single QAOA step $e^{-i\beta_j X}e^{-i\gamma_j C}$ would require $577$ logical qubits and  $5.0 \times 10^5$ Toffoli gates. A similar estimate would hold for performing a single step of adiabatic evolution with a first-order \hyperref[prim:ProductFormulae]{product formula}. The total logical estimate for finding $z^*$ would be the product of the depth of the circuit and any number of repetitions / rounds of amplitude amplification. An error-corrected estimate could then be computed for a specific \hyperref[prim:FTQC]{fault-tolerant architecture}. Without knowing the number of repetitions, it is hard to give precise estimates, but a rough attempt was made in~\cite{babbush2021FocusBeyondQuadratic} for different speedup factors. There, under different possible assumptions on the amount of classical parallelism available, a breakeven point was estimated for different possible polynomial speedups (quadratic, cubic, quartic). It was found that with a quartic speedup, the breakeven point could be reasonable (on the order of seconds to hours) even assuming the availability of classical parallelism.   
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Caveats}
+
+There are several caveats. The most salient one is that for most of the algorithms above, there is no provable beyond-Grover advantage. Meanwhile, in the case of~\cite{dalzell2022mindthegap}, the size of the provable beyond-Grover advantage is miniscule. The prospect of these algorithms is thus left to extrapolations from numerical simulations carried out at very small instance sizes and speculation based on physical principles. 
+
+
+
+A second important caveat is that to deliver practical superquadratic speedups, the performance of the quantum algorithm needs to be compared to the best classical algorithm, which is often substantially better than the $\mathcal{O}^*(2^n)$ running time of exhaustive enumeration.  For example, $3$-$\SAT$ problems are classically solvable in $\mathcal{O}^*(2^{0.39n})$ time \cite{dueholm2019fasterKSAT}. 
+
+Along these lines, a third caveat is the existence of classical ``Quantum Monte Carlo'' algorithms (see, e.g., \cite{farhi2009smallGapsDifferentPaths,bravyi2015qmcStoquastic,jarret2016diffusionMonteCarlo,crosson2016simulatedQuantumAnnealing, crosson2020classicalSimulationIsingModels}), which can, under certain conditions, classically simulate the quantum algorithms described above. This is because the Hamiltonians in Eqs.~\eqref{eq:adiabatic_interpolation} and \eqref{eq:short_path} are \emph{stoquastic} Hamiltonians, defined by the property that their off-diagonal matrix elements are non-positive (when written in the computational basis). Stoquasticity implies that the ground state of the Hamiltonian can be written such that all amplitudes are non-negative real numbers \cite{bravyi2010ComplexityOfStoqFrustFreeHam}, meaning that these Hamiltonians avoid the so-called ``sign problem'' enabling the potential application of Quantum Monte Carlo techniques. To be clear, it remains possible that quantum algorithms for these combinatorial optimization problems involving stoquastic Hamiltonians can evade classical simulation---indeed, superpolynomial oracle separations have been shown between classical computation and adiabatic quantum computation restricted to stoquastic paths \cite{hastings2020PowerOfAdiabaticNoSign, gilyen2020ExpAdvAdiabStoqQC}---but it is something to keep in mind when designing algorithms based on stoquastic Hamiltonians.
+
+A final caveat is that the quantum algorithms described here are typically not amenable to parallelization, although in principle QAOA could be parallelized if one opts not to use amplitude amplification (resulting in worse asymptotic complexity). This lies in stark contrast to many classical optimization algorithms for exact combinatorial optimization which are highly parallelizable, a feature that can be exploited to significantly reduce the runtime of these classical algorithms on high-performance computers, making achieving practical quantum advantage more difficult \cite{babbush2021FocusBeyondQuadratic}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Comparable classical complexity and challenging instance sizes}
+
+For many binary optimization problems, there exist classical algorithms that exploit the structure of the problem to perform significantly better than exhaustive search. For example, the best 3-$\SAT$ algorithm runs in time $\mathcal{O}^*(2^{0.39n})$ and in general $k$-$\SAT$ can be solved in time $2^{(1-\Omega(1/k))n}$ \cite{dueholm2019fasterKSAT}. This running time suggests the solution will be impractical once $n$ is on the order of 100. The algorithm analyzed in~\cite{dueholm2019fasterKSAT} is designed for the worst case, and is likely not the best practical algorithm for typical instances. For random instances, the hardness of $k$-$\SAT$ depends sensitively on the clause-to-variable ratio $\alpha$. Remarkably, heuristic algorithms can succeed at finding a satisfiable solution for typical instances with thousands or even tens of thousands of variables even very close to the satisfiability threshold $\alpha_c$ where most instances become unsatisfiable (e.g.,~\cite{marino2016backtracking}). However, these algorithms are expected to fail sufficiently close to the satisfiability threshold and in the worst case. 
+
+Similarly, the SK model admits a classical branch-and-bound algorithm guaranteed to run in time $2^{0.45n}$ (for a large fraction of instances) and likely better than that in practice \cite{montanaro2019QBranchAndBound}. However, once the interaction degree becomes larger than 2, the problem becomes significantly harder. The branch-and-bound algorithm is not known to generalize to the $p$-spin model, and for $p \geq 3$ there is no known classical algorithm that provably achieves $2^{(1-c)n}$ for any constant $c$ (although it has not garnered much attention, see \cite{dalzell2022mindthegap}). Similarly, in contrast to $k$-$\SAT$, the $\mathsf{MAX}$-$k$-$\SAT$ problem (i.e.~the version of the problem that asks for the optimal assignment even if it does not satisfy all the clauses) only has a $\mathcal{O}^*(2^{(1-c)n})$ time algorithm for $k=2$, and, notably, this algorithm requires exponential space \cite{williams2005algorithm2CSP}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Speedup}
+
+As there are generally no rigorous running time guarantees for the quantum algorithms, the speedup cannot be estimated. However, it is worth emphasizing that for hard combinatorial optimization problems, the speedup could be superquadratic, but it is not expected to be superpolynomial.  
+
+The rigorous results of~\cite{dalzell2022mindthegap} establish a beyond-Grover running time, but the only case in which the speedup is beyond quadratic when compared with the best known classical algorithm is the $p$-spin model with $p \geq 3$ (here, the comparison benefits from little work on classical algorithms for the problem). 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{NISQ implementation}
+
+The QAOA approach is amenable to NISQ implementation (assuming one opts not to apply amplitude amplification on top of it), since the quantum circuit one needs to implement is fairly shallow depth. In this case, the effect of uncorrected errors in the NISQ device may degrade the performance (and require more repetitions to extract the optimal bit string $z^*$). Similarly, on a NISQ quantum annealer \cite{kadowaki1998Annealing, albash2018AQCreview}, one could run a noisy version of the quantum adiabatic algorithm and repeat until finding the optimal bit string $z^*$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\subsubsection*{Outlook}
+
+For quantum computers to be impactful for exact combinatorial optimization, one of two things must occur: (1) great advancements to the expected underlying clock speeds of quantum hardware and the \hyperref[prim:FTQC]{overheads of fault-tolerant quantum computing}, or (2) the development of quantum algorithms that go significantly beyond the quadratic speedup provided by Grover's algorithm. On the one hand, ideas have been proposed that could potentially deliver such a speedup, but on the other hand, in all cases there are no provable guarantees, or the provable guarantees are very small. Much more attention must be devoted to studying these quantum algorithms and developing new ones if we are to leverage them into actual practical advantages, especially given the extensive amount of work developing sophisticated classical algorithms for these problems.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+%%
+\printbibliography[heading=secbib,segment=\therefsegment]
+	
+\end{refsection}
